@@ -1,5 +1,7 @@
 # Focus Vault 🛡️
 
+[![Download APK](https://img.shields.io/badge/Download-APK-2ea44f?style=for-the-badge&logo=android)](https://github.com/Prathap2349/Focus-Vault/raw/main/FocusVault.apk)
+
 **Focus Vault** (formerly Stay Focused) is a premium, privacy-first Android application designed to help you reclaim your time, block distractions, and build better digital habits. Built natively for Android, it features unbypassable blocking mechanics, comprehensive analytics, and a beautiful dark-mode-first UI.
 
 ## ✨ Key Features
