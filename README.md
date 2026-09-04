@@ -37,7 +37,7 @@ None of your focus sessions, app activity, or scheduling data are ever uploaded 
 ### Building the Project
 1. Clone this repository:
    \`\`\`bash
-   git clone https://github.com/Prathap2349/Stay-Focused.git
+   git clone https://github.com/Prathap2349/Focus-Vault.git
    \`\`\`
 2. Open the project in **Android Studio**.
 3. Sync Gradle files.
