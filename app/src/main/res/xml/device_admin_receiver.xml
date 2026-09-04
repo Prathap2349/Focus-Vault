@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No special policies (password, wipe, etc.) are actually enforced - the only thing we
+     want from Device Admin status is the extra OS-level friction it adds before this app
+     can be uninstalled ("first deactivate device admin"), which is what onDisableRequested
+     below warns about. -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies />
+</device-admin>

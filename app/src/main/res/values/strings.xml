@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Focus Vault</string>
+    <string name="widget_description">Resize freely — shows more detail the bigger you make it.</string>
+    <string name="accessibility_service_description">Focus Vault uses this to detect when a blocked app is opened and show a block screen. It does not read any personal content on screen.</string>
+    <string name="tagline">Your time, locked and secured.</string>
+
+    <string name="strict_mode_warning_title">You\'re about to enter Strict Mode</string>
+    <string name="strict_mode_warning_body">Once this session starts, the selected apps and sites are locked for the full timer duration. There is no early exit, no emergency unlock, and no pause button. Only when the timer reaches zero will they unlock automatically.\n\nAre you sure you\'re ready to commit?</string>
+    <string name="strict_mode_confirm_cta">Yes, lock me in</string>
+
+    <string name="lock_mode_warning_title">Set up Lock Mode</string>
+    <string name="lock_mode_warning_body">Lock Mode blocks the selected apps and sites for the full timer duration, but keeps an exit door: your PIN. Stopping early, using an emergency unlock, or changing Focus Vault\'s settings during the session will all ask for this PIN first.\n\nChoose a PIN you\'ll remember - you\'ll need it to get back in.</string>
+    <string name="lock_mode_confirm_cta">Start Lock Mode</string>
+    <string name="lock_pin_hint">4-8 digit PIN</string>
+    <string name="shortcut_start_focus_short">Start Focus</string>
+    <string name="shortcut_start_focus_long">Start Focus Session</string>
+    <string name="shortcut_study_mode_short">Study Mode</string>
+    <string name="shortcut_study_mode_long">Study Focus (50 min)</string>
+    <string name="shortcut_system_health_short">System Health</string>
+    <string name="shortcut_system_health_long">Check System Diagnostics</string>
+</resources>

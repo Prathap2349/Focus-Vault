@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetCompactRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dashboard_card"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/tvWidgetCompactStreak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🔥 0 days"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/tvWidgetCompactMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:text="Not focusing"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <ProgressBar
+        android:id="@+id/progressWidgetCompactGoal"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressTint="@color/brand_primary" />
+
+    <Button
+        android:id="@+id/btnWidgetCompactAction"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:background="@drawable/widget_btn_primary"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="Start Focus"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="12sp" />
+
+</LinearLayout>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="start_focus"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_start_focus_short"
+        android:shortcutLongLabel="@string/shortcut_start_focus_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.stayfocused.app"
+            android:targetClass="com.stayfocused.app.ui.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="study_mode"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_study_mode_short"
+        android:shortcutLongLabel="@string/shortcut_study_mode_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.stayfocused.app"
+            android:targetClass="com.stayfocused.app.ui.PresetsActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="diagnostics"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_system_health_short"
+        android:shortcutLongLabel="@string/shortcut_system_health_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.stayfocused.app"
+            android:targetClass="com.stayfocused.app.ui.DiagnosticsActivity" />
+    </shortcut>
+
+</shortcuts>

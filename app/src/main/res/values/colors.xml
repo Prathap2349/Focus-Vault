@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== "Aurora" palette ===== -->
+    <!-- Primary brand / Focus mode: vivid digital teal -->
+    <color name="brand_primary">#14E0B4</color>
+    <color name="brand_primary_dark">#0A9E82</color>
+    <!-- Accent: warm amber for streaks/energy -->
+    <color name="accent_streak">#FF9F43</color>
+    <!-- Success/unlocked: fresh green, kept distinct from the teal primary -->
+    <color name="success_green">#35D07F</color>
+    <!-- Strict mode: coral-pink warning, warmer/less harsh than pure red -->
+    <color name="strict_red">#FF4667</color>
+    <!-- Lock mode: electric indigo, between calm Focus and alarming Strict -->
+    <color name="lock_blue">#5B6EF5</color>
+    <!-- Gold for XP / rewards -->
+    <color name="gold_xp">#FFD166</color>
+
+    <!-- Gradient stops used by bg_gradient_*.xml and CircularCountdownView rings -->
+    <color name="gradient_normal_start">#14E0B4</color>
+    <color name="gradient_normal_end">#0A9E82</color>
+    <color name="gradient_lock_start">#7C8CFF</color>
+    <color name="gradient_lock_end">#5B6EF5</color>
+    <color name="gradient_strict_start">#FF7A8E</color>
+    <color name="gradient_strict_end">#FF4667</color>
+    <color name="gradient_streak_start">#FFC978</color>
+    <color name="gradient_streak_end">#FF9F43</color>
+
+    <color name="bg_light">#F5F7FA</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="card_surface">#FFFFFF</color>
+    <color name="card_border">#E7EAF0</color>
+    <color name="text_primary">#12131A</color>
+    <color name="text_secondary">#6B7280</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="overlay_dark">#E012131A</color>
+</resources>

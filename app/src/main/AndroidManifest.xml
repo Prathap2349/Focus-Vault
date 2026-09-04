@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <application
+        android:name=".StayFocusedApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.StayFocused"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <activity android:name=".ui.AppSelectionActivity" android:exported="false" />
+        <activity android:name=".ui.WebsiteBlockActivity" android:exported="false" />
+        <activity android:name=".ui.SessionSetupActivity" android:exported="false" />
+        <activity android:name=".ui.DiagnosticsActivity" android:exported="false" />
+        <activity android:name=".ui.PresetsActivity" android:exported="false" />
+        <activity android:name=".ui.SchedulesActivity" android:exported="false" />
+        <activity android:name=".ui.PrivacyCenterActivity" android:exported="false" />
+        <activity android:name=".ui.SettingsActivity" android:exported="false" />
+        <activity
+            android:name=".ui.WidgetQuickStartActivity"
+            android:exported="false"
+            android:theme="@style/Theme.StayFocused.Transparent"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true" />
+
+        <!-- Full-screen block overlay: shown when a blocked app/site is opened -->
+        <activity
+            android:name=".ui.BlockOverlayActivity"
+            android:exported="false"
+            android:theme="@style/Theme.StayFocused.FullScreen"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true" />
+
+        <!-- Strict mode confirmation before a session locks in -->
+        <activity
+            android:name=".ui.StrictModeConfirmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.StayFocused.FullScreen" />
+
+        <!-- Lock mode confirmation + PIN setup before a session starts -->
+        <activity
+            android:name=".ui.LockModeConfirmActivity"
+            android:exported="false"
+            android:theme="@style/Theme.StayFocused.FullScreen" />
+
+        <!-- App-blocking engine. This is a bound accessibility service (never calls
+             startForeground()), so it intentionally does NOT declare a foregroundServiceType. -->
+        <service
+            android:name=".service.AppBlockAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- Website-blocking engine (local VPN, DNS-filtering, no data leaves device) -->
+        <service
+            android:name=".service.FocusVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Local on-device DNS filtering VPN that blocks distracting websites during a focus session." />
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+        <!-- Countdown / session-state foreground service -->
+        <service
+            android:name=".service.SessionTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Shows the live countdown notification for an active focus session and enforces the block list until it ends." />
+        </service>
+
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Adds OS-level friction against accidental/impulsive uninstall while a session
+             is active - see StayFocusedDeviceAdminReceiver for what this can and can't do. -->
+        <receiver
+            android:name=".service.StayFocusedDeviceAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin_receiver" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Home screen widget: a single provider that swaps between tiny/compact/full
+             layouts as the user resizes it, instead of two separate small/medium widgets. -->
+        <receiver
+            android:name=".appwidget.FocusWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_focus_info" />
+        </receiver>
+
+        <!-- Android Quick Settings Tile -->
+        <service
+            android:name=".service.FocusTileService"
+            android:exported="true"
+            android:icon="@drawable/bg_dot"
+            android:label="Stay Focused"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".receiver.ScheduleAlarmReceiver"
+            android:exported="false" />
+
+    </application>
+</manifest>
