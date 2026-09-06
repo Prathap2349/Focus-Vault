@@ -98,8 +98,17 @@ class BlockOverlayActivity : AppCompatActivity() {
             ContextCompat.getColor(this, ringEnd),
             android.graphics.Color.argb(70, 255, 255, 255)
         )
+        binding.ringCountdown.isOrbitalActive = true
+
+        // Clock breathing aura animation
+        com.stayfocused.app.util.AnimationHelper.startBreathingAura(binding.frameCountdownRing)
+
+        // Spring touch physics for action buttons
+        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnGoHome)
+        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnEmergencyUnlockOverlay)
 
         binding.btnGoHome.setOnClickListener {
+            com.stayfocused.app.util.HapticHelper.mediumClick(it)
             val homeIntent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -109,6 +118,7 @@ class BlockOverlayActivity : AppCompatActivity() {
         }
 
         binding.btnEmergencyUnlockOverlay.setOnClickListener {
+            com.stayfocused.app.util.HapticHelper.heavyClick(it)
             val proceed = {
                 if (PrefsManager.canUseEmergencyUnlockToday(this)) {
                     AlertDialog.Builder(this)
@@ -145,17 +155,24 @@ class BlockOverlayActivity : AppCompatActivity() {
     }
 
     private fun startCountdown() {
+        val totalSessionDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
         val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
         if (remaining <= 0) { finish(); return }
 
-        sessionTotalMillis = remaining
-        binding.ringCountdown.progress = 1f
+        val isStrict = PrefsManager.isStrictModeActive(this)
+        val initialRatio = (remaining.toFloat() / totalSessionDuration.toFloat()).coerceIn(0f, 1f)
+        binding.ringCountdown.progress = initialRatio
+        binding.ringCountdown.applyFocusStateColors(isActive = true, isStrict = isStrict, remainingRatio = initialRatio)
+
         ticker = object : CountDownTimer(remaining, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
+                val ratio = (millisUntilFinished.toFloat() / totalSessionDuration.toFloat()).coerceIn(0f, 1f)
                 binding.tvCountdown.text = formatTime(millisUntilFinished)
-                binding.ringCountdown.progress = millisUntilFinished.toFloat() / sessionTotalMillis.toFloat()
+                binding.ringCountdown.progress = ratio
+                binding.ringCountdown.applyFocusStateColors(isActive = true, isStrict = isStrict, remainingRatio = ratio)
             }
             override fun onFinish() {
+                com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameCountdownRing)
                 finish()
             }
         }.start()
@@ -171,6 +188,7 @@ class BlockOverlayActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameCountdownRing)
         ticker?.cancel()
         super.onDestroy()
     }

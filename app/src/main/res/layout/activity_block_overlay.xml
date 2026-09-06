@@ -93,6 +93,7 @@
 
         <!-- Circular Countdown Ring -->
         <FrameLayout
+            android:id="@+id/frameCountdownRing"
             android:layout_width="190dp"
             android:layout_height="190dp"
             android:layout_marginTop="24dp">
@@ -153,7 +154,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:backgroundTint="@color/white"
-            android:textColor="@color/text_primary"
+            android:textColor="#0F172A"
             android:text="🏠 Return to Home"
             android:textStyle="bold" />
 
@@ -164,8 +165,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:backgroundTint="@color/gold_xp"
-            android:textColor="@color/text_primary"
-            android:text="🚨 Emergency unlock" />
+            android:textColor="#0F172A"
+            android:text="🚨 Emergency unlock"
+            android:textStyle="bold" />
 
     </LinearLayout>
 </ScrollView>
