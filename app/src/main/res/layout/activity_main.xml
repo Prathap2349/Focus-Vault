@@ -2,6 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scrollMain"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_light"
@@ -11,16 +12,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="32dp">
 
-        <!-- ===== Header: App Title + Top-Right Settings ===== -->
+        <!-- ===== Header: App Title, Status Pill, Settings Button ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingTop="8dp"
-            android:paddingBottom="16dp">
+            android:paddingTop="6dp"
+            android:paddingBottom="14dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -34,38 +38,231 @@
                     android:layout_height="wrap_content"
                     android:text="Focus Vault"
                     android:textColor="@color/text_primary"
-                    android:textSize="26sp"
-                    android:textStyle="bold" />
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.02" />
 
                 <TextView
                     android:id="@+id/tvGreetingSub"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/tagline"
+                    android:layout_marginTop="2dp"
+                    android:text="Protect your attention."
                     android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Diagnostics / Shield Pill -->
+            <LinearLayout
+                android:id="@+id/cardHeaderShield"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/widget_badge_health"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/tvHeaderShieldIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🛡️"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvHeaderShieldText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Protected"
+                    android:textColor="@color/success_green"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btnSettings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Settings"
-                android:padding="10dp"
+                android:padding="8dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_settings"
                 app:tint="@color/text_primary" />
         </LinearLayout>
 
-        <!-- ===== Protection Status Banner ===== -->
+        <!-- ===== Warning Banners (Permissions) ===== -->
+        <TextView
+            android:id="@+id/tvPermissionWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_badge_warning"
+            android:padding="12dp"
+            android:text="⚠️ Accessibility permission required to block apps · Tap to enable"
+            android:textColor="@color/strict_red"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvNotificationWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_badge_warning"
+            android:padding="12dp"
+            android:text="🔔 Notifications disabled · Tap to allow session countdown alerts"
+            android:textColor="@color/warning_amber"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- ===== HERO CENTERPIECE: Focus Ring & Active Timer ===== -->
+        <LinearLayout
+            android:id="@+id/cardHeroFocus"
+            style="@style/DashboardCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingTop="24dp"
+            android:paddingBottom="24dp">
+
+            <!-- Circular Focus Ring & Digits -->
+            <FrameLayout
+                android:id="@+id/frameFocusRingContainer"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_gravity="center_horizontal">
+
+                <com.stayfocused.app.ui.widget.CircularCountdownView
+                    android:id="@+id/ringGoalProgress"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <!-- Center Content: State Pill, Large Timer, Subtitle -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvHeroStateBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/widget_stat_box"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="READY TO FOCUS"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
+
+                    <TextView
+                        android:id="@+id/tvTimerHeroDigits"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="25:00"
+                        android:textColor="@color/text_primary"
+                        android:textSize="36sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.02" />
+
+                    <TextView
+                        android:id="@+id/tvHeroSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Tap Start to protect"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:maxLines="2" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Hero Action Buttons -->
+            <LinearLayout
+                android:id="@+id/containerHeroActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:orientation="vertical">
+
+                <!-- IDLE: Start Focus Button -->
+                <Button
+                    android:id="@+id/btnStartFocus"
+                    style="@style/PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Start Focus" />
+
+                <!-- ACTIVE: Pause, Stop Early, Emergency -->
+                <LinearLayout
+                    android:id="@+id/containerActiveActions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <Button
+                        android:id="@+id/btnResumeNow"
+                        style="@style/PrimaryButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Resume Focus"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/btnEmergencyMode"
+                        style="@style/SecondaryButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="Pause Session" />
+
+                    <Button
+                        android:id="@+id/btnStopEarly"
+                        style="@style/SecondaryButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Stop Early" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnEmergencyUnlock"
+                    style="@style/StrictButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="🚨 Emergency Unlock"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ===== Smart Protection Status Card ===== -->
         <LinearLayout
             android:id="@+id/cardProtectionStatus"
             style="@style/DashboardCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
+            android:layout_marginBottom="16dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:clickable="true"
@@ -76,7 +273,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
-                android:text="🟢"
+                android:text="🛡️"
                 android:textSize="22sp" />
 
             <LinearLayout
@@ -91,7 +288,7 @@
                     android:layout_height="wrap_content"
                     android:text="System Protection Active"
                     android:textColor="@color/text_primary"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -99,7 +296,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="All systems operational · Tap for diagnostics"
+                    android:text="Your distracting apps stay locked during sessions"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -113,696 +310,297 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- ===== Today's Focus Time + goal ring ===== -->
-        <LinearLayout
-            android:id="@+id/cardGoal"
-            style="@style/DashboardCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true">
-
-            <FrameLayout
-                android:layout_width="76dp"
-                android:layout_height="76dp"
-                android:layout_marginEnd="16dp">
-
-                <com.stayfocused.app.ui.widget.CircularCountdownView
-                    android:id="@+id/ringGoalProgress"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-
-                <TextView
-                    android:id="@+id/tvGoalRingLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="🎯"
-                    android:textSize="22sp" />
-            </FrameLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/SectionHeaderText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Today's Focus Time" />
-
-                <TextView
-                    android:id="@+id/tvTodayMinutes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    tools:text="0 min" />
-
-                <TextView
-                    android:id="@+id/tvRemainingGoal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp"
-                    tools:text="2h 0m left to reach today's goal · Tap to edit" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ===== Current Focus Session (visible only while a session is running) ===== -->
-        <LinearLayout
-            android:id="@+id/cardSessionStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:background="@drawable/bg_gradient_normal"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:padding="24dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tvSessionModeLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔒 Strict Mode Active"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <FrameLayout
-                android:layout_width="180dp"
-                android:layout_height="180dp"
-                android:layout_marginTop="16dp">
-
-                <com.stayfocused.app.ui.widget.CircularCountdownView
-                    android:id="@+id/ringSessionProgress"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-
-                <TextView
-                    android:id="@+id/tvSessionCountdown"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="00:00:00"
-                    android:textColor="@color/white"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
-
-            <LinearLayout
-                android:id="@+id/groupSessionButtons"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal">
-
-                <Button
-                    android:id="@+id/btnStopEarly"
-                    style="@style/PrimaryButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:backgroundTint="@color/white"
-                    android:textColor="@color/text_primary"
-                    android:text="Stop early" />
-
-                <Button
-                    android:id="@+id/btnEmergencyUnlock"
-                    style="@style/PrimaryButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:backgroundTint="@color/gold_xp"
-                    android:textColor="@color/text_primary"
-                    android:text="Emergency unlock (1 left today)" />
-
-                <Button
-                    android:id="@+id/btnEmergencyMode"
-                    style="@style/PrimaryButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:backgroundTint="@color/white"
-                    android:textColor="@color/strict_red"
-                    android:text="🚨 Emergency Mode (pause)" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btnResumeNow"
-                style="@style/PrimaryButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:backgroundTint="@color/white"
-                android:textColor="@color/text_primary"
-                android:text="▶ Resume Now"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <!-- ===== Start & Quick Timers (visible when idle) ===== -->
-        <LinearLayout
-            android:id="@+id/containerQuickStart"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:orientation="vertical">
-
-            <Button
-                android:id="@+id/btnStartFocus"
-                style="@style/PrimaryButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="🚀 Start Focus" />
-
-            <TextView
-                style="@style/SectionHeaderText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:layout_marginBottom="8dp"
-                android:text="Quick Start" />
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btnQuick25"
-                        style="@style/CompactOutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:text="25m" />
-
-                    <Button
-                        android:id="@+id/btnQuick45"
-                        style="@style/CompactOutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:text="45m" />
-
-                    <Button
-                        android:id="@+id/btnQuick60"
-                        style="@style/CompactOutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:text="60m" />
-
-                    <Button
-                        android:id="@+id/btnQuick90"
-                        style="@style/CompactOutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:text="90m" />
-
-                    <Button
-                        android:id="@+id/btnQuick120"
-                        style="@style/CompactOutlinedButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="120m" />
-                </LinearLayout>
-            </HorizontalScrollView>
-        </LinearLayout>
-
-        <!-- ===== Streak / Productivity / This week stat chips ===== -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:id="@+id/cardStreak"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/bg_gradient_streak"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:padding="14dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🔥"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:id="@+id/tvStreakCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0 days"
-                    android:textColor="@color/white"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Streak"
-                    android:textColor="@color/white"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/cardProductivity"
-                style="@style/StatChip"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:layout_marginEnd="6dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:id="@+id/tvProductivityScore"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0%"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Weekly goal"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/cardWeekTotal"
-                style="@style/StatChip"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="6dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📊"
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:id="@+id/tvWeekTotal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0h"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="This week"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ===== Weekly progress chart ===== -->
-        <LinearLayout
-            style="@style/DashboardCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:orientation="vertical">
-
-            <TextView
-                style="@style/SectionHeaderText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Weekly Progress" />
-
-            <com.stayfocused.app.ui.widget.WeeklyBarChartView
-                android:id="@+id/weeklyChart"
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:layout_marginTop="12dp" />
-
-            <TextView
-                android:id="@+id/tvWeekChartCaption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                tools:text="Dashed line = your daily goal" />
-        </LinearLayout>
-
-
+        <!-- ===== Quick Focus Presets Section ===== -->
         <TextView
-            android:id="@+id/tvPermissionWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_dashboard_card"
-            android:padding="12dp"
-            android:text="⚠️ Accessibility permission needed for app blocking to work. Tap here to enable it."
-            android:textColor="@color/strict_red"
-            android:visibility="gone"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/tvNotificationWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_dashboard_card"
-            android:padding="12dp"
-            android:text="🔔 Turn on notifications so you're alerted when a session ends."
-            android:textColor="@color/strict_red"
-            android:visibility="gone"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <!-- ===== This week statistics ===== -->
-        <TextView
-            style="@style/SectionHeaderText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:layout_marginBottom="10dp"
-            android:text="Statistics" />
+            android:layout_marginBottom="8dp"
+            android:text="QUICK PRESETS"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
 
-        <LinearLayout
-            style="@style/DashboardCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="14dp"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/tvStatTotalHours"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    tools:text="0h" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Total hours"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:background="@color/card_border" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/tvStatAvgSession"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    tools:text="0 min" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Avg session"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:background="@color/card_border" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/tvStatLongestSession"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    tools:text="0 min" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Longest"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ===== Smart Insights Tip Card ===== -->
-        <LinearLayout
-            android:id="@+id/cardSmartInsight"
-            style="@style/DashboardCard"
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
-                android:text="💡"
-                android:textSize="22sp" />
-
-            <TextView
-                android:id="@+id/tvSmartInsight"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp"
-                tools:text="Tip: Even short 25-minute Pomodoro sessions protect your daily streak." />
-        </LinearLayout>
-
-        <!-- ===== Recent sessions ===== -->
-        <TextView
-            style="@style/SectionHeaderText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:text="Recent Sessions" />
-
-        <LinearLayout
-            style="@style/DashboardCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:orientation="vertical">
+            android:scrollbars="none">
 
             <LinearLayout
-                android:id="@+id/containerRecentSessions"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvRecentSessionsEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="No sessions yet — start your first focus session above."
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:visibility="gone" />
-        </LinearLayout>
+                <Button
+                    android:id="@+id/btnQuick25"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="⚡ 25 min" />
 
-        <!-- ===== Manage: setup shortcuts ===== -->
-        <TextView
-            style="@style/SectionHeaderText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:text="Manage" />
+                <Button
+                    android:id="@+id/btnQuick45"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="🎯 45 min" />
 
+                <Button
+                    android:id="@+id/btnQuick60"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="📚 60 min" />
+
+                <Button
+                    android:id="@+id/btnQuick90"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="💻 90 min" />
+
+                <Button
+                    android:id="@+id/btnQuick120"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌙 Deep 2h" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- ===== Quick Management Hub ===== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="16dp"
             android:orientation="horizontal">
 
             <LinearLayout
                 android:id="@+id/btnManageApps"
-                style="@style/DashboardCard"
+                style="@style/StatChip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
-                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📱 Blocked Apps"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:text="📱"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/tvBlockedAppsCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="0 selected"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_marginTop="4dp"
+                    android:text="Blocked Apps"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/btnManageSites"
-                style="@style/DashboardCard"
+                style="@style/StatChip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                android:orientation="vertical"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
                 android:clickable="true"
                 android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🌐 Blocked Sites"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:text="🌐"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/tvBlockedSitesCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="0 selected"
-                    android:textColor="@color/text_secondary" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Presets & Schedules -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:id="@+id/btnManagePresets"
-                style="@style/DashboardCard"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🎯 Focus Presets"
+                    android:layout_marginTop="4dp"
+                    android:text="Websites"
                     android:textColor="@color/text_primary"
-                    android:textSize="15sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvPresetsCount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="5 templates"
-                    android:textColor="@color/text_secondary" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/btnManageSchedules"
-                style="@style/DashboardCard"
+                style="@style/StatChip"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
-                android:orientation="vertical"
                 android:clickable="true"
                 android:focusable="true">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⏰ Schedules"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:text="⏰"
+                    android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/tvSchedulesCount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Auto-start focus"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_marginTop="4dp"
+                    android:text="Schedules"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- ===== Goal & Weekly Analytics Card ===== -->
+        <LinearLayout
+            android:id="@+id/cardGoal"
+            style="@style/DashboardCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="TODAY'S GOAL"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvStreakBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/widget_badge_streak"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="🔥 7d streak"
+                    android:textColor="@color/accent_streak"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvGoalToday"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="86 / 120 min"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvGoalRemaining"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="34 minutes remaining to reach goal"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <ProgressBar
+                android:id="@+id/progressGoalBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="14dp"
+                android:max="100"
+                android:progress="72"
+                android:progressTint="@color/brand_primary" />
+
+            <!-- 7-Day Focus Chart -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="THIS WEEK'S FOCUS"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <com.stayfocused.app.ui.widget.WeeklyBarChartView
+                android:id="@+id/chartWeekly"
+                android:layout_width="match_parent"
+                android:layout_height="90dp" />
+        </LinearLayout>
+
+        <!-- ===== Recent Sessions / History ===== -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="RECENT SESSIONS"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
+
+            <Button
+                android:id="@+id/btnManagePresets"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Presets"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Empty State for History -->
+        <TextView
+            android:id="@+id/tvEmptySessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_stat_box"
+            android:padding="20dp"
+            android:text="Your focus history starts here.\nComplete your first session to track progress."
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/containerRecentSessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
     </LinearLayout>
 </ScrollView>

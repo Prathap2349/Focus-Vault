@@ -20,10 +20,12 @@ class DiagnosticsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDiagnosticsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        com.stayfocused.app.util.EdgeToEdge.apply(this, binding.root, useDarkIcons = !com.stayfocused.app.util.EdgeToEdge.isNightModeActive(this))
+
+        binding.btnBack.setOnClickListener { finish() }
 
         binding.btnRunFullTest.setOnClickListener {
+            com.stayfocused.app.util.HapticHelper.mediumClick(it)
             runDiagnostics(showToast = true)
         }
     }

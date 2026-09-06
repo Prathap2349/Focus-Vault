@@ -18,6 +18,7 @@ object PrefsManager {
     private const val KEY_SESSION_MODE = "session_mode"
     private const val KEY_SESSION_STATE = "session_state"
     private const val KEY_SESSION_END = "session_end"
+    private const val KEY_SESSION_START = "session_start"
     private const val KEY_EMERGENCY_USED = "emergency_used"
     private const val KEY_EMERGENCY_DAY = "emergency_day"
     private const val MAX_EMERGENCY_PER_DAY = 1
@@ -94,12 +95,19 @@ object PrefsManager {
     }
 
     fun setSession(context: Context, mode: SessionMode, state: SessionState, endTimeMillis: Long) {
-        prefs(context).edit()
+        val editor = prefs(context).edit()
             .putString(KEY_SESSION_MODE, mode.name)
             .putString(KEY_SESSION_STATE, state.name)
             .putLong(KEY_SESSION_END, endTimeMillis)
-            .apply()
+        if (state.isLive && prefs(context).getLong(KEY_SESSION_START, 0L) <= 0L) {
+            editor.putLong(KEY_SESSION_START, System.currentTimeMillis())
+        } else if (!state.isLive) {
+            editor.remove(KEY_SESSION_START)
+        }
+        editor.apply()
     }
+
+    fun getSessionStartTime(context: Context): Long = prefs(context).getLong(KEY_SESSION_START, 0L)
 
     fun getSessionMode(context: Context): SessionMode {
         val raw = prefs(context).getString(KEY_SESSION_MODE, SessionMode.NORMAL.name)
@@ -243,6 +251,40 @@ object PrefsManager {
 
     fun setReduceMotion(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_REDUCE_MOTION, enabled).apply()
+    }
+
+    fun isHapticFeedbackEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("haptic_feedback_enabled", true)
+
+    fun setHapticFeedbackEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("haptic_feedback_enabled", enabled).apply()
+    }
+
+    fun isHapticsEnabled(context: Context): Boolean = isHapticFeedbackEnabled(context)
+    fun setHapticsEnabled(context: Context, enabled: Boolean) = setHapticFeedbackEnabled(context, enabled)
+
+    fun isSoundEffectsEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("sound_effects_enabled", false)
+
+    fun setSoundEffectsEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("sound_effects_enabled", enabled).apply()
+    }
+
+    fun isSoundEnabled(context: Context): Boolean = isSoundEffectsEnabled(context)
+    fun setSoundEnabled(context: Context, enabled: Boolean) = setSoundEffectsEnabled(context, enabled)
+
+    fun isAuraAnimationEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("aura_animation_enabled", true) && !isReduceMotion(context)
+
+    fun setAuraAnimationEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("aura_animation_enabled", enabled).apply()
+    }
+
+    fun isStartCountdownAnimationEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("countdown_animation_enabled", true)
+
+    fun setStartCountdownAnimationEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("countdown_animation_enabled", enabled).apply()
     }
 
     fun getWeeklyGoalMinutes(context: Context): Int =

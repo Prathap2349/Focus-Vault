@@ -132,4 +132,35 @@ object AnimationHelper {
             }
             .start()
     }
+
+    private val activeAnimators = java.util.WeakHashMap<View, android.animation.ValueAnimator>()
+
+    /**
+     * Signature Focus Aura: Extremely subtle, slow breathing scale (1.0 -> 1.018 -> 1.0 over 2.6s)
+     * Lifecycle-safe and bypassable via Reduced Motion.
+     */
+    fun startBreathingAura(view: View) {
+        if (isReduceMotion(view.context)) return
+        stopBreathingAura(view)
+
+        val animator = android.animation.ValueAnimator.ofFloat(1.0f, 1.018f, 1.0f).apply {
+            duration = 2600L
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            repeatMode = android.animation.ValueAnimator.RESTART
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener { va ->
+                val scale = va.animatedValue as Float
+                view.scaleX = scale
+                view.scaleY = scale
+            }
+        }
+        activeAnimators[view] = animator
+        animator.start()
+    }
+
+    fun stopBreathingAura(view: View) {
+        activeAnimators.remove(view)?.cancel()
+        view.scaleX = 1.0f
+        view.scaleY = 1.0f
+    }
 }

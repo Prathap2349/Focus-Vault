@@ -20,14 +20,14 @@ data class ThemeColors(
 object ThemeManager {
 
     enum class Palette(val key: String, val displayName: String, val previewColor: String) {
-        AURORA("aurora", "Aurora Teal", "#14E0B4"),
+        AURORA("aurora", "Focus Indigo", "#6366F1"),
         MIDNIGHT("midnight", "Midnight Violet", "#7C5CFF"),
         OCEAN("ocean", "Ocean Blue", "#00B4D8"),
-        FOREST("forest", "Forest Emerald", "#2EC4B6"),
-        SUNSET("sunset", "Sunset Coral", "#FF6B6B"),
-        MINIMAL("minimal", "Minimal Slate", "#94A3B8"),
+        FOREST("forest", "Forest Emerald", "#14B8A6"),
+        SUNSET("sunset", "Sunset Amber", "#F59E0B"),
+        MINIMAL("minimal", "Minimal Slate", "#64748B"),
         AMOLED_BLACK("amoled_black", "AMOLED Black", "#000000"),
-        DYNAMIC("dynamic", "Dynamic (Material You)", "#3F51B5");
+        DYNAMIC("dynamic", "Dynamic (Material You)", "#6366F1");
 
         companion object {
             fun fromKey(key: String): Palette =
@@ -50,14 +50,14 @@ object ThemeManager {
         val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val isAmoled = isNight && (palette == Palette.AMOLED_BLACK || PrefsManager.isAmoledMode(context))
 
-        val baseBg = if (isAmoled) Color.BLACK else if (isNight) Color.parseColor("#0D0E14") else Color.parseColor("#F5F7FA")
-        val baseCard = if (isAmoled) Color.parseColor("#08080A") else if (isNight) Color.parseColor("#171923") else Color.WHITE
+        val baseBg = if (isAmoled) Color.BLACK else if (isNight) Color.parseColor("#0B0C10") else Color.parseColor("#F8FAFC")
+        val baseCard = if (isAmoled) Color.parseColor("#08080A") else if (isNight) Color.parseColor("#13141C") else Color.WHITE
 
         return when (palette) {
             Palette.MIDNIGHT -> ThemeColors(
                 primary = Color.parseColor("#7C5CFF"),
                 primaryDark = Color.parseColor("#5236DB"),
-                accent = Color.parseColor("#00F5D4"),
+                accent = Color.parseColor("#14B8A6"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight
@@ -65,23 +65,23 @@ object ThemeManager {
             Palette.OCEAN -> ThemeColors(
                 primary = Color.parseColor("#00B4D8"),
                 primaryDark = Color.parseColor("#0077B6"),
-                accent = Color.parseColor("#90E0EF"),
+                accent = Color.parseColor("#14B8A6"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight
             )
             Palette.FOREST -> ThemeColors(
-                primary = Color.parseColor("#2EC4B6"),
-                primaryDark = Color.parseColor("#1A936F"),
-                accent = Color.parseColor("#88D49E"),
+                primary = Color.parseColor("#14B8A6"),
+                primaryDark = Color.parseColor("#0D9488"),
+                accent = Color.parseColor("#22C55E"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight
             )
             Palette.SUNSET -> ThemeColors(
-                primary = Color.parseColor("#FF6B6B"),
-                primaryDark = Color.parseColor("#EE5253"),
-                accent = Color.parseColor("#FFD166"),
+                primary = Color.parseColor("#F59E0B"),
+                primaryDark = Color.parseColor("#D97706"),
+                accent = Color.parseColor("#6366F1"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight
@@ -95,9 +95,9 @@ object ThemeManager {
                 isDark = isNight
             )
             Palette.AMOLED_BLACK -> ThemeColors(
-                primary = Color.parseColor("#14E0B4"),
-                primaryDark = Color.parseColor("#0A9E82"),
-                accent = Color.parseColor("#FF9F43"),
+                primary = Color.parseColor("#6366F1"),
+                primaryDark = Color.parseColor("#4F46E5"),
+                accent = Color.parseColor("#14B8A6"),
                 background = Color.BLACK,
                 cardBackground = Color.parseColor("#0A0A0C"),
                 isDark = true
@@ -107,16 +107,16 @@ object ThemeManager {
                 ThemeColors(
                     primary = primaryColor,
                     primaryDark = ContextCompat.getColor(context, R.color.brand_primary_dark),
-                    accent = ContextCompat.getColor(context, R.color.accent_streak),
+                    accent = ContextCompat.getColor(context, R.color.secondary_teal),
                     background = baseBg,
                     cardBackground = baseCard,
                     isDark = isNight
                 )
             }
             Palette.AURORA -> ThemeColors(
-                primary = Color.parseColor("#14E0B4"),
-                primaryDark = Color.parseColor("#0A9E82"),
-                accent = Color.parseColor("#FF9F43"),
+                primary = Color.parseColor("#6366F1"),
+                primaryDark = Color.parseColor("#4F46E5"),
+                accent = Color.parseColor("#14B8A6"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight

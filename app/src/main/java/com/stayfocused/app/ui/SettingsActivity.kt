@@ -88,6 +88,30 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, if (next) "Reduce Motion enabled" else "Reduce Motion disabled", Toast.LENGTH_SHORT).show()
         }
 
+        binding.btnAuraAnimation.setOnClickListener {
+            val next = !PrefsManager.isAuraAnimationEnabled(this)
+            PrefsManager.setAuraAnimationEnabled(this, next)
+            binding.switchAura.isChecked = next
+            Toast.makeText(this, if (next) "Breathing Aura enabled" else "Breathing Aura disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnHaptics.setOnClickListener {
+            val next = !PrefsManager.isHapticsEnabled(this)
+            PrefsManager.setHapticsEnabled(this, next)
+            binding.switchHaptics.isChecked = next
+            if (next) {
+                com.stayfocused.app.util.HapticHelper.mediumClick(it)
+            }
+            Toast.makeText(this, if (next) "Haptic feedback enabled" else "Haptic feedback disabled", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnSound.setOnClickListener {
+            val next = !PrefsManager.isSoundEnabled(this)
+            PrefsManager.setSoundEnabled(this, next)
+            binding.switchSound.isChecked = next
+            Toast.makeText(this, if (next) "Completion sound enabled" else "Completion sound disabled", Toast.LENGTH_SHORT).show()
+        }
+
         binding.btnGoalsConfig.setOnClickListener { showGoalsEditorDialog() }
 
         binding.btnDiagnostics.setOnClickListener {
@@ -130,6 +154,9 @@ class SettingsActivity : AppCompatActivity() {
         refreshGoalsStatus()
         binding.switchAmoled.isChecked = PrefsManager.isAmoledMode(this)
         binding.switchReduceMotion.isChecked = PrefsManager.isReduceMotion(this)
+        binding.switchAura.isChecked = PrefsManager.isAuraAnimationEnabled(this)
+        binding.switchHaptics.isChecked = PrefsManager.isHapticsEnabled(this)
+        binding.switchSound.isChecked = PrefsManager.isSoundEnabled(this)
     }
 
     /**

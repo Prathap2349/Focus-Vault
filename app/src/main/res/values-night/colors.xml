@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark-mode overrides. Brand/accent/mode colors (brand_primary, accent_streak,
-         success_green, strict_red, lock_blue, gold_xp, gradient_*) stay the same as light
-         mode - they're vivid enough to read fine on a dark background and keep the app's
-         identity consistent. Only surface, border, and text colors change here. -->
+    <!-- ===== Dark Theme Semantic Colors (Layered Charcoal Surfaces) ===== -->
+    <!-- Screen Background: Deep near-black charcoal -->
+    <color name="bg_light">#0B0C10</color>
 
-    <!-- Screen background: deep near-black with a faint cool undertone instead of pure
-         black, to feel intentional rather than like a generic OLED theme. -->
-    <color name="bg_light">#0D0E14</color>
-    <!-- Card background: one step lighter than the screen background for elevation. -->
-    <color name="bg_card">#171923</color>
-    <color name="card_border">#262A38</color>
+    <!-- Surface Elevation Hierarchy -->
+    <color name="bg_card">#13141C</color>
+    <color name="card_surface">#13141C</color>
+    <color name="card_surface_elevated">#1A1C26</color>
+    <color name="card_border">#232634</color>
+    <color name="divider">#1E212E</color>
 
-    <color name="text_primary">#F2F3F7</color>
-    <color name="text_secondary">#9AA0AE</color>
+    <!-- Text in Dark Mode -->
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
 
-    <!-- Full-screen block overlay already uses a deliberately near-opaque overlay in both
-         modes, so it stays as-is here for consistency. -->
-    <color name="overlay_dark">#E012131A</color>
+    <!-- Full-Screen Overlay -->
+    <color name="overlay_dark">#F00B0C10</color>
 </resources>

@@ -32,6 +32,7 @@ import com.stayfocused.app.manager.SessionStateManager
 import com.stayfocused.app.util.AppLockGate
 import com.stayfocused.app.util.EdgeToEdge
 import com.stayfocused.app.util.FocusStatsManager
+import com.stayfocused.app.util.HapticHelper
 import com.stayfocused.app.util.PrefsManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -130,34 +131,66 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnSettings.setOnClickListener {
+            HapticHelper.lightClick(it)
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+        binding.cardHeaderShield.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
+        }
         binding.cardProtectionStatus.setOnClickListener {
+            HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
         }
         binding.btnManageApps.setOnClickListener {
+            HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, AppSelectionActivity::class.java)) }
         }
         binding.btnManageSites.setOnClickListener {
+            HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, WebsiteBlockActivity::class.java)) }
         }
         binding.btnManagePresets.setOnClickListener {
+            HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, PresetsActivity::class.java)) }
         }
         binding.btnManageSchedules.setOnClickListener {
+            HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, SchedulesActivity::class.java)) }
         }
-        binding.btnStartFocus.setOnClickListener { showFocusModeSelectionSheet() }
-        binding.btnQuick25.setOnClickListener { openQuickTimer(25 * 60_000L) }
-        binding.btnQuick45.setOnClickListener { openQuickTimer(45 * 60_000L) }
-        binding.btnQuick60.setOnClickListener { openQuickTimer(60 * 60_000L) }
-        binding.btnQuick90.setOnClickListener { openQuickTimer(90 * 60_000L) }
-        binding.btnQuick120.setOnClickListener { openQuickTimer(120 * 60_000L) }
+        binding.btnStartFocus.setOnClickListener {
+            HapticHelper.heavyClick(it)
+            showFocusModeSelectionSheet()
+        }
+        binding.btnQuick25.setOnClickListener {
+            HapticHelper.lightClick(it)
+            openQuickTimer(25 * 60_000L)
+        }
+        binding.btnQuick45.setOnClickListener {
+            HapticHelper.lightClick(it)
+            openQuickTimer(45 * 60_000L)
+        }
+        binding.btnQuick60.setOnClickListener {
+            HapticHelper.lightClick(it)
+            openQuickTimer(60 * 60_000L)
+        }
+        binding.btnQuick90.setOnClickListener {
+            HapticHelper.lightClick(it)
+            openQuickTimer(90 * 60_000L)
+        }
+        binding.btnQuick120.setOnClickListener {
+            HapticHelper.lightClick(it)
+            openQuickTimer(120 * 60_000L)
+        }
         binding.tvPermissionWarning.setOnClickListener { openAccessibilitySettings() }
         binding.tvNotificationWarning.setOnClickListener { requestNotificationPermissionIfNeeded() }
-        binding.cardGoal.setOnClickListener { showGoalEditor() }
+        binding.cardGoal.setOnClickListener {
+            HapticHelper.lightClick(it)
+            showGoalEditor()
+        }
 
         binding.btnStopEarly.setOnClickListener {
+            HapticHelper.mediumClick(it)
             val proceed = {
                 AlertDialog.Builder(this)
                     .setTitle("Stop this focus session?")
@@ -180,9 +213,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnEmergencyUnlock.setOnClickListener { triggerEmergencyUnlockFlow() }
+        binding.btnEmergencyUnlock.setOnClickListener {
+            HapticHelper.mediumClick(it)
+            triggerEmergencyUnlockFlow()
+        }
 
         binding.btnEmergencyMode.setOnClickListener {
+            HapticHelper.mediumClick(it)
             if (PrefsManager.isLockModeActive(this)) {
                 LockPinDialog.promptAndVerify(this) { showEmergencyModeSheet() }
             } else {
@@ -191,6 +228,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnResumeNow.setOnClickListener {
+            HapticHelper.mediumClick(it)
             lifecycleScope.launch {
                 SessionStateManager.resumeSession(this@MainActivity)
                 refreshSessionUi()
@@ -299,16 +337,25 @@ class MainActivity : AppCompatActivity() {
         val report = ProtectionEngine.evaluate(this)
         when (report.status) {
             ProtectionStatus.PROTECTION_ACTIVE -> {
-                binding.tvProtectionStatusIcon.text = "🟢"
+                binding.tvHeaderShieldIcon.text = "🛡️"
+                binding.tvHeaderShieldText.text = "Protected"
+                binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.success_green))
+                binding.tvProtectionStatusIcon.text = "🛡️"
                 binding.tvProtectionStatusTitle.text = "System Protection Active"
                 binding.tvProtectionStatusSub.text = "All protection services running · Checked ${report.getFormattedLastChecked()}"
             }
             ProtectionStatus.PROTECTION_DEGRADED -> {
-                binding.tvProtectionStatusIcon.text = "🟡"
+                binding.tvHeaderShieldIcon.text = "⚠️"
+                binding.tvHeaderShieldText.text = "Attention"
+                binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
+                binding.tvProtectionStatusIcon.text = "⚠️"
                 binding.tvProtectionStatusTitle.text = "Protection Partially Active"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
             }
             ProtectionStatus.PROTECTION_FAILED -> {
+                binding.tvHeaderShieldIcon.text = "✕"
+                binding.tvHeaderShieldText.text = "Action Needed"
+                binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
                 binding.tvProtectionStatusIcon.text = "🔴"
                 binding.tvProtectionStatusTitle.text = "Protection Requires Action"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
@@ -329,43 +376,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Loads today's/this-week's focus stats and updates every stat-driven view on the
-     * dashboard: the goal ring, streak/productivity/week chips, the weekly bar chart, the
-     * statistics row, and the recent sessions list. */
+     * dashboard: the goal progress bar, streak chips, the weekly bar chart, and recent sessions. */
     private fun refreshDashboardStats() {
         lifecycleScope.launch {
             val stats = FocusStatsManager.getDashboardStats(applicationContext)
 
-            // Today's Focus Time + goal ring
+            // Today's Focus Goal
             val goalProgress = if (stats.goalMinutes > 0)
                 (stats.todayMinutes.toFloat() / stats.goalMinutes.toFloat()).coerceIn(0f, 1f)
             else 0f
-            binding.ringGoalProgress.setColors(
-                ContextCompat.getColor(this@MainActivity, R.color.gradient_normal_start),
-                ContextCompat.getColor(this@MainActivity, R.color.gradient_normal_end)
-            )
-            binding.ringGoalProgress.progress = goalProgress
-            binding.tvTodayMinutes.text = formatMinutes(stats.todayMinutes)
+            binding.tvGoalToday.text = "${stats.todayMinutes} / ${stats.goalMinutes} min"
+            binding.progressGoalBar.progress = (goalProgress * 100).toInt()
             val remaining = stats.goalMinutes - stats.todayMinutes
-            binding.tvRemainingGoal.text = if (remaining <= 0)
-                "Goal reached today! 🎉 · Tap to edit"
+            binding.tvGoalRemaining.text = if (remaining <= 0)
+                "Daily goal achieved! 🎉 · Tap to edit"
             else
-                "${formatMinutes(remaining)} left to reach your ${formatMinutes(stats.goalMinutes)} goal · Tap to edit"
+                "${formatMinutes(remaining)} remaining to reach goal · Tap to edit"
 
-            // Streak / productivity / this-week chips
-            binding.tvStreakCount.text = when (stats.streak) {
-                0 -> "Start today"
-                1 -> "1 day"
-                else -> "${stats.streak} days"
-            }
-            binding.tvProductivityScore.text = "${stats.productivityScore}%"
-            binding.tvWeekTotal.text = formatHoursShort(stats.weekTotalMinutes)
+            // Streak Badge
+            binding.tvStreakBadge.text = if (stats.streak > 0) "🔥 ${stats.streak}d streak" else "🌱 Start streak"
 
             // Weekly bar chart
             val primary = ContextCompat.getColor(this@MainActivity, R.color.brand_primary)
             val mutedBar = ColorUtils.setAlphaComponent(primary, 90)
             val goalLine = ContextCompat.getColor(this@MainActivity, R.color.text_secondary)
             val labelColor = ContextCompat.getColor(this@MainActivity, R.color.text_secondary)
-            binding.weeklyChart.setData(
+            binding.chartWeekly.setData(
                 bars = stats.weekByDay.map {
                     com.stayfocused.app.ui.widget.WeeklyBarChartView.Bar(it.label, it.minutes, it.isToday)
                 },
@@ -375,16 +411,6 @@ class MainActivity : AppCompatActivity() {
                 goalLineColor = ColorUtils.setAlphaComponent(goalLine, 130),
                 labelColor = labelColor
             )
-            binding.tvWeekChartCaption.text =
-                "Dashed line = your ${formatMinutes(stats.goalMinutes)} daily goal"
-
-            // Statistics row
-            binding.tvStatTotalHours.text = formatHoursShort(stats.weekTotalMinutes)
-            binding.tvStatAvgSession.text = formatMinutes(stats.avgSessionMinutes)
-            binding.tvStatLongestSession.text = formatMinutes(stats.longestSessionMinutes)
-
-            // Smart Insights Tip
-            binding.tvSmartInsight.text = stats.insights.summaryTip
 
             // Recent sessions
             renderRecentSessions(stats.recentSessions)
@@ -393,11 +419,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderRecentSessions(sessions: List<SessionHistoryEntry>) {
         binding.containerRecentSessions.removeAllViews()
-        binding.tvRecentSessionsEmpty.visibility =
+        binding.tvEmptySessions.visibility =
             if (sessions.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
 
         val whenFormat = SimpleDateFormat("EEE, h:mm a", Locale.getDefault())
-        sessions.forEach { session ->
+        sessions.take(5).forEach { session ->
             val row = ItemRecentSessionBinding.inflate(
                 LayoutInflater.from(this), binding.containerRecentSessions, false
             )
@@ -451,8 +477,6 @@ class MainActivity : AppCompatActivity() {
         val hours = minutes / 60f
         return if (minutes < 60) "${minutes}m" else String.format(Locale.US, "%.1fh", hours)
     }
-
-
 
     private fun openQuickTimer(durationMillis: Long) {
         if (PrefsManager.isSessionCurrentlyActive(this)) return
@@ -517,62 +541,64 @@ class MainActivity : AppCompatActivity() {
             val db = AppDatabase.getInstance(applicationContext)
             val apps = db.blockedAppDao().getAllOnce().count { it.isActive }
             val sites = db.blockedSiteDao().getActiveDomainsOnce().size
-            val presets = db.focusPresetDao().getAllOnce().size
             val schedules = db.scheduledSessionDao().getAllOnce().count { it.isEnabled }
-            binding.tvBlockedAppsCount.text = "$apps selected"
-            binding.tvBlockedSitesCount.text = "$sites selected"
-            binding.tvPresetsCount.text = "$presets templates"
-            binding.tvSchedulesCount.text = if (schedules > 0) "$schedules active" else "None active"
+            binding.tvBlockedAppsCount.text = "$apps Apps"
+            binding.tvBlockedSitesCount.text = "$sites Sites"
+            binding.tvSchedulesCount.text = if (schedules > 0) "$schedules active" else "Schedules"
         }
     }
 
     private fun refreshSessionUi() {
         countdownTicker?.cancel()
         val isActive = PrefsManager.isSessionCurrentlyActive(this)
-        binding.cardSessionStatus.visibility = if (isActive) android.view.View.VISIBLE else android.view.View.GONE
-        binding.containerQuickStart.visibility = if (isActive) android.view.View.GONE else android.view.View.VISIBLE
-        binding.btnStartFocus.isEnabled = !isActive
 
-        if (!isActive) return
+        if (!isActive) {
+            com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            binding.btnStartFocus.visibility = android.view.View.VISIBLE
+            binding.containerActiveActions.visibility = android.view.View.GONE
+            binding.btnEmergencyUnlock.visibility = android.view.View.GONE
+            binding.tvHeroStateBadge.text = "READY TO FOCUS"
+            binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            binding.tvTimerHeroDigits.text = "25:00"
+            binding.tvHeroSubtitle.text = "Tap Start Focus or choose a preset"
+            binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = false, isStrict = false)
+            binding.ringGoalProgress.progress = 0f
+            return
+        }
 
         val mode = PrefsManager.getSessionMode(this)
         val isStrict = mode == SessionMode.STRICT
         val isPaused = PrefsManager.isEmergencyPauseActive(this)
 
-        // Strict Mode: hide every early-exit / pause control entirely - zero exceptions,
-        // ever. Normal and Lock both keep the controls visible - Lock just gates them behind
-        // the PIN dialog set up in onCreate.
-        binding.groupSessionButtons.visibility =
-            if (isStrict || isPaused) android.view.View.GONE else android.view.View.VISIBLE
+        binding.btnStartFocus.visibility = android.view.View.GONE
+        binding.containerActiveActions.visibility = android.view.View.VISIBLE
         binding.btnResumeNow.visibility = if (isPaused) android.view.View.VISIBLE else android.view.View.GONE
-        binding.btnEmergencyUnlock.isEnabled = PrefsManager.canUseEmergencyUnlockToday(this)
-        binding.btnEmergencyUnlock.text = if (binding.btnEmergencyUnlock.isEnabled)
-            "Emergency unlock (1 left today)"
-        else
-            "No emergency unlocks left today"
+        binding.btnEmergencyMode.visibility = if (isStrict || isPaused) android.view.View.GONE else android.view.View.VISIBLE
+        binding.btnStopEarly.visibility = if (isStrict) android.view.View.GONE else android.view.View.VISIBLE
+        binding.btnEmergencyUnlock.visibility = if (!isStrict && !isPaused && PrefsManager.canUseEmergencyUnlockToday(this))
+            android.view.View.VISIBLE else android.view.View.GONE
 
         if (isPaused) {
-            binding.tvSessionModeLabel.text = "⏸️ Blocking paused · ${PrefsManager.getEmergencyPauseLabel(this)}"
-            binding.cardSessionStatus.setBackgroundResource(R.drawable.bg_gradient_paused)
-            binding.ringSessionProgress.setColors(
-                ContextCompat.getColor(this, R.color.gold_xp),
-                ContextCompat.getColor(this, R.color.gold_xp),
-                android.graphics.Color.argb(70, 255, 255, 255)
-            )
+            com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            val pauseLabel = PrefsManager.getEmergencyPauseLabel(this)
+            binding.tvHeroStateBadge.text = "⏸️ PAUSED · ${pauseLabel.uppercase()}"
+            binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
+            binding.tvHeroSubtitle.text = "Protection temporarily paused"
+            binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = true, isStrict = false)
 
             val pauseRemaining = PrefsManager.getEmergencyPauseUntil(this) - System.currentTimeMillis()
-            if (pauseRemaining <= 0) { refreshSessionUi(); return }
+            if (pauseRemaining <= 0) {
+                refreshSessionUi()
+                return
+            }
 
-            binding.ringSessionProgress.progress = 1f
+            binding.ringGoalProgress.progress = 1f
             countdownTicker = object : CountDownTimer(pauseRemaining, 1000L) {
                 override fun onTick(millisUntilFinished: Long) {
-                    binding.tvSessionCountdown.text = formatTime(millisUntilFinished)
-                    binding.ringSessionProgress.progress = millisUntilFinished.toFloat() / pauseRemaining.toFloat()
+                    binding.tvTimerHeroDigits.text = formatTime(millisUntilFinished)
+                    binding.ringGoalProgress.progress = millisUntilFinished.toFloat() / pauseRemaining.toFloat()
                 }
                 override fun onFinish() {
-                    // The pause has simply lapsed (no explicit "resume" write needed - see
-                    // PrefsManager.isEmergencyPauseActive) - just redraw as a normal running
-                    // session again.
                     refreshSessionUi()
                     refreshDashboardStats()
                 }
@@ -580,36 +606,45 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        binding.tvSessionModeLabel.text = when (mode) {
-            SessionMode.STRICT -> "🔒 Strict Mode Active"
-            SessionMode.LOCK -> "🔐 Lock Mode Active"
-            SessionMode.NORMAL -> "🎯 Focus Mode Active"
+        // Active Session
+        com.stayfocused.app.util.AnimationHelper.startBreathingAura(binding.frameFocusRingContainer)
+        when (mode) {
+            SessionMode.STRICT -> {
+                binding.tvHeroStateBadge.text = "🔒 STRICT FOCUS"
+                binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
+                binding.tvHeroSubtitle.text = "Unlocks & pausing disabled"
+            }
+            SessionMode.LOCK -> {
+                binding.tvHeroStateBadge.text = "🔐 LOCK FOCUS"
+                binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.lock_blue))
+                binding.tvHeroSubtitle.text = "PIN required to unlock early"
+            }
+            SessionMode.NORMAL -> {
+                binding.tvHeroStateBadge.text = "🎯 FOCUS ACTIVE"
+                binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.brand_primary))
+                binding.tvHeroSubtitle.text = "Distractions blocked"
+            }
         }
-        // The hero card's whole background is now a mode-colored gradient (rather than
-        // tinting the label text), so the white label/countdown text stays readable in
-        // every mode - see bg_gradient_normal/_lock/_strict.xml.
-        val (heroBgRes, ringStart, ringEnd) = when (mode) {
-            SessionMode.STRICT -> Triple(R.drawable.bg_gradient_strict, R.color.gradient_strict_start, R.color.gradient_strict_end)
-            SessionMode.LOCK -> Triple(R.drawable.bg_gradient_lock, R.color.gradient_lock_start, R.color.gradient_lock_end)
-            SessionMode.NORMAL -> Triple(R.drawable.bg_gradient_normal, R.color.gradient_normal_start, R.color.gradient_normal_end)
-        }
-        binding.cardSessionStatus.setBackgroundResource(heroBgRes)
-        binding.ringSessionProgress.setColors(
-            ContextCompat.getColor(this, ringStart),
-            ContextCompat.getColor(this, ringEnd),
-            android.graphics.Color.argb(70, 255, 255, 255)
-        )
 
+        binding.ringGoalProgress.applyFocusStateColors(isActive = true, isPaused = false, isStrict = isStrict)
+
+        val totalDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
         val remaining = PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()
-        if (remaining <= 0) { refreshSessionUi(); return }
+        if (remaining <= 0) {
+            refreshSessionUi()
+            return
+        }
 
-        binding.ringSessionProgress.progress = 1f
+        binding.tvTimerHeroDigits.text = formatTime(remaining)
+        binding.ringGoalProgress.progress = (remaining.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+
         countdownTicker = object : CountDownTimer(remaining, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
-                binding.tvSessionCountdown.text = formatTime(millisUntilFinished)
-                binding.ringSessionProgress.progress = millisUntilFinished.toFloat() / remaining.toFloat()
+                binding.tvTimerHeroDigits.text = formatTime(millisUntilFinished)
+                binding.ringGoalProgress.progress = (millisUntilFinished.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
             }
             override fun onFinish() {
+                com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
                 refreshSessionUi()
                 refreshDashboardStats()
             }
