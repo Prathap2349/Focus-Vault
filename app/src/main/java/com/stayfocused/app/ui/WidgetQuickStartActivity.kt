@@ -67,7 +67,8 @@ class WidgetQuickStartActivity : AppCompatActivity() {
     }
 
     private fun showTimerSetup(mode: SessionMode) {
-        val sheet = QuickTimerSetupSheet.newInstance(mode)
+        val duration = PrefsManager.getLastChosenDurationMillis(this)
+        val sheet = QuickTimerSetupSheet.newInstance(mode, duration)
         sheet.show(supportFragmentManager, QuickTimerSetupSheet.TAG)
         
         supportFragmentManager.executePendingTransactions()

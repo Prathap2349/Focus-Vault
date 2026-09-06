@@ -103,8 +103,8 @@ class MainActivity : AppCompatActivity() {
         ) { _, result ->
             val modeName = result.getString(FocusModeSelectionSheet.RESULT_MODE) ?: return@setFragmentResultListener
             runCatching { SessionMode.valueOf(modeName) }.getOrNull()?.let { mode ->
-                chosenMode = mode
-                showQuickTimerSetup(mode) 
+                val duration = PrefsManager.getLastChosenDurationMillis(this)
+                startFocusSession(mode, duration)
             }
         }
 
@@ -112,8 +112,10 @@ class MainActivity : AppCompatActivity() {
             QuickTimerSetupSheet.REQUEST_KEY, this
         ) { _, result ->
             val durationMillis = result.getLong(QuickTimerSetupSheet.RESULT_DURATION_MILLIS, 0)
-            if (durationMillis > 0 && chosenMode != null) {
-                startFocusSession(chosenMode!!, durationMillis)
+            if (durationMillis > 0) {
+                PrefsManager.setLastChosenDurationMillis(this, durationMillis)
+                refreshSessionUi()
+                com.stayfocused.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
             }
         }
 
@@ -158,29 +160,39 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, SchedulesActivity::class.java)) }
         }
+
+        // Tapping the centerpiece timer hero opens duration adjustment
+        binding.frameFocusRingContainer.setOnClickListener {
+            if (!PrefsManager.isSessionCurrentlyActive(this)) {
+                HapticHelper.lightClick(it)
+                showCustomDurationPicker()
+            }
+        }
+
         binding.btnStartFocus.setOnClickListener {
             HapticHelper.heavyClick(it)
             showFocusModeSelectionSheet()
         }
-        binding.btnQuick25.setOnClickListener {
+
+        binding.btnQuickCustom.setOnClickListener {
             HapticHelper.lightClick(it)
-            openQuickTimer(25 * 60_000L)
+            showCustomDurationPicker()
+        }
+
+        binding.btnQuick25.setOnClickListener {
+            selectPresetDuration(25 * 60_000L)
         }
         binding.btnQuick45.setOnClickListener {
-            HapticHelper.lightClick(it)
-            openQuickTimer(45 * 60_000L)
+            selectPresetDuration(45 * 60_000L)
         }
         binding.btnQuick60.setOnClickListener {
-            HapticHelper.lightClick(it)
-            openQuickTimer(60 * 60_000L)
+            selectPresetDuration(60 * 60_000L)
         }
         binding.btnQuick90.setOnClickListener {
-            HapticHelper.lightClick(it)
-            openQuickTimer(90 * 60_000L)
+            selectPresetDuration(90 * 60_000L)
         }
         binding.btnQuick120.setOnClickListener {
-            HapticHelper.lightClick(it)
-            openQuickTimer(120 * 60_000L)
+            selectPresetDuration(120 * 60_000L)
         }
         binding.tvPermissionWarning.setOnClickListener { openAccessibilitySettings() }
         binding.tvNotificationWarning.setOnClickListener { requestNotificationPermissionIfNeeded() }
@@ -478,17 +490,19 @@ class MainActivity : AppCompatActivity() {
         return if (minutes < 60) "${minutes}m" else String.format(Locale.US, "%.1fh", hours)
     }
 
-    private fun openQuickTimer(durationMillis: Long) {
+    private fun selectPresetDuration(durationMillis: Long) {
         if (PrefsManager.isSessionCurrentlyActive(this)) return
-        supportFragmentManager.setFragmentResultListener(
-            FocusModeSelectionSheet.REQUEST_KEY, this
-        ) { _, result ->
-            val modeName = result.getString(FocusModeSelectionSheet.RESULT_MODE) ?: return@setFragmentResultListener
-            runCatching { SessionMode.valueOf(modeName) }.getOrNull()?.let { mode ->
-                startFocusSession(mode, durationMillis)
-            }
-        }
-        FocusModeSelectionSheet().show(supportFragmentManager, FocusModeSelectionSheet.TAG)
+        HapticHelper.lightClick(binding.root)
+        PrefsManager.setLastChosenDurationMillis(this, durationMillis)
+        refreshSessionUi()
+        showFocusModeSelectionSheet()
+    }
+
+    private fun showCustomDurationPicker() {
+        if (PrefsManager.isSessionCurrentlyActive(this)) return
+        val currentDuration = PrefsManager.getLastChosenDurationMillis(this)
+        QuickTimerSetupSheet.newInstance(SessionMode.NORMAL, currentDuration)
+            .show(supportFragmentManager, QuickTimerSetupSheet.TAG)
     }
 
     private fun showFocusModeSelectionSheet() {
@@ -496,13 +510,10 @@ class MainActivity : AppCompatActivity() {
         FocusModeSelectionSheet().show(supportFragmentManager, FocusModeSelectionSheet.TAG)
     }
 
-    private fun showQuickTimerSetup(mode: SessionMode) {
-        QuickTimerSetupSheet.newInstance(mode).show(supportFragmentManager, QuickTimerSetupSheet.TAG)
-    }
-
     /** Strict/Lock mode confirmation screens are full activities, but Lite (Normal) mode
      * can start immediately once the timer is set. */
     private fun startFocusSession(mode: SessionMode, durationMillis: Long) {
+        PrefsManager.setLastChosenDurationMillis(this, durationMillis)
         when (mode) {
             SessionMode.STRICT -> {
                 val intent = Intent(this, StrictModeConfirmActivity::class.java)
@@ -533,7 +544,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSessionSetup(mode: SessionMode) {
         chosenMode = mode
-        showQuickTimerSetup(mode)
+        val duration = PrefsManager.getLastChosenDurationMillis(this)
+        QuickTimerSetupSheet.newInstance(mode, duration).show(supportFragmentManager, QuickTimerSetupSheet.TAG)
     }
 
     private fun refreshCounts() {
@@ -559,8 +571,9 @@ class MainActivity : AppCompatActivity() {
             binding.btnEmergencyUnlock.visibility = android.view.View.GONE
             binding.tvHeroStateBadge.text = "READY TO FOCUS"
             binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            binding.tvTimerHeroDigits.text = "25:00"
-            binding.tvHeroSubtitle.text = "Tap Start Focus or choose a preset"
+            val idleDuration = PrefsManager.getLastChosenDurationMillis(this)
+            binding.tvTimerHeroDigits.text = formatTime(idleDuration)
+            binding.tvHeroSubtitle.text = "Tap timer to adjust · Tap Start to begin"
             binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = false, isStrict = false)
             binding.ringGoalProgress.progress = 0f
             return

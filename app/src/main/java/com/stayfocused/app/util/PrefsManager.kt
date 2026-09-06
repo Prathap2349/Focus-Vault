@@ -287,6 +287,13 @@ object PrefsManager {
         prefs(context).edit().putBoolean("countdown_animation_enabled", enabled).apply()
     }
 
+    fun getLastChosenDurationMillis(context: Context): Long =
+        prefs(context).getLong("last_chosen_duration_millis", 25 * 60_000L)
+
+    fun setLastChosenDurationMillis(context: Context, millis: Long) {
+        prefs(context).edit().putLong("last_chosen_duration_millis", millis.coerceAtLeast(60_000L)).apply()
+    }
+
     fun getWeeklyGoalMinutes(context: Context): Int =
         prefs(context).getInt(KEY_WEEKLY_GOAL_MINUTES, 720)
 

@@ -341,6 +341,14 @@
                 android:orientation="horizontal">
 
                 <Button
+                    android:id="@+id/btnQuickCustom"
+                    style="@style/CompactOutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="⏱️ Custom" />
+
+                <Button
                     android:id="@+id/btnQuick25"
                     style="@style/CompactOutlinedButton"
                     android:layout_width="wrap_content"
@@ -362,7 +370,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:text="📚 60 min" />
+                    android:text="📚 1 hour" />
 
                 <Button
                     android:id="@+id/btnQuick90"
@@ -370,14 +378,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:text="💻 90 min" />
+                    android:text="💻 1.5h" />
 
                 <Button
                     android:id="@+id/btnQuick120"
                     style="@style/CompactOutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🌙 Deep 2h" />
+                    android:text="🌙 2 hours" />
             </LinearLayout>
         </HorizontalScrollView>
 

@@ -1,58 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="28dp"
     android:background="@drawable/bg_dashboard_card">
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_dot"
+        android:backgroundTint="@color/card_border" />
 
     <TextView
         android:id="@+id/tvQuickModeLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🎯 Focus Mode"
+        android:text="🎯 Set Focus Duration"
         android:textColor="@color/text_primary"
         android:textSize="20sp"
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/tvDurationSummary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="How long should this session last?"
+        android:text="Choose hours and minutes for this session"
         android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
+        android:textSize="13sp" />
 
+    <!-- Quick duration chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/chip15m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="15 min" />
+
+            <Button
+                android:id="@+id/chip25m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="25 min" />
+
+            <Button
+                android:id="@+id/chip45m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="45 min" />
+
+            <Button
+                android:id="@+id/chip60m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="1 hour" />
+
+            <Button
+                android:id="@+id/chip90m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="1.5 hours" />
+
+            <Button
+                android:id="@+id/chip120m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:text="2 hours" />
+
+            <Button
+                android:id="@+id/chip180m"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3 hours" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Custom Hours and Minutes Wheel Pickers -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:layout_marginTop="24dp">
+        android:layout_marginTop="16dp"
+        android:paddingVertical="8dp">
 
-        <NumberPicker
-            android:id="@+id/pickerQuickHours"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="hrs"
-            android:layout_marginHorizontal="8dp"
-            android:textColor="@color/text_primary" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <NumberPicker
-            android:id="@+id/pickerQuickMinutes"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            <NumberPicker
+                android:id="@+id/pickerQuickHours"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
 
-        <TextView
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="hours"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="20dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="min"
-            android:layout_marginStart="8dp"
-            android:textColor="@color/text_primary" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <NumberPicker
+                android:id="@+id/pickerQuickMinutes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="min"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
     <Button
@@ -60,7 +164,7 @@
         style="@style/PrimaryButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="20dp"
         android:text="Start Focus" />
 
 </LinearLayout>
