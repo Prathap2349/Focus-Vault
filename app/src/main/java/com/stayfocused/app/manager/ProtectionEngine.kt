@@ -203,6 +203,27 @@ object ProtectionEngine {
             )
         )
 
+        // 9. Home-Screen Widget Provider check
+        val widgetCount = com.stayfocused.app.appwidget.WidgetUpdater.getActiveWidgetCount(context)
+        val lastUpdate = com.stayfocused.app.appwidget.WidgetUpdater.lastUpdateTimestamp.get()
+        val updateSub = if (widgetCount > 0) {
+            val syncText = if (lastUpdate > 0) "Synced" else "Ready"
+            "$widgetCount active instance(s) · $syncText"
+        } else {
+            "Provider ready · 0 active home screen instances"
+        }
+        items.add(
+            HealthItem(
+                id = "widget_provider",
+                title = "Home-Screen Widget Engine",
+                subtitle = updateSub,
+                isHealthy = true,
+                isRequired = false,
+                fixActionTitle = "Refresh",
+                fixIntent = null
+            )
+        )
+
         val totalScore = items.count { it.isHealthy }
         val percentage = (totalScore * 100) / items.size
 

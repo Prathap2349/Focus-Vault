@@ -4,16 +4,17 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.stayfocused.app.data.SessionMode
+import com.stayfocused.app.service.SessionTimerService
+import com.stayfocused.app.ui.DiagnosticsActivity
 import com.stayfocused.app.ui.MainActivity
+import com.stayfocused.app.ui.PresetsActivity
+import com.stayfocused.app.ui.SchedulesActivity
 import com.stayfocused.app.ui.WidgetQuickStartActivity
 
 /**
- * Every widget button opens [MainActivity] or [WidgetQuickStartActivity] with an extra telling it what to do next, rather
- * than performing the action directly from the widget process. That's deliberate: starting a
- * session or stopping one early has to pass through the exact same PIN/Strict-Mode/emergency-
- * limit checks MainActivity already enforces (see MainActivity.handleWidgetIntentExtras) - a
- * widget PendingIntent has no way to show a PIN dialog or a confirmation sheet itself, and
- * duplicating that gating logic in a second place is how it eventually drifts out of sync.
+ * Creates unique, collision-free [PendingIntent]s for home-screen widgets.
+ * Request codes are deterministically keyed by (appWidgetId * 1000 + actionCode)
+ * to guarantee that multiple widgets on the home screen do not overwrite each other.
  */
 object WidgetIntents {
 
@@ -21,6 +22,10 @@ object WidgetIntents {
     private const val ACTION_QUICK_START = 20
     private const val ACTION_EMERGENCY = 30
     private const val ACTION_MODE_SHEET = 40
+    private const val ACTION_RESUME = 50
+    private const val ACTION_FIX_PROTECTION = 60
+    private const val ACTION_PRESETS = 70
+    private const val ACTION_SCHEDULES = 80
 
     fun openApp(context: Context, appWidgetId: Int): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -31,10 +36,6 @@ object WidgetIntents {
         )
     }
 
-    /** Used by the Small/Medium widget's generic "Start" button - opens the same Focus Mode
-     * Selection sheet that tapping Start Focus in-app opens, rather than silently assuming a
-     * mode. This uses [WidgetQuickStartActivity] which pops up as a dialog flow rather than
-     * opening the full app dashboard. */
     fun openModeSheet(context: Context, appWidgetId: Int): PendingIntent {
         val intent = Intent(context, WidgetQuickStartActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -44,8 +45,6 @@ object WidgetIntents {
         )
     }
 
-    /** Used by the Large widget's preset buttons (Focus/Lock/Strict) - opens the timer popup
-     * directly for that mode using [WidgetQuickStartActivity]. */
     fun quickStart(context: Context, appWidgetId: Int, mode: SessionMode): PendingIntent {
         val intent = Intent(context, WidgetQuickStartActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -53,6 +52,15 @@ object WidgetIntents {
         }
         return PendingIntent.getActivity(
             context, requestCode(appWidgetId, ACTION_QUICK_START + mode.ordinal), intent, flags()
+        )
+    }
+
+    fun resumeSession(context: Context, appWidgetId: Int): PendingIntent {
+        val intent = Intent(context, SessionTimerService::class.java).apply {
+            action = SessionTimerService.ACTION_RESUME
+        }
+        return PendingIntent.getService(
+            context, requestCode(appWidgetId, ACTION_RESUME), intent, flags()
         )
     }
 
@@ -66,9 +74,36 @@ object WidgetIntents {
         )
     }
 
-    // Unique per (widget instance x action) so multiple widgets on the home screen, and
-    // multiple buttons on the same widget, never collide and overwrite each other's intent.
-    private fun requestCode(appWidgetId: Int, actionCode: Int) = appWidgetId * 1000 + actionCode
+    fun fixProtection(context: Context, appWidgetId: Int): PendingIntent {
+        val intent = Intent(context, DiagnosticsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context, requestCode(appWidgetId, ACTION_FIX_PROTECTION), intent, flags()
+        )
+    }
 
-    private fun flags() = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    fun openPresets(context: Context, appWidgetId: Int): PendingIntent {
+        val intent = Intent(context, PresetsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context, requestCode(appWidgetId, ACTION_PRESETS), intent, flags()
+        )
+    }
+
+    fun openSchedules(context: Context, appWidgetId: Int): PendingIntent {
+        val intent = Intent(context, SchedulesActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context, requestCode(appWidgetId, ACTION_SCHEDULES), intent, flags()
+        )
+    }
+
+    private fun requestCode(appWidgetId: Int, actionCode: Int): Int =
+        (appWidgetId and 0xFFFF) * 1000 + (actionCode and 0x3FF)
+
+    private fun flags(): Int =
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 }

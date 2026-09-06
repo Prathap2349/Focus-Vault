@@ -268,6 +268,23 @@ object PrefsManager {
         prefs(context).edit().putInt(KEY_DAILY_GOAL_MINUTES, minutes.coerceIn(15, 960)).apply()
     }
 
+    // Per-Widget Configuration (by AppWidgetId)
+    const val WIDGET_MODE_SMART = "smart"
+    const val WIDGET_MODE_FOCUS = "focus"
+    const val WIDGET_MODE_PROGRESS = "progress"
+    const val WIDGET_MODE_MINIMAL = "minimal"
+
+    fun getWidgetMode(context: Context, appWidgetId: Int): String =
+        prefs(context).getString("widget_mode_$appWidgetId", WIDGET_MODE_SMART) ?: WIDGET_MODE_SMART
+
+    fun setWidgetMode(context: Context, appWidgetId: Int, mode: String) {
+        prefs(context).edit().putString("widget_mode_$appWidgetId", mode).apply()
+    }
+
+    fun removeWidgetConfig(context: Context, appWidgetId: Int) {
+        prefs(context).edit().remove("widget_mode_$appWidgetId").remove("widget_action_$appWidgetId").apply()
+    }
+
     /** Today's date as yyyy-MM-dd in the device's local time zone - same format/definition of
      * "day" used for the emergency-unlock daily counter above, reused by the streak tracker so
      * the two features agree about when a day rolls over. */

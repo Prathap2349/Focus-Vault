@@ -6,26 +6,39 @@
     android:background="@drawable/bg_dashboard_card"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="6dp">
+    android:padding="8dp">
 
     <TextView
         android:id="@+id/tvWidgetTinyIcon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🎯"
-        android:textSize="20sp" />
+        android:text="🛡️"
+        android:textSize="22sp" />
 
     <TextView
-        android:id="@+id/tvWidgetTinyLabel"
+        android:id="@+id/tvWidgetTinyValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="Start"
+        android:text="42:18"
         android:textColor="@color/text_primary"
-        android:textSize="10sp"
+        android:textSize="13sp"
         android:textStyle="bold"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/tvWidgetTinySub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="FOCUS"
+        android:textColor="@color/text_secondary"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.05"
         android:gravity="center" />
 
 </LinearLayout>

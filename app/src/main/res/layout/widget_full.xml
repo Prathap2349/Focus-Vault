@@ -5,8 +5,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_dashboard_card"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="12dp">
 
+    <!-- Header Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -20,67 +21,286 @@
             android:layout_weight="1"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="🎯 Not focusing"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
+            android:text="🛡️ FOCUS VAULT"
+            android:textColor="@color/brand_primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/tvWidgetFullHealth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_badge_health"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="✓ Protected"
+            android:textColor="@color/success_green"
+            android:textSize="10sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvWidgetFullStreak"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔥 0 days"
-            android:textColor="@color/text_secondary"
-            android:textSize="11sp" />
+            android:background="@drawable/widget_badge_streak"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="🔥 7d streak"
+            android:textColor="@color/accent_streak"
+            android:textSize="10sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/progressWidgetFullGoal"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="5dp"
-        android:layout_marginTop="6dp"
-        android:max="100"
-        android:progress="0"
-        android:progressTint="@color/brand_primary" />
-
+    <!-- Center Hero Timer / Countdown Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_marginTop="8dp"
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/tvWidgetFullGoalText"
-            android:layout_width="0dp"
+            android:id="@+id/tvWidgetFullTimer"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:text="42:18"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvWidgetFullTimerSub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:maxLines="1"
             android:ellipsize="end"
-            android:text="0 / 0 min today"
+            android:text="FOCUS REMAINING · Started 2:15 PM · Ends 2:57 PM"
             android:textColor="@color/text_secondary"
             android:textSize="10sp" />
 
+        <ProgressBar
+            android:id="@+id/progressWidgetFullSession"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="5dp"
+            android:layout_marginTop="6dp"
+            android:max="100"
+            android:progress="68"
+            android:progressTint="@color/brand_primary" />
+    </LinearLayout>
+
+    <!-- Smart Schedule Banner (When idle/scheduled) -->
+    <LinearLayout
+        android:id="@+id/containerWidgetFullSchedule"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/widget_stat_box"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvWidgetFullScheduleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⏰ Next: Deep Work · Today 7:00 PM (45m)"
+            android:textColor="@color/text_primary"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- 2x2 Bento Stats Grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical">
+
+        <!-- Row 1: Today Goal & This Week -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/widget_stat_box"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TODAY"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWidgetFullTodayGoal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="86 / 120 min"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/widget_stat_box"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="THIS WEEK"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWidgetFullWeekTotal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="6h 42m / 10h"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Row 2: Avg Session & Best Session -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/widget_stat_box"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AVG SESSION"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWidgetFullAvgSession"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="38 min"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:maxLines="1" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/widget_stat_box"
+                android:orientation="vertical"
+                android:padding="6dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BEST SESSION"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWidgetFullBestSession"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1h 24m"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Bottom Action Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
         <Button
             android:id="@+id/btnWidgetFullAction"
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:layout_marginStart="6dp"
+            android:layout_width="0dp"
+            android:layout_height="34dp"
+            android:layout_weight="1"
             android:background="@drawable/widget_btn_primary"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
             android:text="Start Focus"
             android:textAllCaps="false"
             android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnWidgetFullPresets"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/widget_btn_secondary"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="Presets"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
             android:textSize="11sp" />
 
         <Button
             android:id="@+id/btnWidgetFullEmergency"
             android:layout_width="wrap_content"
-            android:layout_height="30dp"
+            android:layout_height="34dp"
             android:layout_marginStart="6dp"
             android:background="@drawable/widget_btn_emergency"
             android:minWidth="0dp"
