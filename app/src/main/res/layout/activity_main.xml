@@ -102,11 +102,15 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:background="@drawable/bg_badge_warning"
-            android:padding="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
             android:text="⚠️ Accessibility permission required to block apps · Tap to enable"
-            android:textColor="@color/strict_red"
-            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:textSize="13sp"
             android:textStyle="bold"
+            android:lineSpacingExtra="2dp"
             android:visibility="gone" />
 
         <TextView
@@ -114,12 +118,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_badge_warning"
-            android:padding="12dp"
+            android:background="@drawable/bg_badge_warning_amber"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
             android:text="🔔 Notifications disabled · Tap to allow session countdown alerts"
-            android:textColor="@color/warning_amber"
-            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:textSize="13sp"
             android:textStyle="bold"
+            android:lineSpacingExtra="2dp"
             android:visibility="gone" />
 
         <!-- ===== HERO CENTERPIECE: Focus Ring & Active Timer ===== -->
