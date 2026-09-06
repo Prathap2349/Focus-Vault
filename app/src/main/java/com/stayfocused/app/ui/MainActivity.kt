@@ -29,6 +29,7 @@ import com.stayfocused.app.service.SessionTimerService
 import com.stayfocused.app.manager.ProtectionEngine
 import com.stayfocused.app.manager.ProtectionStatus
 import com.stayfocused.app.manager.SessionStateManager
+import com.stayfocused.app.util.AnimationHelper
 import com.stayfocused.app.util.AppLockGate
 import com.stayfocused.app.util.EdgeToEdge
 import com.stayfocused.app.util.FocusStatsManager
@@ -249,6 +250,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Attach tactile spring touch physics to cards, chips, and action buttons
+        listOf(
+            binding.frameFocusRingContainer,
+            binding.btnStartFocus,
+            binding.btnQuickCustom,
+            binding.btnQuick25,
+            binding.btnQuick45,
+            binding.btnQuick60,
+            binding.btnQuick90,
+            binding.btnQuick120,
+            binding.btnManageApps,
+            binding.btnManageSites,
+            binding.btnManagePresets,
+            binding.btnManageSchedules,
+            binding.btnStopEarly,
+            binding.btnResumeNow,
+            binding.btnEmergencyMode,
+            binding.btnEmergencyUnlock,
+            binding.cardGoal,
+            binding.cardProtectionStatus
+        ).forEach { view ->
+            AnimationHelper.attachSpringPressFeedback(view)
+        }
+
         requestNotificationPermissionIfNeeded()
     }
 
@@ -397,7 +422,13 @@ class MainActivity : AppCompatActivity() {
             val goalProgress = if (stats.goalMinutes > 0)
                 (stats.todayMinutes.toFloat() / stats.goalMinutes.toFloat()).coerceIn(0f, 1f)
             else 0f
-            binding.tvGoalToday.text = "${stats.todayMinutes} / ${stats.goalMinutes} min"
+
+            AnimationHelper.animateOdometerRoll(
+                textView = binding.tvGoalToday,
+                startValue = 0,
+                endValue = stats.todayMinutes,
+                formatter = { minutesVal: Int -> "$minutesVal / ${stats.goalMinutes} min" }
+            )
             binding.progressGoalBar.progress = (goalProgress * 100).toInt()
             val remaining = stats.goalMinutes - stats.todayMinutes
             binding.tvGoalRemaining.text = if (remaining <= 0)
@@ -526,6 +557,10 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             SessionMode.NORMAL -> {
+                // Vault Lock-In Sequence
+                binding.ringGoalProgress.playLockInAnimation()
+                AnimationHelper.animateVaultLockIn(binding.frameFocusRingContainer)
+                HapticHelper.successHaptic(binding.root)
                 SessionStarter.startSession(this, durationMillis, SessionMode.NORMAL)
                 refreshSessionUi()
                 refreshDashboardStats()
@@ -639,8 +674,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.ringGoalProgress.applyFocusStateColors(isActive = true, isPaused = false, isStrict = isStrict)
-
         val totalDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
         val remaining = PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()
         if (remaining <= 0) {
@@ -648,16 +681,33 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val initialRatio = (remaining.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+        binding.ringGoalProgress.applyFocusStateColors(
+            isActive = true,
+            isPaused = false,
+            isStrict = isStrict,
+            remainingRatio = initialRatio
+        )
+
         binding.tvTimerHeroDigits.text = formatTime(remaining)
-        binding.ringGoalProgress.progress = (remaining.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+        binding.ringGoalProgress.progress = initialRatio
 
         countdownTicker = object : CountDownTimer(remaining, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
+                val ratio = (millisUntilFinished.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
                 binding.tvTimerHeroDigits.text = formatTime(millisUntilFinished)
-                binding.ringGoalProgress.progress = (millisUntilFinished.toFloat() / totalDuration.toFloat()).coerceIn(0f, 1f)
+                binding.ringGoalProgress.progress = ratio
+                binding.ringGoalProgress.applyFocusStateColors(
+                    isActive = true,
+                    isPaused = false,
+                    isStrict = isStrict,
+                    remainingRatio = ratio
+                )
             }
             override fun onFinish() {
                 com.stayfocused.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+                com.stayfocused.app.util.AnimationHelper.animateCelebrationBloom(binding.frameFocusRingContainer)
+                com.stayfocused.app.util.HapticHelper.successHaptic(binding.root)
                 refreshSessionUi()
                 refreshDashboardStats()
             }

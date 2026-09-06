@@ -66,6 +66,10 @@ object HapticHelper {
         vibratePattern(context, longArrayOf(0, 40, 80, 60), intArrayOf(0, 160, 0, 220))
     }
 
+    fun successHaptic(view: View) {
+        performComplete(view.context)
+    }
+
     private fun vibrate(context: Context, durationMillis: Long, amplitude: Int) {
         val vibrator = getVibrator(context) ?: return
         if (!vibrator.hasVibrator()) return

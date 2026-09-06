@@ -38,9 +38,37 @@ class FocusModeSelectionSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.cardModeLite.setOnClickListener { choose(SessionMode.NORMAL) }
-        binding.cardModeDeep.setOnClickListener { choose(SessionMode.LOCK) }
-        binding.cardModeIron.setOnClickListener { choose(SessionMode.STRICT) }
+
+        val modeCards = listOf(
+            binding.cardModeLite,
+            binding.cardModeDeep,
+            binding.cardModeIron
+        )
+
+        // Spring physics on touch
+        modeCards.forEach { card ->
+            com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(card)
+        }
+
+        // Staggered cascade entrance
+        com.stayfocused.app.util.AnimationHelper.animateStaggeredCascade(
+            views = modeCards,
+            baseDelayMs = 40,
+            stepDelayMs = 60
+        )
+
+        binding.cardModeLite.setOnClickListener { 
+            com.stayfocused.app.util.HapticHelper.mediumClick(it)
+            choose(SessionMode.NORMAL) 
+        }
+        binding.cardModeDeep.setOnClickListener { 
+            com.stayfocused.app.util.HapticHelper.mediumClick(it)
+            choose(SessionMode.LOCK) 
+        }
+        binding.cardModeIron.setOnClickListener { 
+            com.stayfocused.app.util.HapticHelper.heavyClick(it)
+            choose(SessionMode.STRICT) 
+        }
     }
 
     private fun choose(mode: SessionMode) {

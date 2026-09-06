@@ -97,6 +97,33 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
             com.stayfocused.app.util.HapticHelper.lightClick(binding.root)
         }
 
+        val chips = listOf(
+            binding.chip15m,
+            binding.chip25m,
+            binding.chip45m,
+            binding.chip60m,
+            binding.chip90m,
+            binding.chip120m,
+            binding.chip180m
+        )
+
+        chips.forEach { chip ->
+            com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(chip)
+        }
+        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnQuickStartConfirm)
+
+        // Staggered cascade animation for sheet content
+        com.stayfocused.app.util.AnimationHelper.animateStaggeredCascade(
+            listOf(
+                binding.tvQuickModeLabel,
+                binding.scrollChips,
+                binding.layoutPickersContainer,
+                binding.btnQuickStartConfirm
+            ),
+            baseDelayMs = 40,
+            stepDelayMs = 50
+        )
+
         binding.chip15m.setOnClickListener { setDuration(0, 15) }
         binding.chip25m.setOnClickListener { setDuration(0, 25) }
         binding.chip45m.setOnClickListener { setDuration(0, 45) }
