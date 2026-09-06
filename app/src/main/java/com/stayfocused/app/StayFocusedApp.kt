@@ -65,10 +65,19 @@ class StayFocusedApp : Application() {
 
         // SCREEN_OFF is a protected system broadcast - it can only ever be registered at
         // runtime like this, never declared in the manifest, regardless of target SDK.
-        registerReceiver(object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                AppLockGate.isUnlocked = false
-            }
-        }, IntentFilter(Intent.ACTION_SCREEN_OFF))
+        try {
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                object : BroadcastReceiver() {
+                    override fun onReceive(context: Context, intent: Intent) {
+                        AppLockGate.isUnlocked = false
+                    }
+                },
+                IntentFilter(Intent.ACTION_SCREEN_OFF),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (e: Exception) {
+            // Safe fallback on older or custom OEM Android builds
+        }
     }
 }

@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -155,12 +156,20 @@ class FocusVpnService : VpnService() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Stay Focused is blocking distracting sites")
+            .setContentTitle("Focus Vault is blocking distracting sites")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .build()
-        startForeground(NOTIF_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIF_ID, notification)
+            }
+        } catch (e: Exception) {
+            // Guard against background start restrictions
+        }
     }
 
     override fun onDestroy() {

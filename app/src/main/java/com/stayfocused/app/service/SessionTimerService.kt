@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -114,7 +115,19 @@ class SessionTimerService : Service() {
         val remaining = (targetEnd - System.currentTimeMillis()).coerceAtLeast(0L)
 
         // Show immediate foreground notification to satisfy Android requirements
-        startForeground(NOTIF_ID, buildNotification(remaining, mode, isPaused = false))
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIF_ID,
+                    buildNotification(remaining, mode, isPaused = false),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+            } else {
+                startForeground(NOTIF_ID, buildNotification(remaining, mode, isPaused = false))
+            }
+        } catch (e: Exception) {
+            // Guard against background start restrictions
+        }
         WidgetUpdater.requestUpdate(applicationContext)
 
         startTicker(targetEnd, mode)
