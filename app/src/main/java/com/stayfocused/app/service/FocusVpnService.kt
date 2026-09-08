@@ -53,7 +53,18 @@ class FocusVpnService : VpnService() {
             return START_STICKY // Avoid duplicate establishment
         }
         startForegroundNotification()
-        establishVpn()
+        try {
+            establishVpn()
+            if (vpnInterface == null) {
+                com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        } catch (e: Exception) {
+            com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         running = true
         com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(true)
         scope.launch { runTunnelLoop() }
@@ -92,56 +103,64 @@ class FocusVpnService : VpnService() {
     }
 
     private suspend fun runTunnelLoop() {
-        val fd = vpnInterface ?: return
-        val input = FileInputStream(fd.fileDescriptor)
-        val output = FileOutputStream(fd.fileDescriptor)
-        val buffer = ByteArray(32767)
+        val fd = vpnInterface ?: run {
+            com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
+            return
+        }
+        try {
+            val input = FileInputStream(fd.fileDescriptor)
+            val output = FileOutputStream(fd.fileDescriptor)
+            val buffer = ByteArray(32767)
 
-        while (running) {
-            val length = try { input.read(buffer) } catch (e: Exception) { break }
-            if (length <= 0) continue
+            while (running) {
+                val length = try { input.read(buffer) } catch (e: Exception) { break }
+                if (length <= 0) continue
 
-            val packet = ByteBuffer.wrap(buffer, 0, length)
-            val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet) ?: continue
+                val packet = ByteBuffer.wrap(buffer, 0, length)
+                val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet) ?: continue
 
-            val blockedDomains = PrefsManager.getBlockedDomains(this)
-            val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && blockedDomains.any { rawBlocked ->
-                val blocked = rawBlocked.removePrefix("*.").removePrefix("www.").lowercase()
-                val qName = udpDnsQuery.queryName.removePrefix("www.").lowercase()
-                qName == blocked || qName.endsWith(".$blocked")
-            }
+                val blockedDomains = PrefsManager.getBlockedDomains(this)
+                val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && blockedDomains.any { rawBlocked ->
+                    val blocked = rawBlocked.removePrefix("*.").removePrefix("www.").lowercase()
+                    val qName = udpDnsQuery.queryName.removePrefix("www.").lowercase()
+                    qName == blocked || qName.endsWith(".$blocked")
+                }
 
-            if (isBlocked) {
-                com.stayfocused.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
-                val nxDomainResponse = DnsPacketParser.buildNxDomainResponse(buffer, length)
-                output.write(nxDomainResponse)
-            } else {
-                // Forward to upstream resolver and relay the real answer back
-                try {
-                    val upstreamSocket = DatagramSocket()
-                    protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
-                    val dnsPayload = udpDnsQuery.rawDnsPayload
-                    val forwardPacket = java.net.DatagramPacket(
-                        dnsPayload, dnsPayload.size, InetSocketAddress(UPSTREAM_DNS, 53)
-                    )
-                    upstreamSocket.send(forwardPacket)
+                if (isBlocked) {
+                    com.stayfocused.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
+                    val nxDomainResponse = DnsPacketParser.buildNxDomainResponse(buffer, length)
+                    output.write(nxDomainResponse)
+                } else {
+                    // Forward to upstream resolver and relay the real answer back
+                    try {
+                        val upstreamSocket = DatagramSocket()
+                        protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
+                        val dnsPayload = udpDnsQuery.rawDnsPayload
+                        val forwardPacket = java.net.DatagramPacket(
+                            dnsPayload, dnsPayload.size, InetSocketAddress(UPSTREAM_DNS, 53)
+                        )
+                        upstreamSocket.send(forwardPacket)
 
-                    val replyBuf = ByteArray(4096)
-                    val replyPacket = java.net.DatagramPacket(replyBuf, replyBuf.size)
-                    upstreamSocket.soTimeout = 3000
-                    upstreamSocket.receive(replyPacket)
-                    upstreamSocket.close()
+                        val replyBuf = ByteArray(4096)
+                        val replyPacket = java.net.DatagramPacket(replyBuf, replyBuf.size)
+                        upstreamSocket.soTimeout = 3000
+                        upstreamSocket.receive(replyPacket)
+                        upstreamSocket.close()
 
-                    val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
-                        originalRequestPacket = buffer,
-                        originalLength = length,
-                        dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
-                    )
-                    output.write(fullReply)
-                } catch (e: Exception) {
-                    // Upstream failure: drop silently, browser/app will just retry or time out
+                        val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
+                            originalRequestPacket = buffer,
+                            originalLength = length,
+                            dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
+                        )
+                        output.write(fullReply)
+                    } catch (e: Exception) {
+                        // Upstream failure: drop silently, browser/app will just retry or time out
+                    }
                 }
             }
+        } finally {
+            running = false
+            com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
         }
     }
 

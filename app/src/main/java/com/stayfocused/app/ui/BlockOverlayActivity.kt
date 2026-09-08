@@ -28,6 +28,7 @@ class BlockOverlayActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBlockOverlayBinding
     private var ticker: CountDownTimer? = null
     private var sessionTotalMillis: Long = 1L
+    private var currentBlockedPackage: String? = null
 
     companion object {
         const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
@@ -122,6 +123,7 @@ class BlockOverlayActivity : AppCompatActivity() {
 
         // Resolve friendly application name
         val rawPackage = intent.getStringExtra(EXTRA_BLOCKED_PACKAGE)
+        currentBlockedPackage = rawPackage
         val appLabel = if (!rawPackage.isNullOrEmpty()) {
             try {
                 val appInfo = packageManager.getApplicationInfo(rawPackage, 0)
@@ -173,6 +175,9 @@ class BlockOverlayActivity : AppCompatActivity() {
     }
 
     private fun startCountdown() {
+        ticker?.cancel()
+        ticker = null
+
         val totalSessionDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
         val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
         if (remaining <= 0) { finish(); return }

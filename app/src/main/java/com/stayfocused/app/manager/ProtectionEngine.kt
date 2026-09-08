@@ -56,6 +56,8 @@ object ProtectionEngine {
 
     val isAccessibilityBound = AtomicBoolean(false)
     val isVpnRunning = AtomicBoolean(false)
+    val isTimerServiceRunning = AtomicBoolean(false)
+    val lastTimerHeartbeat = java.util.concurrent.atomic.AtomicLong(0L)
 
     private val _reportFlow = MutableStateFlow<ProtectionReport?>(null)
     val reportFlow: StateFlow<ProtectionReport?> = _reportFlow.asStateFlow()
@@ -83,16 +85,20 @@ object ProtectionEngine {
         // 2. Website Blocking (VPN) check
         val hasBlockedSites = PrefsManager.getBlockedDomains(context).isNotEmpty()
         val vpnPrepared = VpnService.prepare(context) == null
-        val vpnActive = isVpnRunning.get() || (!hasBlockedSites)
+        val vpnHealthy = if (!hasBlockedSites) {
+            true
+        } else {
+            vpnPrepared && isVpnRunning.get()
+        }
         items.add(
             HealthItem(
                 id = "vpn",
                 title = "Website Blocking (DNS Filter)",
-                subtitle = if (!hasBlockedSites) "No websites configured to block"
-                else if (vpnActive) "Active and filtering DNS queries"
+                subtitle = if (!hasBlockedSites) "No websites configured to block (VPN inactive)"
+                else if (isVpnRunning.get()) "Active and filtering DNS queries"
                 else if (!vpnPrepared) "VPN permission not yet granted"
                 else "VPN service inactive",
-                isHealthy = !hasBlockedSites || (vpnPrepared && (isVpnRunning.get() || PrefsManager.getSessionState(context).isLive)),
+                isHealthy = vpnHealthy,
                 isRequired = hasBlockedSites,
                 fixActionTitle = "Configure",
                 fixIntent = VpnService.prepare(context)
@@ -102,13 +108,27 @@ object ProtectionEngine {
         // 3. Focus Timer & Session Engine check
         val isSessionActive = PrefsManager.isSessionCurrentlyActive(context)
         val sessionStateValid = PrefsManager.getSessionState(context) != com.stayfocused.app.data.SessionState.PROTECTION_FAILED
+        val now = System.currentTimeMillis()
+        val heartbeatAge = now - lastTimerHeartbeat.get()
+        val timerAlive = !isSessionActive || (isTimerServiceRunning.get() && heartbeatAge < 10000L)
+        val sessionEngineHealthy = sessionStateValid && timerAlive
+
+        val sessionSubtitle = if (!sessionStateValid) {
+            "Session state failed - restart session"
+        } else if (isSessionActive && !timerAlive) {
+            "Timer service stopped unexpectedly mid-session"
+        } else if (isSessionActive) {
+            "Foreground countdown & protection active"
+        } else {
+            "Session engine ready and idle"
+        }
+
         items.add(
             HealthItem(
                 id = "session_engine",
                 title = "Session Engine & Timer",
-                subtitle = if (isSessionActive) "Foreground countdown & protection active"
-                else "Session engine ready and idle",
-                isHealthy = sessionStateValid,
+                subtitle = sessionSubtitle,
+                isHealthy = sessionEngineHealthy,
                 isRequired = true,
                 fixActionTitle = "Diagnose",
                 fixIntent = Intent(context, com.stayfocused.app.ui.DiagnosticsActivity::class.java)

@@ -21,8 +21,9 @@ import com.stayfocused.app.util.PrefsManager
  */
 class AppBlockAccessibilityService : AccessibilityService() {
 
-    private var lastEventTime = 0L
-    private var lastBlockedPackageShown: String? = null
+    private var currentForegroundPackage: String? = null
+    private var lastBlockedPackage: String? = null
+    private var lastOverlayLaunchTime: Long = 0L
 
     companion object {
         // Essential system packages that must never be blocked even by accident (telephony / calls)
@@ -65,28 +66,26 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         // 1. Ignore essential telephony / call packages
         if (packageName in ESSENTIAL_CALL_PACKAGES) {
+            currentForegroundPackage = packageName
+            lastBlockedPackage = null
             return
         }
 
         // 2. Ignore our own application package (BlockOverlayActivity, MainActivity, etc.)
-        // Do NOT reset lastBlockedPackageShown when our own app is foregrounded, so overlay launch state is preserved.
+        // Do NOT update currentForegroundPackage or reset lastBlockedPackage when our own app is foregrounded.
         if (packageName == applicationContext.packageName) {
             return
         }
 
-        // 3. Check if session is active
-        if (!PrefsManager.isSessionCurrentlyActive(this)) {
-            lastBlockedPackageShown = null
+        currentForegroundPackage = packageName
+
+        // 3. Check if session is active or emergency pause active
+        if (!PrefsManager.isSessionCurrentlyActive(this) || PrefsManager.isEmergencyPauseActive(this)) {
+            lastBlockedPackage = null
             return
         }
 
-        // 4. Check if Emergency Pause is active
-        if (PrefsManager.isEmergencyPauseActive(this)) {
-            lastBlockedPackageShown = null
-            return
-        }
-
-        // 5. Determine whether the current foreground package should be blocked
+        // 4. Determine whether the current foreground package should be blocked
         val isStrict = PrefsManager.isStrictModeActive(this)
         val blockedPackages = PrefsManager.getBlockedPackages(this)
 
@@ -95,19 +94,17 @@ class AppBlockAccessibilityService : AccessibilityService() {
         if (shouldBlock) {
             val now = System.currentTimeMillis()
             // Suppress duplicate events for the SAME blocked package within 200ms
-            if (lastBlockedPackageShown == packageName && (now - lastEventTime) < 200L) {
+            if (lastBlockedPackage == packageName && (now - lastOverlayLaunchTime) < 200L) {
                 return
             }
 
-            if (lastBlockedPackageShown != packageName) {
-                lastBlockedPackageShown = packageName
-                lastEventTime = now
-                SessionStateManager.recordDistractionAttempt(this)
-                showBlockOverlay(packageName)
-            }
+            lastBlockedPackage = packageName
+            lastOverlayLaunchTime = now
+            SessionStateManager.recordDistractionAttempt(this)
+            showBlockOverlay(packageName)
         } else {
             // Foreground package is allowed (Home launcher, System UI, allowed app) -> clear state!
-            lastBlockedPackageShown = null
+            lastBlockedPackage = null
         }
     }
 

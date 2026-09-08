@@ -83,6 +83,9 @@ class SessionTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        com.stayfocused.app.manager.ProtectionEngine.isTimerServiceRunning.set(true)
+        com.stayfocused.app.manager.ProtectionEngine.lastTimerHeartbeat.set(System.currentTimeMillis())
+
         when (intent?.action) {
             ACTION_START -> {
                 val duration = intent.getLongExtra(EXTRA_DURATION_MILLIS, 0L)
@@ -139,6 +142,9 @@ class SessionTimerService : Service() {
             var lastWidgetPushSecond = -1L
 
             while (isActive) {
+                com.stayfocused.app.manager.ProtectionEngine.isTimerServiceRunning.set(true)
+                com.stayfocused.app.manager.ProtectionEngine.lastTimerHeartbeat.set(System.currentTimeMillis())
+
                 val isPaused = PrefsManager.isEmergencyPauseActive(applicationContext)
                 val currentEnd = PrefsManager.getSessionEndTime(applicationContext).let {
                     if (it > 0) it else endTime
@@ -272,6 +278,7 @@ class SessionTimerService : Service() {
     }
 
     override fun onDestroy() {
+        com.stayfocused.app.manager.ProtectionEngine.isTimerServiceRunning.set(false)
         tickerJob?.cancel()
         serviceJob.cancel()
         try {
