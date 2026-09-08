@@ -179,6 +179,7 @@ class FocusVpnService : VpnService() {
                 }
 
                 if (isBlocked) {
+                    android.util.Log.d("FocusVaultVPN", "🛑 BLOCKED: ${udpDnsQuery.queryName}")
                     com.stayfocused.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
                     val nxDomainResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length)
                     outputMutex.withLock {
@@ -186,6 +187,7 @@ class FocusVpnService : VpnService() {
                     }
                 } else {
                     val queryDomain = udpDnsQuery.queryName
+                    android.util.Log.d("FocusVaultVPN", "✅ ALLOWED: $queryDomain")
                     if (PrefsManager.isSessionCurrentlyActive(this)) {
                         PrefsManager.recordQueriedDomain(this, queryDomain)
                     }
