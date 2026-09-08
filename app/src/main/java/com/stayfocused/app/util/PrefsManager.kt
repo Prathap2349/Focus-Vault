@@ -35,6 +35,8 @@ object PrefsManager {
     private const val KEY_DAILY_GOAL_MINUTES = "daily_goal_minutes"
     private const val KEY_WEEKLY_GOAL_MINUTES = "weekly_goal_minutes"
     private const val KEY_MONTHLY_GOAL_MINUTES = "monthly_goal_minutes"
+    private const val KEY_VPN_SESSION_ONLY = "vpn_session_only"
+    private const val KEY_VPN_MANUALLY_STOPPED = "vpn_manually_stopped"
 
     const val THEME_SYSTEM = "system"
     const val THEME_LIGHT = "light"
@@ -374,6 +376,20 @@ object PrefsManager {
 
     fun removeWidgetConfig(context: Context, appWidgetId: Int) {
         prefs(context).edit().remove("widget_mode_$appWidgetId").remove("widget_action_$appWidgetId").apply()
+    }
+
+    fun isVpnSessionOnly(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_VPN_SESSION_ONLY, true)
+
+    fun setVpnSessionOnly(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_VPN_SESSION_ONLY, value).apply()
+    }
+
+    fun isVpnManuallyStopped(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_VPN_MANUALLY_STOPPED, false)
+
+    fun setVpnManuallyStopped(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_VPN_MANUALLY_STOPPED, value).apply()
     }
 
     /** Today's date as yyyy-MM-dd in the device's local time zone - same format/definition of

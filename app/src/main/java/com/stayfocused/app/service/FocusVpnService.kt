@@ -49,9 +49,15 @@ class FocusVpnService : VpnService() {
         const val REVOKED_CHANNEL_ID = "focus_vpn_revoked_channel"
         const val REVOKED_NOTIF_ID = 1004
         const val UPSTREAM_DNS = "1.1.1.1"
+        const val ACTION_STOP = "com.stayfocused.app.service.ACTION_STOP_VPN"
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopVpnInternal()
+            return START_NOT_STICKY
+        }
+
         startForegroundNotification()
         if (running && vpnInterface != null) {
             return START_STICKY // Avoid duplicate establishment
@@ -72,6 +78,20 @@ class FocusVpnService : VpnService() {
         com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(true)
         scope.launch { runTunnelLoop() }
         return START_STICKY
+    }
+
+    fun stopVpnInternal() {
+        running = false
+        com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
+        try {
+            vpnInterface?.close()
+        } catch (e: Exception) {}
+        vpnInterface = null
+        try {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            getSystemService(NotificationManager::class.java).cancel(NOTIF_ID)
+        } catch (e: Exception) {}
+        stopSelf()
     }
 
     /** A handful of well-known DNS-over-HTTPS/DNS-over-TLS resolver IPs that browsers (Chrome,

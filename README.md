@@ -21,9 +21,9 @@ Choose your exact level of discipline for every focus session:
 
 ### 2. 🛡️ Application & Website Blocking Engine
 - **Instant App Overlay**: Monitors foreground application switches via `AppBlockAccessibilityService` with anti-flash timing guards.
-- **Local DNS VPN Tunnel**: Filters web requests locally via `FocusVpnService` with zero network overhead. Non-blocked queries are relayed via asynchronous non-blocking IO.
+- **Local DNS VPN Tunnel & Key Icon Controls**: Filters web requests locally via `FocusVpnService` with zero network overhead. Includes explicit `ACTION_STOP` disconnect controls to immediately release the VPN tunnel and clear Android's status bar key icon (`🔑`).
 - **Preset Packs & Smart Suggestions**: 1-tap website preset packs (Social, Video & Streaming, Gaming, Shopping) and automatic on-device domain suggestions based on local queries.
-- **Live Re-sorting & Domain Validation**: Blocked apps and active sites automatically float to the top of selection lists with real-time inline validation feedback.
+- **Live Re-sorting & Domain Validation**: Blocked apps and active sites automatically float to the top of selection lists with real-time inline validation feedback. Bento-card list containers prevent text clipping on all screen sizes.
 
 ### 3. ⚡ 4-Tier Home Screen Widgets
 - **Wide Banner (4x1)**: Displays live session countdown and full control actions.

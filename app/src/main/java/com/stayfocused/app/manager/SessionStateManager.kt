@@ -204,6 +204,10 @@ object SessionStateManager {
         // Stop services
         try {
             context.stopService(Intent(context, SessionTimerService::class.java))
+            val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
+                action = FocusVpnService.ACTION_STOP
+            }
+            context.startService(stopVpnIntent)
             context.stopService(Intent(context, FocusVpnService::class.java))
         } catch (e: Exception) { }
 
@@ -246,6 +250,10 @@ object SessionStateManager {
         StreakManager.recordCompletion(context)
 
         try {
+            val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
+                action = FocusVpnService.ACTION_STOP
+            }
+            context.startService(stopVpnIntent)
             context.stopService(Intent(context, FocusVpnService::class.java))
         } catch (e: Exception) { }
 

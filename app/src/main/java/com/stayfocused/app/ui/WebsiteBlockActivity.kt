@@ -1,5 +1,6 @@
 package com.stayfocused.app.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -9,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.stayfocused.app.R
 import com.stayfocused.app.adapter.SiteListAdapter
 import com.stayfocused.app.data.AppDatabase
 import com.stayfocused.app.data.BlockedSite
@@ -59,8 +61,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityWebsiteBlockBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.btnBack.setOnClickListener { finish() }
 
         val db = AppDatabase.getInstance(applicationContext)
         binding.recyclerSites.layoutManager = LinearLayoutManager(this)
@@ -134,6 +135,38 @@ class WebsiteBlockActivity : AppCompatActivity() {
         binding.btnQuickAddCategory.setOnClickListener {
             showPresetPackPicker(db)
         }
+
+        refreshVpnStatusCard()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshVpnStatusCard()
+    }
+
+    private fun refreshVpnStatusCard() {
+        val isRunning = com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.get()
+        if (isRunning) {
+            binding.tvVpnStatusText.text = "VPN Status: Active (Filtering DNS)"
+            binding.tvVpnStatusText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.success_green))
+            binding.btnDisconnectVpn.visibility = View.VISIBLE
+            binding.btnDisconnectVpn.setOnClickListener {
+                com.stayfocused.app.util.HapticHelper.mediumClick(it)
+                val stopIntent = Intent(this, com.stayfocused.app.service.FocusVpnService::class.java).apply {
+                    action = com.stayfocused.app.service.FocusVpnService.ACTION_STOP
+                }
+                startService(stopIntent)
+                stopService(Intent(this, com.stayfocused.app.service.FocusVpnService::class.java))
+                com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.set(false)
+                PrefsManager.setVpnManuallyStopped(this, true)
+                Toast.makeText(this, "VPN disconnected — key icon hidden", Toast.LENGTH_SHORT).show()
+                refreshVpnStatusCard()
+            }
+        } else {
+            binding.tvVpnStatusText.text = "VPN Status: Disconnected"
+            binding.tvVpnStatusText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary))
+            binding.btnDisconnectVpn.visibility = View.GONE
+        }
     }
 
     private fun showPresetPackPicker(db: AppDatabase) {
@@ -180,7 +213,8 @@ class WebsiteBlockActivity : AppCompatActivity() {
     }
 
     private fun updateSiteCounter() {
-        binding.tvSiteCount.text = "${allSites.size} websites blocked"
+        val count = allSites.size
+        binding.tvSiteCount.text = "$count website${if (count != 1) "s" else ""} blocked"
     }
 
     private suspend fun syncFastCache(db: AppDatabase) {

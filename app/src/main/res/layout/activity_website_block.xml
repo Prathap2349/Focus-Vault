@@ -7,155 +7,284 @@
     android:orientation="vertical"
     android:background="@color/bg_light">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary"
-        android:title="Block Websites"
-        android:titleTextColor="@color/white" />
-
-    <!-- Add domain section -->
+    <!-- Top AppBar Toolbar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp"
-        android:background="@color/card_surface">
+        android:layout_height="56dp"
+        android:background="@color/card_surface"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Navigate back"
+            android:src="@android:drawable/ic_menu_revert"
+            app:tint="@color/text_primary" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/etDomain"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_search_pill"
-                android:hint="e.g. youtube.com or reddit.com"
-                android:inputType="textUri"
-                android:paddingHorizontal="16dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Block Websites"
                 android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnAddDomain"
-                style="@style/PrimaryButton"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:layout_marginStart="8dp"
-                android:text="Block" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvDomainError"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="4dp"
-            android:textColor="@color/strict_red"
-            android:textSize="12sp"
-            android:visibility="gone"
-            tools:text="Please enter a valid domain" />
-
-        <!-- Search & Preset Quick Categories -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="8dp">
-
-            <TextView
-                android:id="@+id/tvSiteCount"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                tools:text="0 sites blocked" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnQuickAddCategory"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Preset Pack"
-                app:icon="@drawable/ic_plus"
-                app:iconSize="14dp"
-                app:iconTint="@color/brand_primary"
-                android:textColor="@color/brand_primary"
-                android:textSize="12sp"
-                app:strokeColor="@color/card_border"
-                app:cornerRadius="18dp" />
-        </LinearLayout>
-
-        <EditText
-            android:id="@+id/etSearchSites"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_search_pill"
-            android:drawableStart="@android:drawable/ic_menu_search"
-            android:drawablePadding="8dp"
-            android:hint="Filter blocked domains…"
-            android:paddingHorizontal="16dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="13sp" />
-
-        <!-- Smart Suggestions Section -->
-        <LinearLayout
-            android:id="@+id/layoutSuggestions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💡 Visited Sites Suggestion — Add to block list?"
-                android:textColor="@color/brand_primary"
-                android:textSize="12sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.chip.ChipGroup
-                android:id="@+id/chipGroupSuggestions"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                app:singleLine="true" />
+                android:text="100% on-device local DNS filter"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <FrameLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent"
+        android:clipToPadding="false">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerSites"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingVertical="8dp" />
-
-        <TextView
-            android:id="@+id/tvEmptySites"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="No websites blocked yet.\nAdd custom domains or choose a preset pack above."
-            android:textAlignment="center"
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp"
-            android:visibility="gone" />
-    </FrameLayout>
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- VPN Control & Key Icon Status Card -->
+            <LinearLayout
+                style="@style/DashboardCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_shield"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="VPN Status" />
+
+                    <TextView
+                        android:id="@+id/tvVpnStatusText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="VPN Status: Disconnected"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDisconnectVpn"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:text="Disconnect 🔑"
+                        android:textColor="@color/strict_red"
+                        android:textSize="11sp"
+                        app:strokeColor="@color/strict_red"
+                        app:cornerRadius="17dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Android shows a status bar key icon 🔑 when website filtering is active. Disconnect to remove the key icon instantly."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Domain Input Card -->
+            <LinearLayout
+                style="@style/DashboardCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:text="Add Domain to Block"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/etDomain"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_search_pill"
+                        android:hint="e.g. youtube.com or reddit.com"
+                        android:inputType="textUri"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddDomain"
+                        style="@style/PrimaryButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:minWidth="84dp"
+                        android:paddingHorizontal="16dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="Block" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvDomainError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/strict_red"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    tools:text="Please enter a valid domain" />
+            </LinearLayout>
+
+            <!-- Search, Counter & Preset Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tvSiteCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="0 websites blocked" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnQuickAddCategory"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Preset Pack"
+                    app:icon="@drawable/ic_plus"
+                    app:iconSize="14dp"
+                    app:iconTint="@color/brand_primary"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="12sp"
+                    app:strokeColor="@color/card_border"
+                    app:cornerRadius="18dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/etSearchSites"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_search_pill"
+                android:drawableStart="@android:drawable/ic_menu_search"
+                android:drawablePadding="8dp"
+                android:hint="Filter blocked domains…"
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Smart Suggestions Section -->
+            <LinearLayout
+                android:id="@+id/layoutSuggestions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💡 Visited Sites Suggestion — Add to block list?"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:scrollbars="none">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupSuggestions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleLine="true" />
+                </HorizontalScrollView>
+            </LinearLayout>
+
+            <!-- Recycler View for Blocked Sites -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="200dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerSites"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <TextView
+                    android:id="@+id/tvEmptySites"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:paddingVertical="32dp"
+                    android:text="No websites blocked yet.\nAdd custom domains or choose a preset pack above."
+                    android:textAlignment="center"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>
