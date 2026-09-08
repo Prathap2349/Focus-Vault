@@ -49,7 +49,7 @@ class FocusVpnService : VpnService() {
         const val NOTIF_ID = 1002
         const val REVOKED_CHANNEL_ID = "focus_vpn_revoked_channel"
         const val REVOKED_NOTIF_ID = 1004
-        const val UPSTREAM_DNS = "1.1.1.1"
+        const val UPSTREAM_DNS = "8.8.8.8"
         const val ACTION_STOP = "com.stayfocused.app.service.ACTION_STOP_VPN"
     }
 
@@ -104,7 +104,6 @@ class FocusVpnService : VpnService() {
      * ship with by default. */
     private val KNOWN_DOH_RESOLVER_IPS = listOf(
         "1.1.1.1", "1.0.0.1",             // Cloudflare
-        "8.8.8.8", "8.8.4.4",             // Google
         "9.9.9.9", "149.112.112.112",     // Quad9
         "208.67.222.222", "208.67.220.220" // OpenDNS
     )
@@ -117,10 +116,14 @@ class FocusVpnService : VpnService() {
                 val linkProperties = cm.getLinkProperties(activeNetwork)
                 val dnsServers = linkProperties?.dnsServers
                 if (!dnsServers.isNullOrEmpty()) {
-                    // Filter out 10.0.0.2 because that is our own VPN tunnel address.
-                    // If we route internet DNS back to 10.0.0.2, it creates an infinite loop.
-                    val ipv4Dns = dnsServers.firstOrNull { it is java.net.Inet4Address && it.hostAddress != "10.0.0.2" }
-                    val fallbackDns = dnsServers.firstOrNull { it.hostAddress != "10.0.0.2" }
+                    // Filter out 10.0.0.2 (our own tunnel) and any DoH IP we route into the tunnel
+                    // to completely guarantee we never cause an infinite routing loop if protect() fails.
+                    val ipv4Dns = dnsServers.firstOrNull { 
+                        it is java.net.Inet4Address && it.hostAddress != "10.0.0.2" && !KNOWN_DOH_RESOLVER_IPS.contains(it.hostAddress)
+                    }
+                    val fallbackDns = dnsServers.firstOrNull { 
+                        it.hostAddress != "10.0.0.2" && !KNOWN_DOH_RESOLVER_IPS.contains(it.hostAddress)
+                    }
                     return ipv4Dns?.hostAddress ?: fallbackDns?.hostAddress ?: UPSTREAM_DNS
                 }
             }
