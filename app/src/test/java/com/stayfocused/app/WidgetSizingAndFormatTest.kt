@@ -3,28 +3,19 @@ package com.stayfocused.app
 import com.stayfocused.app.appwidget.FocusWidgetProvider
 import com.stayfocused.app.appwidget.WidgetDataProvider
 import com.stayfocused.app.appwidget.WidgetSizeTier
-import android.os.Bundle
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WidgetSizingAndFormatTest {
 
     private fun resolveSizeTier(minWidth: Int, minHeight: Int): WidgetSizeTier {
-        if (minWidth <= 0 && minHeight <= 0) return WidgetSizeTier.COMPACT
-
-        return when {
-            minWidth >= 220 && minHeight < 110 -> WidgetSizeTier.WIDE
-            minWidth >= 220 && minHeight >= 110 -> WidgetSizeTier.LARGE
-            minWidth < 100 || minHeight < 100 -> WidgetSizeTier.TINY
-            else -> WidgetSizeTier.COMPACT
-        }
+        return FocusWidgetProvider.resolveSizeTier(minWidth, minHeight)
     }
 
     @Test
     fun testTinyWidgetSizeResolution() {
         assertEquals(WidgetSizeTier.TINY, resolveSizeTier(80, 80))
-        assertEquals(WidgetSizeTier.TINY, resolveSizeTier(99, 150))
-        assertEquals(WidgetSizeTier.TINY, resolveSizeTier(150, 90))
+        assertEquals(WidgetSizeTier.TINY, resolveSizeTier(99, 99))
     }
 
     @Test
@@ -36,14 +27,29 @@ class WidgetSizingAndFormatTest {
 
     @Test
     fun testWideWidgetSizeResolution() {
+        assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(220, 110)) // Exact boundary inclusive
         assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(250, 80))
         assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(300, 100))
     }
 
     @Test
     fun testLargeWidgetSizeResolution() {
+        assertEquals(WidgetSizeTier.LARGE, resolveSizeTier(220, 111)) // Immediately above boundary
         assertEquals(WidgetSizeTier.LARGE, resolveSizeTier(250, 200))
         assertEquals(WidgetSizeTier.LARGE, resolveSizeTier(320, 280))
+    }
+
+    @Test
+    fun testBoundaryAndEdgeCases() {
+        // Very wide + very short
+        assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(400, 60))
+
+        // Very narrow + very tall (should be COMPACT fallback, NOT TINY)
+        assertEquals(WidgetSizeTier.COMPACT, resolveSizeTier(80, 300))
+
+        // Ambiguous zone between TINY_MAX_DP (100) and WIDE_MIN_WIDTH_DP (220)
+        assertEquals(WidgetSizeTier.COMPACT, resolveSizeTier(150, 105))
+        assertEquals(WidgetSizeTier.COMPACT, resolveSizeTier(219, 110))
     }
 
     @Test

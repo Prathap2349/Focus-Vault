@@ -94,6 +94,48 @@ object PrefsManager {
         return set
     }
 
+    private const val KEY_QUERIED_DOMAIN_COUNTS = "queried_domain_counts"
+
+    @Synchronized
+    fun recordQueriedDomain(context: Context, rawDomain: String) {
+        val domain = rawDomain.removePrefix("www.").lowercase().trim()
+        if (domain.isEmpty() || domain.endsWith(".arpa") || domain.endsWith(".local") || domain.contains("localhost")) return
+        val currentBlocked = getBlockedDomains(context)
+        if (currentBlocked.any { domain == it || domain.endsWith(".$it") }) return
+
+        val prefs = prefs(context)
+        val rawMap = prefs.getString(KEY_QUERIED_DOMAIN_COUNTS, "") ?: ""
+        val countsMap = rawMap.split(";").filter { it.contains(":") }.mapNotNull {
+            val parts = it.split(":")
+            if (parts.size == 2) parts[0] to (parts[1].toIntOrNull() ?: 0) else null
+        }.toMap().toMutableMap()
+
+        val currentCount = countsMap[domain] ?: 0
+        countsMap[domain] = currentCount + 1
+
+        val updatedStr = countsMap.entries.sortedByDescending { it.value }.take(50).joinToString(";") { "${it.key}:${it.value}" }
+        prefs.edit().putString(KEY_QUERIED_DOMAIN_COUNTS, updatedStr).apply()
+    }
+
+    fun getTopSuggestedDomains(context: Context, limit: Int = 5): List<String> {
+        val currentBlocked = getBlockedDomains(context)
+        val prefs = prefs(context)
+        val rawMap = prefs.getString(KEY_QUERIED_DOMAIN_COUNTS, "") ?: ""
+        val countsMap = rawMap.split(";").filter { it.contains(":") }.mapNotNull {
+            val parts = it.split(":")
+            if (parts.size == 2) parts[0] to (parts[1].toIntOrNull() ?: 0) else null
+        }
+        return countsMap
+            .filter { (domain, _) -> currentBlocked.none { domain == it || domain.endsWith(".$it") } }
+            .sortedByDescending { it.second }
+            .map { it.first }
+            .take(limit)
+    }
+
+    fun clearQueriedDomainCounts(context: Context) {
+        prefs(context).edit().remove(KEY_QUERIED_DOMAIN_COUNTS).apply()
+    }
+
     fun setSession(context: Context, mode: SessionMode, state: SessionState, endTimeMillis: Long) {
         val editor = prefs(context).edit()
             .putString(KEY_SESSION_MODE, mode.name)

@@ -16,6 +16,7 @@ import com.stayfocused.app.data.FocusPreset
 import com.stayfocused.app.data.SessionMode
 import com.stayfocused.app.databinding.ActivityPresetsBinding
 import com.stayfocused.app.databinding.ItemPresetBinding
+import com.stayfocused.app.util.FocusStatsManager
 import com.stayfocused.app.util.PrefsManager
 import kotlinx.coroutines.launch
 
@@ -49,6 +50,21 @@ class PresetsActivity : AppCompatActivity() {
                     row.tvPresetIcon.text = preset.icon
                     row.tvPresetName.text = preset.name
                     row.tvPresetDetails.text = "${preset.durationMinutes} min · ${preset.mode.name.lowercase().replaceFirstChar { it.uppercase() }} Mode"
+
+                    val suggestion = FocusStatsManager.getAdaptivePresetSuggestion(this@PresetsActivity, preset.name, preset.durationMinutes)
+                    if (suggestion != null) {
+                        row.tvPresetSuggestion.visibility = android.view.View.VISIBLE
+                        row.tvPresetSuggestion.text = "💡 ${suggestion.suggestionMessage}"
+                        row.tvPresetSuggestion.setOnClickListener {
+                            lifecycleScope.launch {
+                                val updated = preset.copy(durationMinutes = suggestion.actualAvgMinutes)
+                                db.focusPresetDao().upsert(updated)
+                                Toast.makeText(this@PresetsActivity, "Updated '${preset.name}' preset to ${suggestion.actualAvgMinutes} min!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        row.tvPresetSuggestion.visibility = android.view.View.GONE
+                    }
 
                     row.btnStartPreset.setOnClickListener {
                         if (PrefsManager.isSessionCurrentlyActive(this@PresetsActivity)) {

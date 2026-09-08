@@ -319,13 +319,23 @@ class FocusWidgetProvider : AppWidgetProvider() {
         fun resolveSizeTier(options: Bundle?): WidgetSizeTier {
             val minWidth = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
             val minHeight = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+            return resolveSizeTier(minWidth, minHeight)
+        }
 
+        /**
+         * Resolves responsive size tier based on explicit boundary rules:
+         * 1. WIDE: minWidth >= 220dp AND minHeight <= 110dp (inclusive of 110dp height for 4x1 banner)
+         * 2. LARGE: minWidth >= 220dp AND minHeight > 110dp (strictly taller than 110dp for 4x2+)
+         * 3. TINY: minWidth < 100dp AND minHeight < 100dp (both dimensions must be small for 1x1 tile)
+         * 4. COMPACT: default / fallback for 2x2 or intermediate resizes
+         */
+        fun resolveSizeTier(minWidth: Int, minHeight: Int): WidgetSizeTier {
             if (minWidth <= 0 && minHeight <= 0) return WidgetSizeTier.COMPACT
 
             return when {
-                minWidth >= WIDE_MIN_WIDTH_DP && minHeight < WIDE_MAX_HEIGHT_DP -> WidgetSizeTier.WIDE
-                minWidth >= LARGE_MIN_WIDTH_DP && minHeight >= LARGE_MIN_HEIGHT_DP -> WidgetSizeTier.LARGE
-                minWidth < TINY_MAX_DP || minHeight < TINY_MAX_DP -> WidgetSizeTier.TINY
+                minWidth >= WIDE_MIN_WIDTH_DP && minHeight <= WIDE_MAX_HEIGHT_DP -> WidgetSizeTier.WIDE
+                minWidth >= LARGE_MIN_WIDTH_DP && minHeight > WIDE_MAX_HEIGHT_DP -> WidgetSizeTier.LARGE
+                minWidth < TINY_MAX_DP && minHeight < TINY_MAX_DP -> WidgetSizeTier.TINY
                 else -> WidgetSizeTier.COMPACT
             }
         }

@@ -40,6 +40,17 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             tools:text="50 min · Focus Mode" />
+
+        <TextView
+            android:id="@+id/tvPresetSuggestion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/brand_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="💡 Your 90-min Deep Work sessions usually end around 45 min — tap to update preset." />
     </LinearLayout>
 
     <Button

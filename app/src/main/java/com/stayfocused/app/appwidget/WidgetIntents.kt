@@ -65,9 +65,9 @@ object WidgetIntents {
     }
 
     fun emergency(context: Context, appWidgetId: Int): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, WidgetQuickStartActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(MainActivity.EXTRA_AUTO_EMERGENCY, true)
+            putExtra(WidgetQuickStartActivity.EXTRA_SHOW_EMERGENCY, true)
         }
         return PendingIntent.getActivity(
             context, requestCode(appWidgetId, ACTION_EMERGENCY), intent, flags()

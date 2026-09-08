@@ -358,6 +358,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshAfterUnlock() {
+        if (PrefsManager.isSessionCurrentlyActive(this) && PrefsManager.isStrictModeActive(this)) {
+            startActivity(Intent(this, StrictModeStatusActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            })
+            finish()
+            return
+        }
+
         refreshGreeting()
         refreshProtectionBanner()
         refreshCounts()

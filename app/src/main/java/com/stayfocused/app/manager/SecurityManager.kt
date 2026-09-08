@@ -4,27 +4,35 @@ import android.content.Context
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /**
  * Manages PIN and security question authentication with cryptographic security:
- * - Never stores raw plaintext PINs; uses salted SHA-256 hashes.
- * - Migrates any legacy plaintext PIN transparently to salted hash format.
+ * - Never stores raw plaintext PINs; uses salted PBKDF2WithHmacSHA256 hashes (10,000 iterations).
+ * - Migrates any legacy plaintext or v2 single-round SHA-256 PIN transparently to PBKDF2 v3 format.
  * - Rate-limits failed attempts with progressive lockouts (30s after 3 fails, 60s after 5 fails).
  * - Persists lockout timestamp to prevent bypasses via app restart.
  */
 object SecurityManager {
 
     private const val PREFS = "stay_focused_security"
-    private const val KEY_PIN_HASH = "pin_hash_v2"
-    private const val KEY_PIN_SALT = "pin_salt_v2"
+    private const val KEY_PIN_HASH_V3 = "pin_hash_v3"
+    private const val KEY_PIN_SALT_V3 = "pin_salt_v3"
+    private const val KEY_PIN_HASH_V2 = "pin_hash_v2"
+    private const val KEY_PIN_SALT_V2 = "pin_salt_v2"
     private const val KEY_LEGACY_PIN = "lock_mode_pin" // From old PrefsManager
-    private const val KEY_SEC_ANSWER_HASH = "sec_answer_hash_v2"
-    private const val KEY_SEC_ANSWER_SALT = "sec_answer_salt_v2"
+    private const val KEY_SEC_ANSWER_HASH_V3 = "sec_answer_hash_v3"
+    private const val KEY_SEC_ANSWER_SALT_V3 = "sec_answer_salt_v3"
+    private const val KEY_SEC_ANSWER_HASH_V2 = "sec_answer_hash_v2"
+    private const val KEY_SEC_ANSWER_SALT_V2 = "sec_answer_salt_v2"
     private const val KEY_SEC_QUESTION_INDEX = "security_question_index"
     private const val KEY_FAILED_ATTEMPTS = "failed_pin_attempts"
     private const val KEY_LOCKOUT_UNTIL = "lockout_until_millis"
 
     private const val MAX_ATTEMPTS_BEFORE_LOCKOUT = 3
+    private const val PBKDF2_ITERATIONS = 10_000
+    private const val KEY_LENGTH_BITS = 256
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -34,15 +42,20 @@ object SecurityManager {
 
     fun hasPin(context: Context): Boolean {
         migrateLegacyPinIfNeeded(context)
-        return !prefs(context).getString(KEY_PIN_HASH, null).isNullOrEmpty()
+        val v3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
+        if (!v3.isNullOrEmpty()) return true
+        val v2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
+        return !v2.isNullOrEmpty()
     }
 
     fun setPin(context: Context, pin: String) {
         val salt = generateSalt()
         val hash = hashWithSalt(pin, salt)
         prefs(context).edit()
-            .putString(KEY_PIN_HASH, hash)
-            .putString(KEY_PIN_SALT, salt)
+            .putString(KEY_PIN_HASH_V3, hash)
+            .putString(KEY_PIN_SALT_V3, salt)
+            .remove(KEY_PIN_HASH_V2)
+            .remove(KEY_PIN_SALT_V2)
             .putInt(KEY_FAILED_ATTEMPTS, 0)
             .putLong(KEY_LOCKOUT_UNTIL, 0L)
             .apply()
@@ -86,20 +99,32 @@ object SecurityManager {
             )
         }
 
-        val storedHash = prefs(context).getString(KEY_PIN_HASH, null)
-        val storedSalt = prefs(context).getString(KEY_PIN_SALT, null)
-        if (storedHash.isNullOrEmpty() || storedSalt.isNullOrEmpty()) {
-            return PinVerifyResult(isSuccess = false, isLockedOut = false, attemptsRemaining = 0)
-        }
+        val storedHashV3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
+        val storedSaltV3 = prefs(context).getString(KEY_PIN_SALT_V3, null)
 
-        val attemptHash = hashWithSalt(attempt, storedSalt)
-        if (attemptHash == storedHash) {
-            // Success: reset failure counter
-            prefs(context).edit()
-                .putInt(KEY_FAILED_ATTEMPTS, 0)
-                .putLong(KEY_LOCKOUT_UNTIL, 0L)
-                .apply()
-            return PinVerifyResult(isSuccess = true, isLockedOut = false)
+        if (!storedHashV3.isNullOrEmpty() && !storedSaltV3.isNullOrEmpty()) {
+            val attemptHash = hashWithSalt(attempt, storedSaltV3)
+            if (attemptHash == storedHashV3) {
+                // Success: reset failure counter
+                prefs(context).edit()
+                    .putInt(KEY_FAILED_ATTEMPTS, 0)
+                    .putLong(KEY_LOCKOUT_UNTIL, 0L)
+                    .apply()
+                return PinVerifyResult(isSuccess = true, isLockedOut = false)
+            }
+        } else {
+            // Lazy migration from v2 SHA-256
+            val storedHashV2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
+            val storedSaltV2 = prefs(context).getString(KEY_PIN_SALT_V2, null)
+            if (!storedHashV2.isNullOrEmpty() && !storedSaltV2.isNullOrEmpty()) {
+                val attemptHashV2 = hashWithSha256(attempt, storedSaltV2)
+                if (attemptHashV2 == storedHashV2) {
+                    setPin(context, attempt) // Upgrade to PBKDF2 v3
+                    return PinVerifyResult(isSuccess = true, isLockedOut = false)
+                }
+            } else {
+                return PinVerifyResult(isSuccess = false, isLockedOut = false, attemptsRemaining = 0)
+            }
         }
 
         // Failure: increment attempts and check for lockout
@@ -127,8 +152,12 @@ object SecurityManager {
         )
     }
 
-    fun hasSecurityAnswer(context: Context): Boolean =
-        !prefs(context).getString(KEY_SEC_ANSWER_HASH, null).isNullOrEmpty()
+    fun hasSecurityAnswer(context: Context): Boolean {
+        val v3 = prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null)
+        if (!v3.isNullOrEmpty()) return true
+        val v2 = prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null)
+        return !v2.isNullOrEmpty()
+    }
 
     fun setSecurityAnswer(context: Context, questionIndex: Int, rawAnswer: String) {
         val normalized = rawAnswer.trim().lowercase()
@@ -136,8 +165,10 @@ object SecurityManager {
         val hash = hashWithSalt(normalized, salt)
         prefs(context).edit()
             .putInt(KEY_SEC_QUESTION_INDEX, questionIndex)
-            .putString(KEY_SEC_ANSWER_HASH, hash)
-            .putString(KEY_SEC_ANSWER_SALT, salt)
+            .putString(KEY_SEC_ANSWER_HASH_V3, hash)
+            .putString(KEY_SEC_ANSWER_SALT_V3, salt)
+            .remove(KEY_SEC_ANSWER_HASH_V2)
+            .remove(KEY_SEC_ANSWER_SALT_V2)
             .apply()
     }
 
@@ -145,16 +176,30 @@ object SecurityManager {
         prefs(context).getInt(KEY_SEC_QUESTION_INDEX, 0)
 
     fun verifySecurityAnswer(context: Context, rawAnswer: String): Boolean {
-        val storedHash = prefs(context).getString(KEY_SEC_ANSWER_HASH, null) ?: return false
-        val storedSalt = prefs(context).getString(KEY_SEC_ANSWER_SALT, null) ?: return false
         val normalized = rawAnswer.trim().lowercase()
-        return hashWithSalt(normalized, storedSalt) == storedHash
+        val v3Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null)
+        val v3Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V3, null)
+        if (!v3Hash.isNullOrEmpty() && !v3Salt.isNullOrEmpty()) {
+            return hashWithSalt(normalized, v3Salt) == v3Hash
+        }
+        val v2Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null)
+        val v2Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V2, null)
+        if (!v2Hash.isNullOrEmpty() && !v2Salt.isNullOrEmpty()) {
+            val ok = hashWithSha256(normalized, v2Salt) == v2Hash
+            if (ok) {
+                val qIdx = getSecurityQuestionIndex(context)
+                setSecurityAnswer(context, qIdx, rawAnswer)
+            }
+            return ok
+        }
+        return false
     }
 
     private fun migrateLegacyPinIfNeeded(context: Context) {
         val legacyPin = fastPrefs(context).getString(KEY_LEGACY_PIN, null)
-        val currentHash = prefs(context).getString(KEY_PIN_HASH, null)
-        if (!legacyPin.isNullOrEmpty() && currentHash.isNullOrEmpty()) {
+        val currentHashV3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
+        val currentHashV2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
+        if (!legacyPin.isNullOrEmpty() && currentHashV3.isNullOrEmpty() && currentHashV2.isNullOrEmpty()) {
             setPin(context, legacyPin)
         }
     }
@@ -167,6 +212,14 @@ object SecurityManager {
     }
 
     fun hashWithSalt(input: String, saltBase64: String): String {
+        val salt = Base64.getDecoder().decode(saltBase64)
+        val spec = PBEKeySpec(input.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_LENGTH_BITS)
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val hash = factory.generateSecret(spec).encoded
+        return Base64.getEncoder().encodeToString(hash)
+    }
+
+    private fun hashWithSha256(input: String, saltBase64: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(Base64.getDecoder().decode(saltBase64))
         val hashedBytes = digest.digest(input.toByteArray(Charsets.UTF_8))

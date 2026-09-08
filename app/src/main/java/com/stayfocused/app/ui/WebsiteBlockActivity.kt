@@ -83,6 +83,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
             allSites.addAll(existing)
             applySearch()
             updateSiteCounter()
+            loadSuggestions(db)
         }
 
         binding.btnAddDomain.setOnClickListener {
@@ -170,5 +171,37 @@ class WebsiteBlockActivity : AppCompatActivity() {
     private suspend fun syncFastCache(db: AppDatabase) {
         val active = db.blockedSiteDao().getActiveDomainsOnce().toSet()
         PrefsManager.setBlockedDomains(this, active)
+    }
+
+    private fun loadSuggestions(db: AppDatabase) {
+        val suggestions = PrefsManager.getTopSuggestedDomains(this, 5)
+        if (suggestions.isEmpty()) {
+            binding.layoutSuggestions.visibility = View.GONE
+            return
+        }
+
+        binding.layoutSuggestions.visibility = View.VISIBLE
+        binding.chipGroupSuggestions.removeAllViews()
+
+        suggestions.forEach { domain ->
+            val chip = com.google.android.material.chip.Chip(this).apply {
+                text = "+ $domain"
+                isCheckable = false
+                setOnClickListener {
+                    if (allSites.none { it.domain == domain }) {
+                        val site = BlockedSite(domain, true)
+                        allSites.add(0, site)
+                        lifecycleScope.launch {
+                            db.blockedSiteDao().upsert(site)
+                            syncFastCache(db)
+                            applySearch()
+                            updateSiteCounter()
+                            loadSuggestions(db)
+                        }
+                    }
+                }
+            }
+            binding.chipGroupSuggestions.addView(chip)
+        }
     }
 }

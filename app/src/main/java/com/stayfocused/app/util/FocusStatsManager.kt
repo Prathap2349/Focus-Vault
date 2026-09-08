@@ -202,4 +202,43 @@ object FocusStatsManager {
             monthlyGoalMinutes = monthlyGoalMinutes
         )
     }
+
+    data class PresetAdaptiveSuggestion(
+        val presetName: String,
+        val configuredMinutes: Int,
+        val actualAvgMinutes: Int,
+        val suggestionMessage: String
+    )
+
+    suspend fun getAdaptivePresetSuggestion(context: Context, presetName: String, configuredMinutes: Int): PresetAdaptiveSuggestion? {
+        val db = AppDatabase.getInstance(context)
+        val history = db.sessionHistoryDao().getRecent(50)
+            .filter { it.title.equals(presetName, ignoreCase = true) || it.title.contains(presetName, ignoreCase = true) }
+
+        if (history.size < 3) return null
+
+        val avgDuration = history.map { it.durationMinutes }.average().toInt()
+        if (avgDuration <= 0) return null
+        val ratio = avgDuration.toFloat() / configuredMinutes.toFloat()
+
+        if (ratio < 0.80f || ratio > 1.20f) {
+            val roundedAvg = when {
+                avgDuration <= 15 -> 15
+                avgDuration <= 30 -> 30
+                avgDuration <= 45 -> 45
+                avgDuration <= 60 -> 60
+                avgDuration <= 90 -> 90
+                else -> (avgDuration / 15) * 15
+            }
+            if (roundedAvg == configuredMinutes) return null
+            val action = if (roundedAvg < configuredMinutes) "usually end around" else "usually extend to"
+            return PresetAdaptiveSuggestion(
+                presetName = presetName,
+                configuredMinutes = configuredMinutes,
+                actualAvgMinutes = roundedAvg,
+                suggestionMessage = "Your $configuredMinutes-min '$presetName' sessions $action $roundedAvg min. Tap to update preset."
+            )
+        }
+        return null
+    }
 }

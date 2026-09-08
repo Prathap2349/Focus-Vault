@@ -64,6 +64,13 @@
             android:exported="false"
             android:theme="@style/Theme.StayFocused.FullScreen" />
 
+        <!-- Full-screen Strict mode status screen during active strict session -->
+        <activity
+            android:name=".ui.StrictModeStatusActivity"
+            android:exported="false"
+            android:theme="@style/Theme.StayFocused.FullScreen"
+            android:launchMode="singleTop" />
+
         <!-- Lock mode confirmation + PIN setup before a session starts -->
         <activity
             android:name=".ui.LockModeConfirmActivity"

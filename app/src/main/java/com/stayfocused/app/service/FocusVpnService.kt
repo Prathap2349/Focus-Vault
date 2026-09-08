@@ -15,6 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.DatagramSocket
@@ -27,7 +29,7 @@ import java.nio.ByteBuffer
  *  - if the domain (or its parent domain) is on the block list -> replies with NXDOMAIN
  *    locally, so the site never resolves and never loads.
  *  - otherwise -> forwards the query untouched to a real upstream DNS resolver and relays
- *    the real response back.
+ *    the real response back asynchronously without blocking the packet read loop.
  *
  * All other traffic (non-DNS) is NOT routed through the tunnel, so normal browsing speed
  * and non-web apps are unaffected. No browsing data ever leaves the device to any third
@@ -39,6 +41,7 @@ class FocusVpnService : VpnService() {
     private val serviceJob = Job()
     private val scope = CoroutineScope(Dispatchers.IO + serviceJob)
     private var running = false
+    private val outputMutex = Mutex()
 
     companion object {
         const val CHANNEL_ID = "focus_vpn_channel"
@@ -116,7 +119,8 @@ class FocusVpnService : VpnService() {
                 val length = try { input.read(buffer) } catch (e: Exception) { break }
                 if (length <= 0) continue
 
-                val packet = ByteBuffer.wrap(buffer, 0, length)
+                val rawPacket = buffer.copyOf(length)
+                val packet = ByteBuffer.wrap(rawPacket, 0, length)
                 val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet) ?: continue
 
                 val blockedDomains = PrefsManager.getBlockedDomains(this)
@@ -128,33 +132,44 @@ class FocusVpnService : VpnService() {
 
                 if (isBlocked) {
                     com.stayfocused.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
-                    val nxDomainResponse = DnsPacketParser.buildNxDomainResponse(buffer, length)
-                    output.write(nxDomainResponse)
+                    val nxDomainResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length)
+                    outputMutex.withLock {
+                        output.write(nxDomainResponse)
+                    }
                 } else {
-                    // Forward to upstream resolver and relay the real answer back
-                    try {
-                        val upstreamSocket = DatagramSocket()
-                        protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
-                        val dnsPayload = udpDnsQuery.rawDnsPayload
-                        val forwardPacket = java.net.DatagramPacket(
-                            dnsPayload, dnsPayload.size, InetSocketAddress(UPSTREAM_DNS, 53)
-                        )
-                        upstreamSocket.send(forwardPacket)
+                    val queryDomain = udpDnsQuery.queryName
+                    if (PrefsManager.isSessionCurrentlyActive(this)) {
+                        PrefsManager.recordQueriedDomain(this, queryDomain)
+                    }
 
-                        val replyBuf = ByteArray(4096)
-                        val replyPacket = java.net.DatagramPacket(replyBuf, replyBuf.size)
-                        upstreamSocket.soTimeout = 3000
-                        upstreamSocket.receive(replyPacket)
-                        upstreamSocket.close()
+                    // Forward to upstream resolver asynchronously so the TUN read loop is never blocked
+                    val dnsPayload = udpDnsQuery.rawDnsPayload
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val upstreamSocket = DatagramSocket()
+                            protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
+                            val forwardPacket = java.net.DatagramPacket(
+                                dnsPayload, dnsPayload.size, InetSocketAddress(UPSTREAM_DNS, 53)
+                            )
+                            upstreamSocket.send(forwardPacket)
 
-                        val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
-                            originalRequestPacket = buffer,
-                            originalLength = length,
-                            dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
-                        )
-                        output.write(fullReply)
-                    } catch (e: Exception) {
-                        // Upstream failure: drop silently, browser/app will just retry or time out
+                            val replyBuf = ByteArray(4096)
+                            val replyPacket = java.net.DatagramPacket(replyBuf, replyBuf.size)
+                            upstreamSocket.soTimeout = 3000
+                            upstreamSocket.receive(replyPacket)
+                            upstreamSocket.close()
+
+                            val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
+                                originalRequestPacket = rawPacket,
+                                originalLength = length,
+                                dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
+                            )
+                            outputMutex.withLock {
+                                output.write(fullReply)
+                            }
+                        } catch (e: Exception) {
+                            // Upstream failure: drop silently, browser/app will just retry or time out
+                        }
                     }
                 }
             }

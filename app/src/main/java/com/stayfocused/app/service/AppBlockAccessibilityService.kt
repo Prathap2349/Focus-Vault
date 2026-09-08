@@ -93,8 +93,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         if (shouldBlock) {
             val now = System.currentTimeMillis()
-            // Suppress duplicate events for the SAME blocked package within 200ms
-            if (lastBlockedPackage == packageName && (now - lastOverlayLaunchTime) < 200L) {
+            // Suppress rapid activity re-launches within 250ms across any blocked packages to prevent flashing
+            if ((now - lastOverlayLaunchTime) < 250L) {
+                lastBlockedPackage = packageName
                 return
             }
 
