@@ -351,10 +351,17 @@ class FocusWidgetProvider : AppWidgetProvider() {
             if (minWidth <= 0 && minHeight <= 0) return WidgetSizeTier.COMPACT
 
             return when {
-                minWidth >= WIDE_MIN_WIDTH_DP && minHeight <= WIDE_MAX_HEIGHT_DP -> WidgetSizeTier.WIDE
-                minWidth >= LARGE_MIN_WIDTH_DP && minHeight > WIDE_MAX_HEIGHT_DP -> WidgetSizeTier.LARGE
-                minWidth < TINY_MAX_DP && minHeight < TINY_MAX_DP -> WidgetSizeTier.TINY
-                else -> WidgetSizeTier.COMPACT
+                minHeight <= WIDE_MAX_HEIGHT_DP -> {
+                    // Short layout (1 row). If narrow, use TINY; if wide enough, use WIDE.
+                    if (minWidth < 150) WidgetSizeTier.TINY
+                    else WidgetSizeTier.WIDE
+                }
+                else -> {
+                    // Tall layout (2+ rows).
+                    if (minWidth >= LARGE_MIN_WIDTH_DP) WidgetSizeTier.LARGE
+                    else if (minWidth < TINY_MAX_DP && minHeight < TINY_MAX_DP) WidgetSizeTier.TINY
+                    else WidgetSizeTier.COMPACT
+                }
             }
         }
     }

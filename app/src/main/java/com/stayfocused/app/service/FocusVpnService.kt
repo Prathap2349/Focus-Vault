@@ -117,7 +117,8 @@ class FocusVpnService : VpnService() {
                 val linkProperties = cm.getLinkProperties(activeNetwork)
                 val dnsServers = linkProperties?.dnsServers
                 if (!dnsServers.isNullOrEmpty()) {
-                    return dnsServers.first().hostAddress ?: UPSTREAM_DNS
+                    val ipv4Dns = dnsServers.firstOrNull { it is java.net.Inet4Address }
+                    return ipv4Dns?.hostAddress ?: dnsServers.first().hostAddress ?: UPSTREAM_DNS
                 }
             }
         } catch (e: Exception) {
