@@ -117,8 +117,11 @@ class FocusVpnService : VpnService() {
                 val linkProperties = cm.getLinkProperties(activeNetwork)
                 val dnsServers = linkProperties?.dnsServers
                 if (!dnsServers.isNullOrEmpty()) {
-                    val ipv4Dns = dnsServers.firstOrNull { it is java.net.Inet4Address }
-                    return ipv4Dns?.hostAddress ?: dnsServers.first().hostAddress ?: UPSTREAM_DNS
+                    // Filter out 10.0.0.2 because that is our own VPN tunnel address.
+                    // If we route internet DNS back to 10.0.0.2, it creates an infinite loop.
+                    val ipv4Dns = dnsServers.firstOrNull { it is java.net.Inet4Address && it.hostAddress != "10.0.0.2" }
+                    val fallbackDns = dnsServers.firstOrNull { it.hostAddress != "10.0.0.2" }
+                    return ipv4Dns?.hostAddress ?: fallbackDns?.hostAddress ?: UPSTREAM_DNS
                 }
             }
         } catch (e: Exception) {
