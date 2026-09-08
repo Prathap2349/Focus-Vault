@@ -47,6 +47,75 @@ class BlockOverlayActivity : AppCompatActivity() {
         setContentView(binding.root)
         EdgeToEdge.apply(this, binding.root, useDarkIcons = false)
 
+        // Clock breathing aura animation
+        com.stayfocused.app.util.AnimationHelper.startBreathingAura(binding.frameCountdownRing)
+
+        // Spring touch physics for action buttons
+        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnGoHome)
+        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnEmergencyUnlockOverlay)
+
+        binding.btnGoHome.setOnClickListener {
+            com.stayfocused.app.util.HapticHelper.mediumClick(it)
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(homeIntent)
+            finish()
+        }
+
+        binding.btnEmergencyUnlockOverlay.setOnClickListener {
+            com.stayfocused.app.util.HapticHelper.heavyClick(it)
+            val isLock = PrefsManager.isLockModeActive(this)
+            val proceed = {
+                if (PrefsManager.canUseEmergencyUnlockToday(this)) {
+                    AlertDialog.Builder(this)
+                        .setTitle("Use your emergency unlock?")
+                        .setMessage("This ends your current session early. You get 1 emergency unlock per day.")
+                        .setPositiveButton("Use it") { _, _ ->
+                            PrefsManager.consumeEmergencyUnlock(this)
+                            lifecycleScope.launch {
+                                SessionStateManager.stopSessionEarly(applicationContext, "Emergency unlock from overlay")
+                                finish()
+                            }
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                } else {
+                    Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
+                }
+            }
+            if (isLock) {
+                LockPinDialog.promptAndVerify(this) { proceed() }
+            } else {
+                proceed()
+            }
+        }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Route directly to home screen instead of letting underlying blocked app through
+                binding.btnGoHome.performClick()
+            }
+        })
+
+        refreshUi()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent != null) {
+            setIntent(intent)
+        }
+        refreshUi()
+    }
+
+    private fun refreshUi() {
+        if (!PrefsManager.isSessionCurrentlyActive(this)) {
+            finish()
+            return
+        }
+
         val isStrict = PrefsManager.isStrictModeActive(this)
         val isLock = PrefsManager.isLockModeActive(this)
         val endTime = PrefsManager.getSessionEndTime(this)
@@ -99,57 +168,6 @@ class BlockOverlayActivity : AppCompatActivity() {
             android.graphics.Color.argb(70, 255, 255, 255)
         )
         binding.ringCountdown.isOrbitalActive = true
-
-        // Clock breathing aura animation
-        com.stayfocused.app.util.AnimationHelper.startBreathingAura(binding.frameCountdownRing)
-
-        // Spring touch physics for action buttons
-        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnGoHome)
-        com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnEmergencyUnlockOverlay)
-
-        binding.btnGoHome.setOnClickListener {
-            com.stayfocused.app.util.HapticHelper.mediumClick(it)
-            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_HOME)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(homeIntent)
-            finish()
-        }
-
-        binding.btnEmergencyUnlockOverlay.setOnClickListener {
-            com.stayfocused.app.util.HapticHelper.heavyClick(it)
-            val proceed = {
-                if (PrefsManager.canUseEmergencyUnlockToday(this)) {
-                    AlertDialog.Builder(this)
-                        .setTitle("Use your emergency unlock?")
-                        .setMessage("This ends your current session early. You get 1 emergency unlock per day.")
-                        .setPositiveButton("Use it") { _, _ ->
-                            PrefsManager.consumeEmergencyUnlock(this)
-                            lifecycleScope.launch {
-                                SessionStateManager.stopSessionEarly(applicationContext, "Emergency unlock from overlay")
-                                finish()
-                            }
-                        }
-                        .setNegativeButton("Cancel", null)
-                        .show()
-                } else {
-                    Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
-                }
-            }
-            if (isLock) {
-                LockPinDialog.promptAndVerify(this) { proceed() }
-            } else {
-                proceed()
-            }
-        }
-
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                // Route directly to home screen instead of letting underlying blocked app through
-                binding.btnGoHome.performClick()
-            }
-        })
 
         startCountdown()
     }
