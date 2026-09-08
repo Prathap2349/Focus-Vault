@@ -82,8 +82,9 @@ Choose your exact level of discipline for every focus session:
 | 2 | **VPN doesn't restart after reboot** | `BootReceiver` now restarts `FocusVpnService` on boot if permanent domains exist and VPN permission is granted |
 | 3 | **VPN permission silently fails if revoked** | Full `VpnService.prepare()` + `startActivityForResult()` flow added with user-facing "Enable 24/7 Blocking" button |
 | 4 | **Badge text wrapping** — "POPULAR" split to "POPULA R", "HARDCORE" to "HARDCO RE" | Badge rows use `match_parent` width with title absorbing slack via `layout_weight=1`, badges get `singleLine=true` |
-| 5 | **Stepper button characters** — `-15m` / `-5m` rendered oddly | Added `textAllCaps=false` to all stepper buttons to prevent font transformation mangling |
+| 5 | **Stepper button characters & text cut off** — `-15m` rendered oddly and clipped vertically | Added `textAllCaps=false`, zeroed `insetTop`/`insetBottom`, and removed vertical padding to fit text inside 32dp bounds |
 | 6 | **Widget bypasses mode selection** — tapping widget jumped directly to timer | `WidgetQuickStartActivity` now always calls `showCenteredModeSelection()` first |
+| 7 | **Enable/Pause 24/7 VPN buttons missing on start** — Controls hidden on app open | `refreshVpnStatusCard()` now checks synchronous `PrefsManager` instead of async database load, instantly rendering controls |
 
 ---
 
