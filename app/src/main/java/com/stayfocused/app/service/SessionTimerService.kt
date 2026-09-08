@@ -118,19 +118,36 @@ class SessionTimerService : Service() {
         val remaining = (targetEnd - System.currentTimeMillis()).coerceAtLeast(0L)
 
         // Show immediate foreground notification to satisfy Android requirements
+        var startedForegroundSuccessfully = false
         try {
+            val notification = buildNotification(remaining, mode, isPaused = false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIF_ID,
-                    buildNotification(remaining, mode, isPaused = false),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
+                try {
+                    startForeground(
+                        NOTIF_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    )
+                    startedForegroundSuccessfully = true
+                } catch (e: Exception) {
+                    android.util.Log.w("SessionTimerService", "Failed to start with SPECIAL_USE type, falling back to default", e)
+                    startForeground(NOTIF_ID, notification)
+                    startedForegroundSuccessfully = true
+                }
             } else {
-                startForeground(NOTIF_ID, buildNotification(remaining, mode, isPaused = false))
+                startForeground(NOTIF_ID, notification)
+                startedForegroundSuccessfully = true
             }
         } catch (e: Exception) {
-            // Guard against background start restrictions
+            android.util.Log.e("SessionTimerService", "Failed to post foreground notification", e)
         }
+
+        if (!startedForegroundSuccessfully) {
+            android.util.Log.e("SessionTimerService", "Service could not start foreground notification; stopping self to prevent OS process crash")
+            stopSelf()
+            return
+        }
+
         WidgetUpdater.requestUpdate(applicationContext)
 
         startTicker(targetEnd, mode)

@@ -21,18 +21,33 @@ object SessionStarter {
      */
     fun startSession(activity: Activity, durationMillis: Long, mode: SessionMode, title: String = "Focus Session") {
         CoroutineScope(Dispatchers.Main).launch {
-            SessionStateManager.startSession(activity.applicationContext, durationMillis, mode, title)
-
-            if (PrefsManager.getBlockedDomains(activity).isNotEmpty()) {
-                val consentIntent = VpnService.prepare(activity)
-                if (consentIntent != null) {
-                    @Suppress("DEPRECATION")
-                    activity.startActivityForResult(consentIntent, REQUEST_VPN_CONSENT)
-                } else {
-                    try {
-                        activity.startService(Intent(activity, FocusVpnService::class.java))
-                    } catch (e: Exception) { }
+            try {
+                val started = SessionStateManager.startSession(activity.applicationContext, durationMillis, mode, title)
+                if (!started) {
+                    android.widget.Toast.makeText(activity, "Session is already active or invalid duration", android.widget.Toast.LENGTH_SHORT).show()
+                    return@launch
                 }
+
+                if (PrefsManager.getBlockedDomains(activity).isNotEmpty()) {
+                    val consentIntent = VpnService.prepare(activity)
+                    if (consentIntent != null) {
+                        @Suppress("DEPRECATION")
+                        activity.startActivityForResult(consentIntent, REQUEST_VPN_CONSENT)
+                    } else {
+                        try {
+                            activity.startService(Intent(activity, FocusVpnService::class.java))
+                        } catch (e: Exception) {
+                            android.util.Log.e("SessionStarter", "Failed to start FocusVpnService", e)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SessionStarter", "Error starting focus session", e)
+                android.widget.Toast.makeText(
+                    activity,
+                    "Unable to start session: ${e.localizedMessage ?: "Unknown error"}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

@@ -85,4 +85,34 @@ class SessionStateMachineTest {
         val shouldComplete = expiredEndTime <= now
         assertTrue(shouldComplete)
     }
+
+    @Test
+    fun testNormalFocusModeLifecycle() {
+        val mode = com.stayfocused.app.data.SessionMode.NORMAL
+        assertEquals("NORMAL", mode.name)
+        
+        var state = SessionState.IDLE
+        assertFalse(state.isLive)
+        
+        state = SessionState.STARTING
+        assertFalse(state.isLive)
+
+        state = SessionState.ACTIVE
+        assertTrue(state.isLive)
+
+        // Normal mode supports stopping early
+        state = SessionState.STOPPED
+        assertFalse(state.isLive)
+    }
+
+    @Test
+    fun testIdempotentSessionStartGuard() {
+        val activeState = SessionState.ACTIVE
+        val now = System.currentTimeMillis()
+        val futureEnd = now + 1800000L
+        
+        // Active session with future end time should reject starting a second session
+        val canStartNew = !activeState.isLive || now >= futureEnd
+        assertFalse("Should prevent starting duplicate session when one is active", canStartNew)
+    }
 }

@@ -195,14 +195,28 @@ class FocusVpnService : VpnService() {
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .build()
+        var startedSuccessfully = false
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                try {
+                    startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                    startedSuccessfully = true
+                } catch (e: Exception) {
+                    android.util.Log.w("FocusVpnService", "Failed to start with SPECIAL_USE type, retrying without type", e)
+                    startForeground(NOTIF_ID, notification)
+                    startedSuccessfully = true
+                }
             } else {
                 startForeground(NOTIF_ID, notification)
+                startedSuccessfully = true
             }
         } catch (e: Exception) {
-            // Guard against background start restrictions
+            android.util.Log.e("FocusVpnService", "Failed to start foreground notification", e)
+        }
+
+        if (!startedSuccessfully) {
+            android.util.Log.e("FocusVpnService", "VPN Service could not start foreground notification; stopping self")
+            stopSelf()
         }
     }
 
