@@ -31,7 +31,9 @@ Choose your exact level of discipline for every focus session:
 - **Live Selection Sorting**: Blocked apps and active sites automatically float to the top of selection lists with real-time Material Switch toggles.
 - **Search & Inline Feedback**: Instant domain normalizer and search bar with red inline validation alerts.
 
-### 4. ⚡ 4-Tier Home Screen Widgets
+### 4. ⚡ 4-Tier Home Screen Widgets & Real-time State Sync
+- **Stale Timer & Ghost Countdown Fix**: Solved stale countdown timers (e.g. `48:56`) displaying when no session is active. `WidgetDataProvider` rigorously verifies active time windows (`now < endTimeMillis`), and `PrefsManager.forceEndSession()` purges expired end timestamps immediately.
+- **Instant Lifecycle Sync**: Widget snapshots re-render automatically across all size tiers (1x1, 2x1, 4x1, 2x2+) whenever a session starts, pauses, stops, or completes.
 - **Wide Banner (4x1)**: Displays live session countdown and full control actions.
 - **Large Bento (2x2)**: Expanded card showing active mode, target goals, progress ring, and controls.
 - **Compact Tile (2x1)**: Essential countdown timer and quick start trigger.

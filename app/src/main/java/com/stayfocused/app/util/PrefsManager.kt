@@ -141,10 +141,11 @@ object PrefsManager {
     }
 
     fun setSession(context: Context, mode: SessionMode, state: SessionState, endTimeMillis: Long) {
+        val effectiveEnd = if (state.isLive) endTimeMillis else 0L
         val editor = prefs(context).edit()
             .putString(KEY_SESSION_MODE, mode.name)
             .putString(KEY_SESSION_STATE, state.name)
-            .putLong(KEY_SESSION_END, endTimeMillis)
+            .putLong(KEY_SESSION_END, effectiveEnd)
         if (state.isLive && prefs(context).getLong(KEY_SESSION_START, 0L) <= 0L) {
             editor.putLong(KEY_SESSION_START, System.currentTimeMillis())
         } else if (!state.isLive) {
@@ -167,6 +168,7 @@ object PrefsManager {
 
     fun getSessionEndTime(context: Context): Long = prefs(context).getLong(KEY_SESSION_END, 0L)
 
+    /** Returns true if a session is currently active or paused in fast cache. */
     fun isSessionCurrentlyActive(context: Context): Boolean {
         val state = getSessionState(context)
         val end = getSessionEndTime(context)
@@ -224,7 +226,9 @@ object PrefsManager {
     /** Ends the current session immediately - used by Normal mode's "Stop early" button. Never called in Strict mode. */
     fun forceEndSession(context: Context) {
         prefs(context).edit()
-            .putString(KEY_SESSION_STATE, SessionState.COMPLETED.name)
+            .putString(KEY_SESSION_STATE, SessionState.STOPPED.name)
+            .putLong(KEY_SESSION_END, 0L)
+            .remove(KEY_SESSION_START)
             .apply()
     }
 

@@ -35,17 +35,32 @@ object SessionStateManager {
     val sessionFlow: StateFlow<FocusSession?> = _sessionFlow.asStateFlow()
 
     fun getSessionSnapshot(context: Context): FocusSession {
-        return _sessionFlow.value ?: run {
-            val mode = PrefsManager.getSessionMode(context)
-            val state = PrefsManager.getSessionState(context)
-            val end = PrefsManager.getSessionEndTime(context)
-            FocusSession(
-                mode = mode,
-                state = state,
-                startTimeMillis = 0L,
-                endTimeMillis = end
-            ).also { _sessionFlow.value = it }
+        val cached = _sessionFlow.value
+        val now = System.currentTimeMillis()
+        if (cached != null) {
+            return if (cached.state.isLive && (cached.endTimeMillis <= 0L || now >= cached.endTimeMillis)) {
+                val expired = cached.copy(state = SessionState.IDLE, startTimeMillis = 0L, endTimeMillis = 0L)
+                _sessionFlow.value = expired
+                expired
+            } else {
+                cached
+            }
         }
+
+        val mode = PrefsManager.getSessionMode(context)
+        val state = PrefsManager.getSessionState(context)
+        val end = PrefsManager.getSessionEndTime(context)
+        val start = PrefsManager.getSessionStartTime(context)
+
+        val effectiveState = if (state.isLive && (end <= 0L || now >= end)) SessionState.IDLE else state
+        val effectiveEnd = if (effectiveState.isLive) end else 0L
+
+        return FocusSession(
+            mode = mode,
+            state = effectiveState,
+            startTimeMillis = if (effectiveState.isLive) start else 0L,
+            endTimeMillis = effectiveEnd
+        ).also { _sessionFlow.value = it }
     }
 
     /**
@@ -183,7 +198,7 @@ object SessionStateManager {
         PrefsManager.forceEndSession(context)
         PrefsManager.clearEmergencyPause(context)
 
-        val stoppedSession = current.copy(state = SessionState.STOPPED)
+        val stoppedSession = current.copy(state = SessionState.STOPPED, startTimeMillis = 0L, endTimeMillis = 0L)
         _sessionFlow.value = stoppedSession
 
         val db = AppDatabase.getInstance(context)
@@ -233,7 +248,7 @@ object SessionStateManager {
         PrefsManager.setSession(context, current.mode, SessionState.COMPLETED, 0L)
         PrefsManager.clearEmergencyPause(context)
 
-        val completedSession = current.copy(state = SessionState.COMPLETED)
+        val completedSession = current.copy(state = SessionState.COMPLETED, startTimeMillis = 0L, endTimeMillis = 0L)
         _sessionFlow.value = completedSession
 
         val db = AppDatabase.getInstance(context)

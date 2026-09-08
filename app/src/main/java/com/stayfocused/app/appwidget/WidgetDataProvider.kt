@@ -76,14 +76,18 @@ object WidgetDataProvider {
         val session = SessionStateManager.getSessionSnapshot(context)
         val sessionMode = session.mode
         val sessionState = session.state
-        val isPaused = sessionState == SessionState.PAUSED || PrefsManager.isEmergencyPauseActive(context)
-        val isActive = sessionState.isLive || (sessionState == SessionState.ACTIVE && System.currentTimeMillis() < session.endTimeMillis)
-        val isCompleted = sessionState == SessionState.COMPLETED
 
         val now = System.currentTimeMillis()
         val endTime = session.endTimeMillis
-        val startTime = session.startTimeMillis.takeIf { it > 0 } ?: (endTime - 25 * 60 * 1000L)
-        val remainingMillis = if (isActive) (endTime - now).coerceAtLeast(0L) else 0L
+        val isTimeRemaining = endTime > 0L && now < endTime
+
+        // A session is ONLY active if state is live AND current time is strictly before end time
+        val isPaused = (sessionState == SessionState.PAUSED || PrefsManager.isEmergencyPauseActive(context)) && isTimeRemaining
+        val isActive = sessionState.isLive && sessionState != SessionState.PAUSED && isTimeRemaining
+        val isCompleted = sessionState == SessionState.COMPLETED || (sessionState.isLive && now >= endTime)
+
+        val startTime = session.startTimeMillis.takeIf { it > 0 } ?: (if (endTime > 0) endTime - 25 * 60 * 1000L else 0L)
+        val remainingMillis = if (isActive || isPaused) (endTime - now).coerceAtLeast(0L) else 0L
 
         val modeLabel = when (sessionMode) {
             SessionMode.STRICT -> "Strict Mode"
@@ -95,8 +99,8 @@ object WidgetDataProvider {
         val remainingLabelCompact = if (isActive) remainingFormatted else if (isPaused) "Paused" else "Focus"
         val remainingLabelFull = if (isActive) "$remainingFormatted remaining" else if (isPaused) "Session Paused" else "Not focusing"
 
-        val sessionStartFormatted = if (startTime > 0) timeFormat.format(startTime) else "--:--"
-        val sessionEndFormatted = if (endTime > 0) timeFormat.format(endTime) else "--:--"
+        val sessionStartFormatted = if (isActive && startTime > 0) timeFormat.format(startTime) else "--:--"
+        val sessionEndFormatted = if (isActive && endTime > 0) timeFormat.format(endTime) else "--:--"
 
         val totalSessionDuration = (endTime - startTime).coerceAtLeast(1L)
         val elapsed = (now - startTime).coerceAtLeast(0L)
@@ -135,7 +139,7 @@ object WidgetDataProvider {
         val (nextTitle, nextFormatted) = formatNextSchedule(nextSchedule)
 
         return WidgetSnapshot(
-            sessionState = sessionState,
+            sessionState = if (isActive) SessionState.ACTIVE else if (isPaused) SessionState.PAUSED else if (isCompleted) SessionState.COMPLETED else SessionState.IDLE,
             isActive = isActive,
             isPaused = isPaused,
             isCompleted = isCompleted,
@@ -173,15 +177,15 @@ object WidgetDataProvider {
     private fun adjustCachedSnapshot(cached: WidgetSnapshot): WidgetSnapshot {
         val now = System.currentTimeMillis()
         val remaining = if (cached.isActive) (cached.endTimeMillis - now).coerceAtLeast(0L) else 0L
-        val isStillActive = cached.isActive && remaining > 0
+        val isStillActive = cached.isActive && remaining > 0L
 
         val remainingFormatted = formatRemainingMMSS(remaining)
         return cached.copy(
             isActive = isStillActive,
             remainingMillis = remaining,
-            remainingFormatted = remainingFormatted,
-            remainingLabelCompact = if (isStillActive) remainingFormatted else cached.remainingLabelCompact,
-            remainingLabelFull = if (isStillActive) "$remainingFormatted remaining" else cached.remainingLabelFull,
+            remainingFormatted = if (isStillActive) remainingFormatted else "00:00",
+            remainingLabelCompact = if (isStillActive) remainingFormatted else "Focus",
+            remainingLabelFull = if (isStillActive) "$remainingFormatted remaining" else "Not focusing",
             snapshotTimestamp = now
         )
     }

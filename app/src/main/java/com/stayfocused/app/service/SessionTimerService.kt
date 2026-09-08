@@ -308,6 +308,7 @@ class SessionTimerService : Service() {
             stopForeground(STOP_FOREGROUND_REMOVE)
             getSystemService(NotificationManager::class.java).cancel(NOTIF_ID)
         } catch (e: Exception) { }
+        WidgetUpdater.requestUpdate(applicationContext)
         super.onDestroy()
     }
 }
