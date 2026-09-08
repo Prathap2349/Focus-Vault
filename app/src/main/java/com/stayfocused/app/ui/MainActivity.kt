@@ -566,9 +566,13 @@ class MainActivity : AppCompatActivity() {
             }
             SessionMode.NORMAL -> {
                 // Vault Lock-In Sequence
-                binding.ringGoalProgress.playLockInAnimation()
-                AnimationHelper.animateVaultLockIn(binding.frameFocusRingContainer)
-                HapticHelper.successHaptic(binding.root)
+                try {
+                    binding.ringGoalProgress.playLockInAnimation()
+                    AnimationHelper.animateVaultLockIn(binding.frameFocusRingContainer)
+                    HapticHelper.successHaptic(binding.root)
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Animation error during session start", e)
+                }
                 SessionStarter.startSession(this, durationMillis, SessionMode.NORMAL)
                 refreshSessionUi()
                 refreshDashboardStats()

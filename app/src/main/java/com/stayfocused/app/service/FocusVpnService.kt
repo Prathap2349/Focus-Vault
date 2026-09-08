@@ -52,10 +52,10 @@ class FocusVpnService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForegroundNotification()
         if (running && vpnInterface != null) {
             return START_STICKY // Avoid duplicate establishment
         }
-        startForegroundNotification()
         try {
             establishVpn()
             if (vpnInterface == null) {

@@ -86,6 +86,9 @@ class SessionTimerService : Service() {
         com.stayfocused.app.manager.ProtectionEngine.isTimerServiceRunning.set(true)
         com.stayfocused.app.manager.ProtectionEngine.lastTimerHeartbeat.set(System.currentTimeMillis())
 
+        // Always satisfy Android OS foreground notification requirements on every start/restart
+        ensureForegroundNotification()
+
         when (intent?.action) {
             ACTION_START -> {
                 val duration = intent.getLongExtra(EXTRA_DURATION_MILLIS, 0L)
@@ -112,15 +115,13 @@ class SessionTimerService : Service() {
         return START_STICKY
     }
 
-    private fun beginSession(durationMillis: Long, mode: SessionMode) {
-        val endTime = PrefsManager.getSessionEndTime(this)
-        val targetEnd = if (endTime > System.currentTimeMillis()) endTime else System.currentTimeMillis() + durationMillis
-        val remaining = (targetEnd - System.currentTimeMillis()).coerceAtLeast(0L)
-
-        // Show immediate foreground notification to satisfy Android requirements
+    private fun ensureForegroundNotification() {
+        val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
+        val mode = PrefsManager.getSessionMode(this)
+        val isPaused = PrefsManager.isEmergencyPauseActive(this)
         var startedForegroundSuccessfully = false
         try {
-            val notification = buildNotification(remaining, mode, isPaused = false)
+            val notification = buildNotification(remaining, mode, isPaused)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 try {
                     startForeground(
@@ -145,9 +146,14 @@ class SessionTimerService : Service() {
         if (!startedForegroundSuccessfully) {
             android.util.Log.e("SessionTimerService", "Service could not start foreground notification; stopping self to prevent OS process crash")
             stopSelf()
-            return
         }
+    }
 
+    private fun beginSession(durationMillis: Long, mode: SessionMode) {
+        val endTime = PrefsManager.getSessionEndTime(this)
+        val targetEnd = if (endTime > System.currentTimeMillis()) endTime else System.currentTimeMillis() + durationMillis
+
+        ensureForegroundNotification()
         WidgetUpdater.requestUpdate(applicationContext)
 
         startTicker(targetEnd, mode)
