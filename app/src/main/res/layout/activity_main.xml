@@ -586,6 +586,21 @@
                 android:letterSpacing="0.08" />
 
             <Button
+                android:id="@+id/btnClearHistory"
+                style="@style/CompactOutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:minHeight="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="Clear All"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+
+            <Button
                 android:id="@+id/btnManagePresets"
                 style="@style/CompactOutlinedButton"
                 android:layout_width="wrap_content"

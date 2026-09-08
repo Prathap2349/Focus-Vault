@@ -133,6 +133,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            SessionStateManager.sessionFlow.collect {
+                refreshSessionUi()
+                refreshDashboardStats()
+            }
+        }
+
+        binding.btnClearHistory.setOnClickListener {
+            HapticHelper.lightClick(it)
+            confirmClearAllHistory()
+        }
+
         binding.btnSettings.setOnClickListener {
             HapticHelper.lightClick(it)
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -205,19 +217,20 @@ class MainActivity : AppCompatActivity() {
         binding.btnStopEarly.setOnClickListener {
             HapticHelper.mediumClick(it)
             val proceed = {
-                AlertDialog.Builder(this)
-                    .setTitle("Stop this focus session?")
-                    .setMessage("Your blocked apps and sites will unlock immediately.")
-                    .setPositiveButton("Stop") { _, _ ->
+                showCustomDialog(
+                    title = "Stop this focus session?",
+                    message = "Your blocked apps and sites will unlock immediately.",
+                    positiveText = "Stop",
+                    positiveAction = {
                         lifecycleScope.launch {
                             SessionStateManager.stopSessionEarly(this@MainActivity, "Stopped early by user")
                             SessionTimerService.stopEarly(this@MainActivity)
                             refreshSessionUi()
                             refreshDashboardStats()
                         }
-                    }
-                    .setNegativeButton("Keep going", null)
-                    .show()
+                    },
+                    negativeText = "Keep going"
+                )
             }
             if (PrefsManager.isLockModeActive(this)) {
                 LockPinDialog.promptAndVerify(this) { proceed() }
@@ -472,9 +485,11 @@ class MainActivity : AppCompatActivity() {
         binding.containerRecentSessions.removeAllViews()
         binding.tvEmptySessions.visibility =
             if (sessions.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        binding.btnClearHistory.visibility =
+            if (sessions.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
 
         val whenFormat = SimpleDateFormat("EEE, h:mm a", Locale.getDefault())
-        sessions.take(5).forEach { session ->
+        sessions.take(10).forEach { session ->
             val row = ItemRecentSessionBinding.inflate(
                 LayoutInflater.from(this), binding.containerRecentSessions, false
             )
@@ -488,8 +503,45 @@ class MainActivity : AppCompatActivity() {
             row.tvSessionDuration.text = formatMinutes(session.durationMinutes)
             val dot = row.dotMode.background.mutate() as android.graphics.drawable.GradientDrawable
             dot.setColor(ContextCompat.getColor(this, colorRes))
+
+            row.btnDeleteSession.setOnClickListener {
+                HapticHelper.lightClick(it)
+                confirmDeleteSession(session)
+            }
             binding.containerRecentSessions.addView(row.root)
         }
+    }
+
+    private fun confirmDeleteSession(session: SessionHistoryEntry) {
+        showCustomDialog(
+            title = "Delete Session Entry?",
+            message = "Remove this ${session.durationMinutes} min session entry from your recent history?",
+            positiveText = "Delete",
+            positiveAction = {
+                lifecycleScope.launch {
+                    val db = AppDatabase.getInstance(applicationContext)
+                    db.sessionHistoryDao().deleteById(session.id)
+                    refreshDashboardStats()
+                }
+            },
+            negativeText = "Cancel"
+        )
+    }
+
+    private fun confirmClearAllHistory() {
+        showCustomDialog(
+            title = "Clear All Session History?",
+            message = "This will remove all session entries from your recent history.",
+            positiveText = "Clear All",
+            positiveAction = {
+                lifecycleScope.launch {
+                    val db = AppDatabase.getInstance(applicationContext)
+                    db.sessionHistoryDao().deleteAll()
+                    refreshDashboardStats()
+                }
+            },
+            negativeText = "Cancel"
+        )
     }
 
     /** Lets the person set how many minutes/day they're aiming for - tapping the goal card. */
@@ -498,19 +550,67 @@ class MainActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setText(PrefsManager.getDailyGoalMinutes(this@MainActivity).toString())
             setSelection(text.length)
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_primary))
         }
-        AlertDialog.Builder(this)
-            .setTitle("Daily focus goal (minutes)")
-            .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+        showCustomDialog(
+            title = "Daily Focus Goal (Minutes)",
+            message = "Set your target daily focus time:",
+            customView = input,
+            positiveText = "Save",
+            positiveAction = {
                 val minutes = input.text.toString().toIntOrNull()
-                if (minutes != null) {
+                if (minutes != null && minutes > 0) {
                     PrefsManager.setDailyGoalMinutes(this, minutes)
                     refreshDashboardStats()
                 }
+            },
+            negativeText = "Cancel"
+        )
+    }
+
+    private fun showCustomDialog(
+        title: String,
+        message: String,
+        customView: android.view.View? = null,
+        positiveText: String? = null,
+        positiveAction: (() -> Unit)? = null,
+        negativeText: String? = null,
+        negativeAction: (() -> Unit)? = null
+    ) {
+        val dialogBinding = com.stayfocused.app.databinding.DialogCustomAlertBinding.inflate(layoutInflater)
+        dialogBinding.tvDialogTitle.text = title
+        dialogBinding.tvDialogMessage.text = message
+
+        if (customView != null) {
+            dialogBinding.containerCustomView.visibility = android.view.View.VISIBLE
+            dialogBinding.containerCustomView.removeAllViews()
+            dialogBinding.containerCustomView.addView(customView)
+        }
+
+        val dialog = AlertDialog.Builder(this, R.style.Theme_StayFocused_Dialog)
+            .setView(dialogBinding.root)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        if (positiveText != null) {
+            dialogBinding.btnDialogPositive.visibility = android.view.View.VISIBLE
+            dialogBinding.btnDialogPositive.text = positiveText
+            dialogBinding.btnDialogPositive.setOnClickListener {
+                dialog.dismiss()
+                positiveAction?.invoke()
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
+
+        if (negativeText != null) {
+            dialogBinding.btnDialogNegative.visibility = android.view.View.VISIBLE
+            dialogBinding.btnDialogNegative.text = negativeText
+            dialogBinding.btnDialogNegative.setOnClickListener {
+                dialog.dismiss()
+                negativeAction?.invoke()
+            }
+        }
+
+        dialog.show()
     }
 
     private fun formatMinutes(minutes: Int): String {
@@ -573,9 +673,10 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "Animation error during session start", e)
                 }
-                SessionStarter.startSession(this, durationMillis, SessionMode.NORMAL)
-                refreshSessionUi()
-                refreshDashboardStats()
+                SessionStarter.startSession(this, durationMillis, SessionMode.NORMAL) {
+                    refreshSessionUi()
+                    refreshDashboardStats()
+                }
             }
         }
     }

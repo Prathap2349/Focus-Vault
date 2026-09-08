@@ -19,12 +19,19 @@ object SessionStarter {
      * Starts a focus session through the authoritative SessionStateManager.
      * Checks VPN consent if websites are configured for blocking.
      */
-    fun startSession(activity: Activity, durationMillis: Long, mode: SessionMode, title: String = "Focus Session") {
+    fun startSession(
+        activity: Activity,
+        durationMillis: Long,
+        mode: SessionMode,
+        title: String = "Focus Session",
+        onStarted: ((Boolean) -> Unit)? = null
+    ) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val started = SessionStateManager.startSession(activity.applicationContext, durationMillis, mode, title)
                 if (!started) {
                     android.widget.Toast.makeText(activity, "Session is already active or invalid duration", android.widget.Toast.LENGTH_SHORT).show()
+                    onStarted?.invoke(false)
                     return@launch
                 }
 
@@ -41,6 +48,7 @@ object SessionStarter {
                         }
                     }
                 }
+                onStarted?.invoke(true)
             } catch (e: Exception) {
                 android.util.Log.e("SessionStarter", "Error starting focus session", e)
                 android.widget.Toast.makeText(
@@ -48,6 +56,7 @@ object SessionStarter {
                     "Unable to start session: ${e.localizedMessage ?: "Unknown error"}",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
+                onStarted?.invoke(false)
             }
         }
     }

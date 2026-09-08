@@ -84,6 +84,15 @@ interface SessionHistoryDao {
      * (total hours, average/longest session). */
     @Query("SELECT * FROM session_history WHERE endTimeMillis >= :sinceMillis ORDER BY endTimeMillis DESC")
     suspend fun getSince(sinceMillis: Long): List<SessionHistoryEntry>
+
+    @Query("DELETE FROM session_history WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM session_history WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
+    @Query("DELETE FROM session_history")
+    suspend fun deleteAll()
 }
 
 @Dao
