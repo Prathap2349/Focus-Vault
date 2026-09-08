@@ -101,7 +101,7 @@ object ProtectionEngine {
                 isHealthy = vpnHealthy,
                 isRequired = hasBlockedSites,
                 fixActionTitle = "Configure",
-                fixIntent = VpnService.prepare(context)
+                fixIntent = Intent(context, com.stayfocused.app.ui.WebsiteBlockActivity::class.java)
             )
         )
 
