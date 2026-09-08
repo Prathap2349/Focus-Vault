@@ -33,7 +33,7 @@ class Converters {
         FocusPreset::class,
         ScheduledSession::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

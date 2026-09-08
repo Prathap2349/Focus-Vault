@@ -29,8 +29,14 @@ interface BlockedSiteDao {
     @Query("SELECT * FROM blocked_sites")
     suspend fun getAllOnce(): List<BlockedSite>
 
+    @Query("SELECT * FROM blocked_sites WHERE isActive = 1")
+    suspend fun getActiveSitesOnce(): List<BlockedSite>
+
     @Query("SELECT domain FROM blocked_sites WHERE isActive = 1")
     suspend fun getActiveDomainsOnce(): List<String>
+
+    @Query("SELECT domain FROM blocked_sites WHERE isActive = 1 AND isPermanent = 1")
+    suspend fun getPermanentActiveDomainsOnce(): List<String>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(site: BlockedSite)

@@ -21,12 +21,23 @@ class SiteListAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val site = sites[position]
         holder.binding.tvDomain.text = site.domain
+        
+        if (site.isPermanent) {
+            holder.binding.tvPermanentBadge.visibility = android.view.View.VISIBLE
+            holder.binding.tvSiteSubtitle.text = "24/7 Round-the-Clock DNS Block"
+        } else {
+            holder.binding.tvPermanentBadge.visibility = android.view.View.GONE
+            holder.binding.tvSiteSubtitle.text = "Session Local DNS Blocked"
+        }
+
+        val isVaultLock = site.isPermanent && com.stayfocused.app.util.PrefsManager.isPermanentVaultLockEnabled(holder.itemView.context)
+        holder.binding.ivLock.visibility = if (isVaultLock) android.view.View.VISIBLE else android.view.View.GONE
+
         holder.binding.btnRemove.setOnClickListener {
             val index = holder.bindingAdapterPosition
             if (index != RecyclerView.NO_POSITION && index < sites.size) {
-                val removed = sites.removeAt(index)
-                notifyItemRemoved(index)
-                onRemove(removed)
+                val siteToRemove = sites[index]
+                onRemove(siteToRemove)
             }
         }
     }

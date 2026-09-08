@@ -204,11 +204,13 @@ object SessionStateManager {
         // Stop services
         try {
             context.stopService(Intent(context, SessionTimerService::class.java))
-            val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
-                action = FocusVpnService.ACTION_STOP
+            if (PrefsManager.getPermanentBlockedDomains(context).isEmpty()) {
+                val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
+                    action = FocusVpnService.ACTION_STOP
+                }
+                context.startService(stopVpnIntent)
+                context.stopService(Intent(context, FocusVpnService::class.java))
             }
-            context.startService(stopVpnIntent)
-            context.stopService(Intent(context, FocusVpnService::class.java))
         } catch (e: Exception) { }
 
         WidgetUpdater.requestUpdate(context)
@@ -250,11 +252,13 @@ object SessionStateManager {
         StreakManager.recordCompletion(context)
 
         try {
-            val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
-                action = FocusVpnService.ACTION_STOP
+            if (PrefsManager.getPermanentBlockedDomains(context).isEmpty()) {
+                val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
+                    action = FocusVpnService.ACTION_STOP
+                }
+                context.startService(stopVpnIntent)
+                context.stopService(Intent(context, FocusVpnService::class.java))
             }
-            context.startService(stopVpnIntent)
-            context.stopService(Intent(context, FocusVpnService::class.java))
         } catch (e: Exception) { }
 
         WidgetUpdater.requestUpdate(context)

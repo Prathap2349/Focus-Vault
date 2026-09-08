@@ -51,6 +51,8 @@ object PrefsManager {
     const val PALETTE_MINIMAL = "minimal"
     const val PALETTE_AMOLED_BLACK = "amoled_black"
     const val PALETTE_DYNAMIC = "dynamic"
+    const val PALETTE_CYBERPUNK = "cyberpunk"
+    const val PALETTE_EMERALD = "emerald"
 
     /** Preset "Forgot PIN?" questions to choose from - picking one and answering it is
      * simpler than being forced to answer several, while still being something only the
@@ -390,6 +392,21 @@ object PrefsManager {
 
     fun setVpnManuallyStopped(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_VPN_MANUALLY_STOPPED, value).apply()
+    }
+
+    fun setPermanentBlockedDomains(context: Context, domains: Set<String>) {
+        prefs(context).edit().putStringSet("permanent_blocked_domains", domains).apply()
+    }
+
+    fun getPermanentBlockedDomains(context: Context): Set<String> {
+        return prefs(context).getStringSet("permanent_blocked_domains", emptySet()) ?: emptySet()
+    }
+
+    fun isPermanentVaultLockEnabled(context: Context): Boolean =
+        prefs(context).getBoolean("permanent_vault_lock", false)
+
+    fun setPermanentVaultLockEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("permanent_vault_lock", enabled).apply()
     }
 
     /** Today's date as yyyy-MM-dd in the device's local time zone - same format/definition of

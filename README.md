@@ -7,7 +7,7 @@
 
 ---
 
-**Focus Vault** (package `com.stayfocused.app`) is an ultra-reliable, privacy-first native Android app and website blocker. Designed for high discipline and deep work, Focus Vault combines unbypassable session mechanics, local DNS packet filtering, PBKDF2 security lock, custom multi-tier home screen widgets, and offline analytics into a clean, modern interface.
+**Focus Vault** (package `com.stayfocused.app`) is an ultra-reliable, privacy-first native Android application and website blocker built for extreme discipline and deep focus. Focus Vault integrates unbypassable session protection, local DNS packet filtering, 24/7 permanent Vault Lock, PBKDF2 cryptographic locks, custom multi-tier home screen widgets, and offline analytics into a clean, modern Material interface.
 
 ---
 
@@ -19,25 +19,35 @@ Choose your exact level of discipline for every focus session:
 - **Lock Mode (Deep)**: Security PIN guarded. Stopping early or modifying blocklists requires your master PIN.
 - **Strict Mode (Iron / Hardcore)**: Unbreakable lock. Zero early exits, no emergency stop, and no bypasses allowed until the session timer reaches zero.
 
-### 2. 🛡️ Application & Website Blocking Engine
-- **Instant App Overlay**: Monitors foreground application switches via `AppBlockAccessibilityService` with anti-flash timing guards.
-- **Local DNS VPN Tunnel & Key Icon Controls**: Filters web requests locally via `FocusVpnService` with zero network overhead. Includes explicit `ACTION_STOP` disconnect controls to immediately release the VPN tunnel and clear Android's status bar key icon (`🔑`).
-- **Preset Packs & Smart Suggestions**: 1-tap website preset packs (Social, Video & Streaming, Gaming, Shopping) and automatic on-device domain suggestions based on local queries.
-- **Live Re-sorting & Domain Validation**: Blocked apps and active sites automatically float to the top of selection lists with real-time inline validation feedback. Bento-card list containers prevent text clipping on all screen sizes.
+### 2. 🌐 24/7 Permanent Website Blocking & Vault Lock Guard
+- **24/7 Round-the-Clock Web Blocking**: Block distracting websites permanently without needing an active focus session timer. The local `FocusVpnService` stays active in lightweight DNS packet inspection mode automatically.
+- **Vault PIN Guard**: Enable Vault Lock to require master App Lock PIN verification before removing or unblocking any 24/7 permanent domain.
+- **Segmented Filter Tabs**: Effortlessly filter your website blocklist between **All**, **24/7 Permanent**, and **Session Only** tabs with live count indicators.
+- **Local DNS Tunnel & Key Icon Controls**: Zero external server routing. Includes 1-tap `ACTION_STOP` VPN disconnect controls to immediately hide Android's status bar key icon (`🔑`) when needed.
+- **Preset Packs & Smart Suggestions**: 1-tap preset packs (Social Media, Video & Streaming, Gaming, Shopping, News) and on-device domain recommendations based on local queries.
 
-### 3. ⚡ 4-Tier Home Screen Widgets
+### 3. 📱 Application Blocking & Live Re-sorting
+- **Instant App Overlay**: Monitors foreground application switches via `AppBlockAccessibilityService` with anti-flash timing guards.
+- **Live Selection Sorting**: Blocked apps and active sites automatically float to the top of selection lists with real-time Material Switch toggles.
+- **Search & Inline Feedback**: Instant domain normalizer and search bar with red inline validation alerts.
+
+### 4. ⚡ 4-Tier Home Screen Widgets
 - **Wide Banner (4x1)**: Displays live session countdown and full control actions.
 - **Large Bento (2x2)**: Expanded card showing active mode, target goals, progress ring, and controls.
 - **Compact Tile (2x1)**: Essential countdown timer and quick start trigger.
 - **Tiny Quick-Pick (1x1)**: 1-tap shortcut launching a transparent emergency/quick timer setup sheet (`WidgetQuickStartActivity`).
 
-### 4. 📊 Local Analytics & Session History
-- **Focus Goals**: Tracks Daily, Weekly, and Monthly focus achievements.
-- **Adaptive Preset Tuning**: Automatically analyzes past sessions and suggests updates when sessions consistently end early or over-run.
-- **Customizable History**: View recent session logs with options to delete individual entries or clear history.
-
-### 5. 🎨 Polished Design System & Dark Mode
-- **AMOLED True Black & Palettes**: Native support for OLED pitch-black backgrounds and vibrant color palettes (Aurora Teal & Midnight Violet).
+### 5. 🎨 Expanded Theme Engine & Dark Mode
+- **Vibrant Color Palettes**: Choose between 8 curated palettes:
+  - 🌌 **Focus Indigo (Aurora)**
+  - 🌆 **Midnight Violet**
+  - 🌊 **Ocean Blue**
+  - 🌲 **Forest Emerald**
+  - 🌅 **Sunset Amber**
+  - 🕶️ **Minimal Slate**
+  - ⚡ **Cyberpunk Neon** (*Cyan `#00F2FE` & Neon Red `#FF0844`*)
+  - 🌿 **Emerald Zen** (*Emerald Green `#00E676`*)
+- **AMOLED True Black**: Native support for OLED pitch-black backgrounds.
 - **Consistent Vector Iconography**: Pure vector drawables across all screens (`ic_shield`, `ic_lock`, `ic_key`, `ic_globe`, `ic_bell`, `ic_target`, `ic_palette`, etc.).
 - **Haptics & Breathing Aura**: Tactile vibration feedback and pulsing focus aura animations during active focus blocks.
 

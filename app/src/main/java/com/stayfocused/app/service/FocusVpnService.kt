@@ -143,8 +143,11 @@ class FocusVpnService : VpnService() {
                 val packet = ByteBuffer.wrap(rawPacket, 0, length)
                 val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet) ?: continue
 
-                val blockedDomains = PrefsManager.getBlockedDomains(this)
-                val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && blockedDomains.any { rawBlocked ->
+                val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this)) PrefsManager.getBlockedDomains(this) else emptySet()
+                val permanentBlocked = PrefsManager.getPermanentBlockedDomains(this)
+                val allBlockedDomains = sessionBlocked + permanentBlocked
+
+                val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && allBlockedDomains.any { rawBlocked ->
                     val blocked = rawBlocked.removePrefix("*.").removePrefix("www.").lowercase()
                     val qName = udpDnsQuery.queryName.removePrefix("www.").lowercase()
                     qName == blocked || qName.endsWith(".$blocked")

@@ -27,7 +27,9 @@ object ThemeManager {
         SUNSET("sunset", "Sunset Amber", "#F59E0B"),
         MINIMAL("minimal", "Minimal Slate", "#64748B"),
         AMOLED_BLACK("amoled_black", "AMOLED Black", "#000000"),
-        DYNAMIC("dynamic", "Dynamic (Material You)", "#6366F1");
+        DYNAMIC("dynamic", "Dynamic (Material You)", "#6366F1"),
+        CYBERPUNK("cyberpunk", "Cyberpunk Neon", "#00F2FE"),
+        EMERALD("emerald", "Emerald Zen", "#00E676");
 
         companion object {
             fun fromKey(key: String): Palette =
@@ -113,6 +115,22 @@ object ThemeManager {
                     isDark = isNight
                 )
             }
+            Palette.CYBERPUNK -> ThemeColors(
+                primary = Color.parseColor("#00F2FE"),
+                primaryDark = Color.parseColor("#00C2CE"),
+                accent = Color.parseColor("#FF0844"),
+                background = if (isNight) Color.parseColor("#0D0221") else Color.parseColor("#F5F3FF"),
+                cardBackground = if (isNight) Color.parseColor("#190A38") else Color.WHITE,
+                isDark = isNight
+            )
+            Palette.EMERALD -> ThemeColors(
+                primary = Color.parseColor("#00E676"),
+                primaryDark = Color.parseColor("#00B359"),
+                accent = Color.parseColor("#10B981"),
+                background = if (isNight) Color.parseColor("#051F14") else Color.parseColor("#F0FDF4"),
+                cardBackground = if (isNight) Color.parseColor("#0A3322") else Color.WHITE,
+                isDark = isNight
+            )
             Palette.AURORA -> ThemeColors(
                 primary = Color.parseColor("#6366F1"),
                 primaryDark = Color.parseColor("#4F46E5"),

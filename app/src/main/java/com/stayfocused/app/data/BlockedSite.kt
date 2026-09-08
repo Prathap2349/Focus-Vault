@@ -6,5 +6,6 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "blocked_sites")
 data class BlockedSite(
     @PrimaryKey val domain: String, // e.g. "youtube.com" - subdomains are matched too
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val isPermanent: Boolean = false
 )
