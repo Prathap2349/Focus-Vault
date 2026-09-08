@@ -87,6 +87,7 @@ Choose your exact level of discipline for every focus session:
 | 7 | **Enable/Pause 24/7 VPN buttons missing on start** — Controls hidden on app open | `refreshVpnStatusCard()` now checks synchronous `PrefsManager` instead of async database load, instantly rendering controls |
 | 8 | **24/7 Block causes ALL sites to fail/block** — Upstream DNS silently timing out | Dropped hardcoded `8.8.8.8` DNS which is blocked by some networks; now dynamically queries the system's `ConnectivityManager` to forward DNS to the active local router/ISP IPv4 DNS. |
 | 9 | **Widget buttons unresponsive or hidden** — Start button pushed off-screen | Fixed widget responsive breakpoints: short layouts now always snap to horizontal `WIDE` or `TINY` instead of wrapping a squished vertical `COMPACT` layout; Upgraded `PendingIntent` to use `getForegroundService()` for API 26+ to prevent background launch crashes on Vivo. |
+| 10 | **All websites failing to load when VPN active** — DNS routing loop | Added a filter to `getActiveDnsServer` to explicitly exclude `10.0.0.2` (the VPN's own local address). This prevents infinite loops where the VPN tries to forward allowed internet queries back to itself. |
 
 ---
 
