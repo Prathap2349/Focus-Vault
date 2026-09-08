@@ -305,10 +305,11 @@ class MainActivity : AppCompatActivity() {
     private fun triggerEmergencyUnlockFlow() {
         val proceed = {
             if (PrefsManager.canUseEmergencyUnlockToday(this)) {
-                AlertDialog.Builder(this)
-                    .setTitle("Use your emergency unlock?")
-                    .setMessage("You get 1 emergency unlock per day. This will end the current session early. Strict Mode sessions cannot be emergency-unlocked.")
-                    .setPositiveButton("Use it") { _, _ ->
+                showCustomDialog(
+                    title = "Use Emergency Unlock? 🚨",
+                    message = "You get 1 emergency unlock per day. This will end the current focus session early.\n\nNote: Strict Mode sessions cannot be emergency-unlocked.",
+                    positiveText = "Use Unlock",
+                    positiveAction = {
                         lifecycleScope.launch {
                             PrefsManager.consumeEmergencyUnlock(this@MainActivity)
                             SessionStateManager.stopSessionEarly(this@MainActivity, "Emergency unlock used")
@@ -316,9 +317,9 @@ class MainActivity : AppCompatActivity() {
                             refreshSessionUi()
                             refreshDashboardStats()
                         }
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
+                    },
+                    negativeText = "Cancel"
+                )
             } else {
                 Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
             }

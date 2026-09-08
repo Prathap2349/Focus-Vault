@@ -236,34 +236,40 @@ class WebsiteBlockActivity : AppCompatActivity() {
     }
 
     private fun showPresetPackPicker(db: AppDatabase) {
-        val packNames = PRESET_PACKS.keys.toTypedArray()
+        val packNames = PRESET_PACKS.keys.toList()
         val isPermanent = binding.switchBlockPermanent.isChecked
 
-        AlertDialog.Builder(this)
-            .setTitle("Add Preset Website Pack (${if (isPermanent) "24/7 Permanent" else "Session Only"})")
-            .setItems(packNames) { _, which ->
-                val chosenCategory = packNames[which]
-                val domains = PRESET_PACKS[chosenCategory] ?: return@setItems
-                var addedCount = 0
+        DialogHelper.showSingleChoiceDialog(
+            context = this,
+            title = "Add Preset Website Pack 📦",
+            items = packNames.map { "🌐 $it (${PRESET_PACKS[it]?.size ?: 0} domains)" },
+            selectedIndex = 0
+        ) { which ->
+            val chosenCategory = packNames[which]
+            val domains = PRESET_PACKS[chosenCategory] ?: return@showSingleChoiceDialog
+            var addedCount = 0
 
-                lifecycleScope.launch {
-                    domains.forEach { rawDomain ->
-                        val domain = normalizeDomain(rawDomain)
-                        if (domain.isNotEmpty() && allSites.none { it.domain == domain }) {
-                            val site = BlockedSite(domain = domain, isActive = true, isPermanent = isPermanent)
-                            allSites.add(0, site)
-                            db.blockedSiteDao().upsert(site)
-                            addedCount++
-                        }
+            lifecycleScope.launch {
+                domains.forEach { rawDomain ->
+                    val domain = normalizeDomain(rawDomain)
+                    if (domain.isNotEmpty() && allSites.none { it.domain == domain }) {
+                        val site = BlockedSite(domain = domain, isActive = true, isPermanent = isPermanent)
+                        allSites.add(0, site)
+                        db.blockedSiteDao().upsert(site)
+                        addedCount++
                     }
-                    syncFastCache(db)
-                    applySearch()
-                    updateSiteCounter()
-                    Toast.makeText(this@WebsiteBlockActivity, "Added $addedCount sites from $chosenCategory", Toast.LENGTH_SHORT).show()
+                }
+                applySearch()
+                updateSiteCounter()
+                Toast.makeText(this@WebsiteBlockActivity, "Added $addedCount domains from $chosenCategory", Toast.LENGTH_SHORT).show()
+                if (isPermanent && addedCount > 0) {
+                    try {
+                        startService(Intent(this@WebsiteBlockActivity, com.stayfocused.app.service.FocusVpnService::class.java))
+                    } catch (_: Exception) { }
+                    refreshVpnStatusCard()
                 }
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
     }
 
     private fun applySearch() {

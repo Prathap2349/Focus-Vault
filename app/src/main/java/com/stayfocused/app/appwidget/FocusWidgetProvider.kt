@@ -40,9 +40,18 @@ class FocusWidgetProvider : AppWidgetProvider() {
             try {
                 val snapshot = WidgetDataProvider.buildSnapshot(context.applicationContext)
                 appWidgetIds.forEach { id ->
-                    val tier = resolveSizeTier(appWidgetManager.getAppWidgetOptions(id))
-                    val views = buildRemoteViews(context, snapshot, id, tier)
-                    appWidgetManager.updateAppWidget(id, views)
+                    try {
+                        val options = appWidgetManager.getAppWidgetOptions(id)
+                        val tier = resolveSizeTier(options)
+                        val views = buildRemoteViews(context, snapshot, id, tier)
+                        appWidgetManager.updateAppWidget(id, views)
+                    } catch (e: Exception) {
+                        android.util.Log.e("FocusWidgetProvider", "Failed to update widget $id", e)
+                        try {
+                            val fallbackViews = buildTiny(context, snapshot, id)
+                            appWidgetManager.updateAppWidget(id, fallbackViews)
+                        } catch (_: Exception) { }
+                    }
                 }
                 WidgetUpdater.lastExecutionDurationMillis.set(System.currentTimeMillis() - startTime)
                 WidgetUpdater.lastUpdateTimestamp.set(System.currentTimeMillis())
@@ -76,6 +85,10 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 // Expected when user is actively resizing
             } catch (e: Exception) {
                 WidgetUpdater.failedUpdateCount.incrementAndGet()
+                try {
+                    val fallbackViews = buildTiny(context, WidgetDataProvider.buildSnapshot(context.applicationContext), appWidgetId)
+                    appWidgetManager.updateAppWidget(appWidgetId, fallbackViews)
+                } catch (_: Exception) { }
             } finally {
                 pendingResult.finish()
             }
@@ -96,11 +109,16 @@ class FocusWidgetProvider : AppWidgetProvider() {
         snapshot: WidgetSnapshot,
         appWidgetId: Int,
         tier: WidgetSizeTier
-    ): RemoteViews = when (tier) {
-        WidgetSizeTier.TINY -> buildTiny(context, snapshot, appWidgetId)
-        WidgetSizeTier.COMPACT -> buildCompact(context, snapshot, appWidgetId)
-        WidgetSizeTier.WIDE -> buildWide(context, snapshot, appWidgetId)
-        WidgetSizeTier.LARGE -> buildLarge(context, snapshot, appWidgetId)
+    ): RemoteViews = try {
+        when (tier) {
+            WidgetSizeTier.TINY -> buildTiny(context, snapshot, appWidgetId)
+            WidgetSizeTier.COMPACT -> buildCompact(context, snapshot, appWidgetId)
+            WidgetSizeTier.WIDE -> buildWide(context, snapshot, appWidgetId)
+            WidgetSizeTier.LARGE -> buildLarge(context, snapshot, appWidgetId)
+        }
+    } catch (e: Exception) {
+        android.util.Log.e("FocusWidgetProvider", "Error in buildRemoteViews for tier $tier", e)
+        buildTiny(context, snapshot, appWidgetId)
     }
 
     // ==========================================

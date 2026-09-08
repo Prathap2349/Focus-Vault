@@ -246,26 +246,26 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showThemePicker() {
-        val options = arrayOf("System default", "Light", "Dark")
+        val options = listOf("⚙️ System default", "☀️ Light theme", "🌙 Dark theme")
         val modes = arrayOf(PrefsManager.THEME_SYSTEM, PrefsManager.THEME_LIGHT, PrefsManager.THEME_DARK)
         val currentIndex = modes.indexOf(PrefsManager.getThemeMode(this)).coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
-            .setTitle("Choose App Theme")
-            .setSingleChoiceItems(options, currentIndex) { dialog, which ->
-                PrefsManager.setThemeMode(this, modes[which])
-                AppCompatDelegate.setDefaultNightMode(
-                    when (modes[which]) {
-                        PrefsManager.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-                        PrefsManager.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
-                        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                    }
-                )
-                dialog.dismiss()
-                recreate()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        DialogHelper.showSingleChoiceDialog(
+            context = this,
+            title = "Choose App Theme 🎨",
+            items = options,
+            selectedIndex = currentIndex
+        ) { which ->
+            PrefsManager.setThemeMode(this, modes[which])
+            AppCompatDelegate.setDefaultNightMode(
+                when (modes[which]) {
+                    PrefsManager.THEME_LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                    PrefsManager.THEME_DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+            )
+            recreate()
+        }
     }
 
     private fun refreshPaletteStatus() {
@@ -276,19 +276,19 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showPalettePicker() {
         val palettes = com.stayfocused.app.util.ThemeManager.Palette.values()
-        val names = palettes.map { it.displayName }.toTypedArray()
+        val names = palettes.map { it.displayName }
         val currentIndex = palettes.indexOfFirst { it.key == PrefsManager.getThemePalette(this) }.coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
-            .setTitle("Choose Color Palette")
-            .setSingleChoiceItems(names, currentIndex) { dialog, which ->
-                val chosen = palettes[which]
-                PrefsManager.setThemePalette(this, chosen.key)
-                dialog.dismiss()
-                recreate()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        DialogHelper.showSingleChoiceDialog(
+            context = this,
+            title = "Choose Color Palette 🌈",
+            items = names,
+            selectedIndex = currentIndex
+        ) { which ->
+            val chosen = palettes[which]
+            PrefsManager.setThemePalette(this, chosen.key)
+            recreate()
+        }
     }
 
     private fun refreshGoalsStatus() {
@@ -299,53 +299,60 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showGoalsEditorDialog() {
+        val density = resources.displayMetrics.density
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 24)
+            setPadding(0, (4 * density).toInt(), 0, (8 * density).toInt())
         }
 
-        val tvDaily = android.widget.TextView(this).apply { text = "Daily Goal (minutes):" }
-        val inputDaily = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(PrefsManager.getDailyGoalMinutes(this@SettingsActivity).toString())
+        fun createLabel(text: String) = android.widget.TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(androidx.core.content.ContextCompat.getColor(this@SettingsActivity, R.color.text_secondary))
+            setPadding((4 * density).toInt(), (8 * density).toInt(), 0, (4 * density).toInt())
         }
 
-        val tvWeekly = android.widget.TextView(this).apply {
-            text = "Weekly Goal (minutes):"
-            setPadding(0, 24, 0, 0)
-        }
-        val inputWeekly = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(PrefsManager.getWeeklyGoalMinutes(this@SettingsActivity).toString())
-        }
+        val inputDaily = DialogHelper.createPillEditText(
+            this,
+            "Daily goal in minutes",
+            PrefsManager.getDailyGoalMinutes(this).toString(),
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
+        val inputWeekly = DialogHelper.createPillEditText(
+            this,
+            "Weekly goal in minutes",
+            PrefsManager.getWeeklyGoalMinutes(this).toString(),
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
+        val inputMonthly = DialogHelper.createPillEditText(
+            this,
+            "Monthly goal in minutes",
+            PrefsManager.getMonthlyGoalMinutes(this).toString(),
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
 
-        val tvMonthly = android.widget.TextView(this).apply {
-            text = "Monthly Goal (minutes):"
-            setPadding(0, 24, 0, 0)
-        }
-        val inputMonthly = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(PrefsManager.getMonthlyGoalMinutes(this@SettingsActivity).toString())
-        }
-
-        layout.addView(tvDaily)
+        layout.addView(createLabel("🎯 DAILY TARGET (MINUTES)"))
         layout.addView(inputDaily)
-        layout.addView(tvWeekly)
+        layout.addView(createLabel("📅 WEEKLY TARGET (MINUTES)"))
         layout.addView(inputWeekly)
-        layout.addView(tvMonthly)
+        layout.addView(createLabel("🗓️ MONTHLY TARGET (MINUTES)"))
         layout.addView(inputMonthly)
 
-        AlertDialog.Builder(this)
-            .setTitle("Configure Focus Goals")
-            .setView(layout)
-            .setPositiveButton("Save") { _, _ ->
+        DialogHelper.showCustomDialog(
+            context = this,
+            title = "Configure Focus Goals 🎯",
+            message = "Set daily and long-term focus target thresholds in minutes:",
+            customView = layout,
+            positiveText = "Save Goals",
+            positiveAction = {
                 inputDaily.text.toString().toIntOrNull()?.let { PrefsManager.setDailyGoalMinutes(this, it) }
                 inputWeekly.text.toString().toIntOrNull()?.let { PrefsManager.setWeeklyGoalMinutes(this, it) }
                 inputMonthly.text.toString().toIntOrNull()?.let { PrefsManager.setMonthlyGoalMinutes(this, it) }
                 refreshGoalsStatus()
                 Toast.makeText(this, "Focus goals saved", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+            },
+            negativeText = "Cancel"
+        )
     }
 }

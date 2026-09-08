@@ -37,14 +37,25 @@ Choose your exact level of discipline for every focus session:
 - **Wide Banner (4x1)**: Displays live session countdown and full control actions.
 - **Large Bento (2x2)**: Expanded card showing active mode, target goals, progress ring, and controls.
 - **Compact Tile (2x1)**: Essential countdown timer and quick start trigger.
-- **Tiny Quick-Pick (1x1)**: 1-tap shortcut launching a centered 3-mode pop-up selection card (`WidgetModeQuickPickSheet`) with Bento design over translucent dim background to instantly start focus sessions.
+- **Tiny Quick-Pick (1x1)**: 1-tap shortcut launching a centered 3-mode pop-up selection card (`WidgetModeQuickPickSheet`) with Bento design over translucent dim background to choose between Focus Mode (Lite), Lock Mode (Deep), and Strict Mode (Hardcore) before session launch.
+- **Fail-Safe Rendering**: Built-in resilient fallback wrappers across all size tiers to eliminate blank widget states on launcher redraws.
 
-### 5. 🔑 Modernized PIN Security & Recovery System
+### 5. ⏱️ Modernized Bento Timer Selector & Motion Controls
+- **Bento Hero Card & Live End-Time**: Displays high-contrast duration hero text (`25 min`, `1h 30m`) with live dynamic end-time calculation (`Session ends at 5:30 PM`) and spring bounce scaling animations.
+- **1-Tap Quick Steppers**: Sleek `-15m`, `-5m`, `+5m`, `+15m`, and `+30m` stepper adjustment buttons with light haptic tactile feedback.
+- **Spring-Animated Preset Chips**: 1-tap quick presets (15m, 25m, 45m, 1h, 90m, 2h, 3h) with fluid staggered cascade entrance.
+
+### 6. 💬 App-Wide Focus Vault Dialog Engine (`DialogHelper`)
+- **Card-Styled Modal Containers**: Replaced all stock Android OS alert dialogs across Settings, Goals Configuration, Presets, Schedules, and Backup/Restore with Focus Vault rounded Bento cards (`bg_dashboard_card` / `Theme.StayFocused.Dialog`).
+- **Pill Input Fields**: Clean rounded pill inputs (`bg_search_pill`) for goal minute thresholds, schedule titles, preset names, and JSON recovery.
+- **Custom Single-Choice Pickers**: Clean radio selection cards for Theme mode, Color Palettes, and Website Preset packs with color swatches and domain counts.
+
+### 7. 🔑 Modernized PIN Security & Recovery System
 - **Pill-Shaped Input Card Dialogs**: App lock PIN verification, PIN creation/change, and security question recovery modals redesigned with clean Material cards and rounded pill inputs (`bg_search_pill`).
 - **Custom Question Selection Modal**: Replaced outdated Android dialog spinners with clean, modern Material dialog pickers for security recovery questions.
 - **Cryptographic Security**: PBKDF2 with 10,000 iterations + SHA256 HMAC and random salt generation for 100% offline PIN security.
 
-### 6. 🎨 Expanded Theme Engine & Dark Mode
+### 8. 🎨 Expanded Theme Engine & Dark Mode
 - **Vibrant Color Palettes**: Choose between 8 curated palettes:
   - 🌌 **Focus Indigo (Aurora)**
   - 🌆 **Midnight Violet**

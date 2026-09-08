@@ -72,32 +72,28 @@ class WidgetQuickStartActivity : AppCompatActivity() {
 
         val preselectedMode = intent.getStringExtra(EXTRA_MODE)
         if (preselectedMode != null) {
-            chosenMode = SessionMode.valueOf(preselectedMode)
-            showTimerSetup(chosenMode!!)
+            chosenMode = runCatching { SessionMode.valueOf(preselectedMode) }.getOrNull()
+            if (chosenMode != null) {
+                showTimerSetup(chosenMode!!)
+            } else {
+                val lastDurationMinutes = (PrefsManager.getLastChosenDurationMillis(this) / 60_000L).toInt().coerceAtLeast(1)
+                showCenteredModeSelection(lastDurationMinutes)
+            }
         } else {
-            showTimerSetup(SessionMode.NORMAL)
+            val lastDurationMinutes = (PrefsManager.getLastChosenDurationMillis(this) / 60_000L).toInt().coerceAtLeast(1)
+            showCenteredModeSelection(lastDurationMinutes)
         }
     }
 
     private fun showCenteredModeSelection(durationMinutes: Int) {
         val sheet = WidgetModeQuickPickSheet.newInstance(durationMinutes)
         sheet.show(supportFragmentManager, WidgetModeQuickPickSheet.TAG)
-        
-        supportFragmentManager.executePendingTransactions()
-        sheet.dialog?.setOnDismissListener {
-            if (chosenMode == null) finish()
-        }
     }
 
     private fun showTimerSetup(mode: SessionMode) {
         val duration = PrefsManager.getLastChosenDurationMillis(this)
         val sheet = QuickTimerSetupSheet.newInstance(mode, duration)
         sheet.show(supportFragmentManager, QuickTimerSetupSheet.TAG)
-        
-        supportFragmentManager.executePendingTransactions()
-        sheet.dialog?.setOnDismissListener {
-            if (pendingDurationMillis <= 0L && chosenMode == null) finish()
-        }
     }
 
     private fun startFocusSession(mode: SessionMode, durationMillis: Long) {

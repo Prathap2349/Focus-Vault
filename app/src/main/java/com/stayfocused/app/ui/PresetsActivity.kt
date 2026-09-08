@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import com.stayfocused.app.R
 import com.stayfocused.app.data.AppDatabase
 import com.stayfocused.app.data.FocusPreset
 import com.stayfocused.app.data.SessionMode
@@ -97,14 +100,16 @@ class PresetsActivity : AppCompatActivity() {
 
                     if (!preset.isBuiltIn) {
                         row.root.setOnLongClickListener {
-                            AlertDialog.Builder(this@PresetsActivity)
-                                .setTitle("Delete Preset")
-                                .setMessage("Delete custom preset '${preset.name}'?")
-                                .setPositiveButton("Delete") { _, _ ->
+                            DialogHelper.showCustomDialog(
+                                context = this@PresetsActivity,
+                                title = "Delete Preset 🗑️",
+                                message = "Are you sure you want to delete custom preset '${preset.name}'?",
+                                positiveText = "Delete",
+                                positiveAction = {
                                     lifecycleScope.launch { db.focusPresetDao().delete(preset) }
-                                }
-                                .setNegativeButton("Cancel", null)
-                                .show()
+                                },
+                                negativeText = "Cancel"
+                            )
                             true
                         }
                     }
@@ -116,28 +121,48 @@ class PresetsActivity : AppCompatActivity() {
     }
 
     private fun showCreatePresetDialog() {
-        val nameInput = EditText(this).apply { hint = "Preset Name (e.g. Reading)" }
-        val durationInput = EditText(this).apply {
-            hint = "Duration (minutes)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-        }
+        val density = resources.displayMetrics.density
+        val nameInput = DialogHelper.createPillEditText(this, "Preset Name (e.g. Deep Reading)")
+        val durationInput = DialogHelper.createPillEditText(
+            this,
+            "Duration in minutes (e.g. 45)",
+            "45",
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
         val modeSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@PresetsActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Focus Mode (Normal)", "Lock Mode (PIN Required)", "Strict Mode (Unbreakable)"))
+            adapter = ArrayAdapter(
+                this@PresetsActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                listOf("🟢 Focus Mode (Lite)", "🔐 Lock Mode (PIN Guarded)", "🔒 Strict Mode (Hardcore)")
+            )
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+        }
+
+        fun createLabel(text: String) = TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(this@PresetsActivity, R.color.text_secondary))
+            setPadding((4 * density).toInt(), (8 * density).toInt(), 0, (4 * density).toInt())
         }
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (16 * resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(0, (4 * density).toInt(), 0, (8 * density).toInt())
+            addView(createLabel("PRESET TITLE"))
             addView(nameInput)
+            addView(createLabel("TARGET DURATION (MINUTES)"))
             addView(durationInput)
+            addView(createLabel("PROTECTION MODE"))
             addView(modeSpinner)
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Create Custom Preset")
-            .setView(container)
-            .setPositiveButton("Save") { _, _ ->
+        DialogHelper.showCustomDialog(
+            context = this,
+            title = "Create Focus Preset 🎯",
+            customView = container,
+            positiveText = "Save Preset",
+            positiveAction = {
                 val name = nameInput.text.toString().trim()
                 val duration = durationInput.text.toString().toIntOrNull() ?: 0
                 val mode = when (modeSpinner.selectedItemPosition) {
@@ -148,7 +173,7 @@ class PresetsActivity : AppCompatActivity() {
 
                 if (name.isEmpty() || duration <= 0) {
                     Toast.makeText(this, "Please enter a valid name and duration", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    return@showCustomDialog
                 }
 
                 lifecycleScope.launch {
@@ -163,8 +188,8 @@ class PresetsActivity : AppCompatActivity() {
                         )
                     )
                 }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+            },
+            negativeText = "Cancel"
+        )
     }
 }

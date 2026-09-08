@@ -78,13 +78,37 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
         fun updateSummary() {
             val h = binding.pickerQuickHours.value
             val m = binding.pickerQuickMinutes.value
-            val text = when {
-                h == 0 && m == 0 -> "Please select at least 1 minute"
-                h == 0 -> "$m minutes focus session"
-                m == 0 -> "$h hour${if (h > 1) "s" else ""} focus session"
-                else -> "$h hour${if (h > 1) "s" else ""} $m minute${if (m > 1) "s" else ""} focus session"
+            val totalMinutes = (h * 60) + m
+
+            val heroText = when {
+                totalMinutes == 0 -> "0 min"
+                h == 0 -> "$m min"
+                m == 0 -> "$h hr${if (h > 1) "s" else ""}"
+                else -> "${h}h ${m}m"
             }
-            binding.tvDurationSummary.text = text
+            binding.tvDurationHero.text = heroText
+
+            val endTimeMillis = System.currentTimeMillis() + (totalMinutes * 60_000L)
+            val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+            val formattedEnd = timeFormat.format(java.util.Date(endTimeMillis))
+
+            val summaryText = if (totalMinutes == 0) {
+                "Please select at least 1 minute"
+            } else {
+                "Session ends at $formattedEnd"
+            }
+            binding.tvDurationSummary.text = summaryText
+
+            // Animate scale bounce on hero text
+            binding.tvDurationHero.animate()
+                .scaleX(1.08f).scaleY(1.08f)
+                .setDuration(80)
+                .withEndAction {
+                    binding.tvDurationHero.animate()
+                        .scaleX(1.0f).scaleY(1.0f)
+                        .setDuration(100)
+                        .start()
+                }.start()
         }
 
         binding.pickerQuickHours.setOnValueChangedListener { _, _, _ -> updateSummary() }
@@ -95,6 +119,12 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
             binding.pickerQuickMinutes.value = minutes.coerceIn(0, 59)
             updateSummary()
             com.stayfocused.app.util.HapticHelper.lightClick(binding.root)
+        }
+
+        fun adjustDurationMinutes(deltaMinutes: Int) {
+            val currentTotal = (binding.pickerQuickHours.value * 60) + binding.pickerQuickMinutes.value
+            val newTotal = (currentTotal + deltaMinutes).coerceIn(1, 12 * 60 + 59)
+            setDuration(newTotal / 60, newTotal % 60)
         }
 
         val chips = listOf(
@@ -110,12 +140,31 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
         chips.forEach { chip ->
             com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(chip)
         }
+
+        val steppers = listOf(
+            binding.btnStepMinus15,
+            binding.btnStepMinus5,
+            binding.btnStepPlus5,
+            binding.btnStepPlus15,
+            binding.btnStepPlus30
+        )
+        steppers.forEach { btn ->
+            com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(btn)
+        }
+
+        binding.btnStepMinus15.setOnClickListener { adjustDurationMinutes(-15) }
+        binding.btnStepMinus5.setOnClickListener { adjustDurationMinutes(-5) }
+        binding.btnStepPlus5.setOnClickListener { adjustDurationMinutes(5) }
+        binding.btnStepPlus15.setOnClickListener { adjustDurationMinutes(15) }
+        binding.btnStepPlus30.setOnClickListener { adjustDurationMinutes(30) }
+
         com.stayfocused.app.util.AnimationHelper.attachSpringPressFeedback(binding.btnQuickStartConfirm)
 
         // Staggered cascade animation for sheet content
         com.stayfocused.app.util.AnimationHelper.animateStaggeredCascade(
             listOf(
                 binding.tvQuickModeLabel,
+                binding.cardHeroDuration,
                 binding.scrollChips,
                 binding.layoutPickersContainer,
                 binding.btnQuickStartConfirm
@@ -156,9 +205,12 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
 
     private fun NumberPicker.setTextColorCompat(color: Int) {
         try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                textColor = color
+            }
             val paintField = NumberPicker::class.java.getDeclaredField("mSelectorWheelPaint")
             paintField.isAccessible = true
-            (paintField.get(this) as Paint).color = color
+            (paintField.get(this) as? Paint)?.color = color
             invalidate()
         } catch (e: Exception) { }
         for (i in 0 until childCount) {

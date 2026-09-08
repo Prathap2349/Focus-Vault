@@ -24,18 +24,19 @@ import org.json.JSONObject
 object BackupRestoreDialog {
 
     fun show(context: Context, onRestoreComplete: (() -> Unit)? = null) {
-        val options = arrayOf("Copy Configuration to Clipboard", "Share Configuration", "Restore from Backup")
-        AlertDialog.Builder(context)
-            .setTitle("Backup & Restore")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> exportToClipboard(context)
-                    1 -> shareExport(context)
-                    2 -> showRestoreDialog(context, onRestoreComplete)
-                }
+        val options = listOf("📋 Copy Configuration to Clipboard", "📤 Share Configuration File", "📥 Restore from Backup")
+        DialogHelper.showSingleChoiceDialog(
+            context = context,
+            title = "Backup & Restore 💾",
+            items = options,
+            selectedIndex = 0
+        ) { which ->
+            when (which) {
+                0 -> exportToClipboard(context)
+                1 -> shareExport(context)
+                2 -> showRestoreDialog(context, onRestoreComplete)
             }
-            .setNegativeButton("Cancel", null)
-            .show()
+        }
     }
 
     fun showBackupDialog(context: Context) = show(context, null)
@@ -46,7 +47,7 @@ object BackupRestoreDialog {
             withContext(Dispatchers.Main) {
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("StayFocused Backup", json))
-                Toast.makeText(context, "Configuration copied to clipboard!", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Configuration copied to clipboard! 📋", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -66,33 +67,33 @@ object BackupRestoreDialog {
     }
 
     private fun showRestoreDialog(context: Context, onRestoreComplete: (() -> Unit)? = null) {
-        val input = EditText(context).apply {
-            hint = "Paste exported JSON configuration here…"
-            minLines = 4
-        }
+        val input = DialogHelper.createPillEditText(context, "Paste exported JSON configuration here…")
+        input.minLines = 4
 
-        AlertDialog.Builder(context)
-            .setTitle("Restore Configuration")
-            .setMessage("Paste your exported configuration. Note: authentication secrets/PINs are never backed up.")
-            .setView(input)
-            .setPositiveButton("Restore") { _, _ ->
+        DialogHelper.showCustomDialog(
+            context = context,
+            title = "Restore Configuration 📥",
+            message = "Paste your exported JSON configuration below. Note: encryption secrets/PINs are never backed up.",
+            customView = input,
+            positiveText = "Restore",
+            positiveAction = {
                 val text = input.text.toString().trim()
-                if (text.isEmpty()) return@setPositiveButton
+                if (text.isEmpty()) return@showCustomDialog
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val success = restoreFromJson(context, text)
                     withContext(Dispatchers.Main) {
                         if (success) {
-                            Toast.makeText(context, "Configuration restored successfully!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Configuration restored successfully! 🎉", Toast.LENGTH_SHORT).show()
                             onRestoreComplete?.invoke()
                         } else {
                             Toast.makeText(context, "Failed to restore: invalid backup format", Toast.LENGTH_LONG).show()
                         }
                     }
                 }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+            },
+            negativeText = "Cancel"
+        )
     }
 
     private suspend fun generateBackupJson(context: Context): String {

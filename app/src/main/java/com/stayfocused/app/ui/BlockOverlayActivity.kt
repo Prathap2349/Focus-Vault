@@ -70,18 +70,20 @@ class BlockOverlayActivity : AppCompatActivity() {
             val isLock = PrefsManager.isLockModeActive(this)
             val proceed = {
                 if (PrefsManager.canUseEmergencyUnlockToday(this)) {
-                    AlertDialog.Builder(this)
-                        .setTitle("Use your emergency unlock?")
-                        .setMessage("This ends your current session early. You get 1 emergency unlock per day.")
-                        .setPositiveButton("Use it") { _, _ ->
+                    DialogHelper.showCustomDialog(
+                        context = this,
+                        title = "Use Emergency Unlock? 🚨",
+                        message = "This ends your current session early. You get 1 emergency unlock per day.",
+                        positiveText = "Use Unlock",
+                        positiveAction = {
                             PrefsManager.consumeEmergencyUnlock(this)
                             lifecycleScope.launch {
                                 SessionStateManager.stopSessionEarly(applicationContext, "Emergency unlock from overlay")
                                 finish()
                             }
-                        }
-                        .setNegativeButton("Cancel", null)
-                        .show()
+                        },
+                        negativeText = "Cancel"
+                    )
                 } else {
                     Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
                 }

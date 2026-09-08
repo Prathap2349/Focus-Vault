@@ -12,6 +12,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import android.widget.Button
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import com.stayfocused.app.R
 import com.stayfocused.app.data.AppDatabase
 import com.stayfocused.app.data.ScheduledSession
 import com.stayfocused.app.data.SessionMode
@@ -67,17 +71,19 @@ class SchedulesActivity : AppCompatActivity() {
                     }
 
                     row.root.setOnLongClickListener {
-                        AlertDialog.Builder(this@SchedulesActivity)
-                            .setTitle("Delete Schedule")
-                            .setMessage("Delete '${schedule.title}'?")
-                            .setPositiveButton("Delete") { _, _ ->
+                        DialogHelper.showCustomDialog(
+                            context = this@SchedulesActivity,
+                            title = "Delete Schedule 🗑️",
+                            message = "Are you sure you want to delete '${schedule.title}'?",
+                            positiveText = "Delete",
+                            positiveAction = {
                                 lifecycleScope.launch {
                                     db.scheduledSessionDao().delete(schedule)
                                     ScheduleAlarmReceiver.rescheduleAll(applicationContext)
                                 }
-                            }
-                            .setNegativeButton("Cancel", null)
-                            .show()
+                            },
+                            negativeText = "Cancel"
+                        )
                         true
                     }
 
@@ -88,55 +94,88 @@ class SchedulesActivity : AppCompatActivity() {
     }
 
     private fun showAddScheduleDialog() {
-        val titleInput = EditText(this).apply { hint = "Schedule Title (e.g. Evening Study)" }
-        val durationInput = EditText(this).apply {
-            hint = "Duration in minutes (e.g. 60)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText("60")
-        }
+        val density = resources.displayMetrics.density
+        val titleInput = DialogHelper.createPillEditText(this, "Schedule Title (e.g. Evening Deep Work)")
+        val durationInput = DialogHelper.createPillEditText(
+            this,
+            "Duration in minutes (e.g. 60)",
+            "60",
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
 
         var selectedHour = 19
         var selectedMinute = 0
 
-        val timeBtn = android.widget.Button(this).apply {
-            text = "Pick Start Time: 07:00 PM"
+        val timeBtn = Button(this, null, 0, com.google.android.material.R.style.Widget_Material3_Button_OutlinedButton).apply {
+            text = "⏰ Pick Start Time: 07:00 PM"
+            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
             setOnClickListener {
                 TimePickerDialog(this@SchedulesActivity, { _, hourOfDay, minute ->
                     selectedHour = hourOfDay
                     selectedMinute = minute
                     val amPm = if (hourOfDay < 12) "AM" else "PM"
                     val h12 = if (hourOfDay % 12 == 0) 12 else hourOfDay % 12
-                    text = String.format(Locale.US, "Start Time: %02d:%02d %s", h12, minute, amPm)
+                    text = String.format(Locale.US, "⏰ Start Time: %02d:%02d %s", h12, minute, amPm)
                 }, selectedHour, selectedMinute, false).show()
             }
         }
 
         val daysSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@SchedulesActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Daily (Mon-Sun)", "Weekdays (Mon-Fri)", "Weekends (Sat-Sun)"))
+            adapter = ArrayAdapter(
+                this@SchedulesActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                listOf("📅 Daily (Mon-Sun)", "💼 Weekdays (Mon-Fri)", "🏖️ Weekends (Sat-Sun)")
+            )
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
         }
 
         val modeSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@SchedulesActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Focus Mode (Normal)", "Lock Mode (PIN)", "Strict Mode"))
+            adapter = ArrayAdapter(
+                this@SchedulesActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                listOf("🟢 Focus Mode (Lite)", "🔐 Lock Mode (PIN Guarded)", "🔒 Strict Mode (Hardcore)")
+            )
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+        }
+
+        fun createLabel(text: String) = TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(this@SchedulesActivity, R.color.text_secondary))
+            setPadding((4 * density).toInt(), (8 * density).toInt(), 0, (4 * density).toInt())
         }
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (16 * resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(0, (4 * density).toInt(), 0, (8 * density).toInt())
+            addView(createLabel("SCHEDULE TITLE"))
             addView(titleInput)
+            addView(createLabel("SESSION DURATION (MINUTES)"))
             addView(durationInput)
+            addView(createLabel("START TIME"))
             addView(timeBtn)
+            addView(createLabel("RECURRING DAYS"))
             addView(daysSpinner)
+            addView(createLabel("DISCIPLINE MODE"))
             addView(modeSpinner)
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Add Focus Schedule")
-            .setView(container)
-            .setPositiveButton("Save") { _, _ ->
+        DialogHelper.showCustomDialog(
+            context = this,
+            title = "Add Focus Schedule 📅",
+            customView = container,
+            positiveText = "Save Schedule",
+            positiveAction = {
                 val title = titleInput.text.toString().trim().ifEmpty { "Focus Session" }
                 val duration = durationInput.text.toString().toIntOrNull() ?: 60
-                val days = daysSpinner.selectedItem.toString()
+                val rawDays = daysSpinner.selectedItem.toString()
+                val days = when {
+                    rawDays.contains("Daily") -> "Daily (Mon-Sun)"
+                    rawDays.contains("Weekdays") -> "Weekdays (Mon-Fri)"
+                    rawDays.contains("Weekends") -> "Weekends (Sat-Sun)"
+                    else -> rawDays
+                }
                 val mode = when (modeSpinner.selectedItemPosition) {
                     1 -> SessionMode.LOCK
                     2 -> SessionMode.STRICT
@@ -172,19 +211,21 @@ class SchedulesActivity : AppCompatActivity() {
                     }
 
                     if (conflict != null) {
-                        AlertDialog.Builder(this@SchedulesActivity)
-                            .setTitle("Schedule Conflict")
-                            .setMessage("'$title' overlaps with existing schedule '${conflict.title}'.\n\nThese sessions will clash. Would you like to save anyway?")
-                            .setPositiveButton("Save Anyway") { _, _ -> saveAction() }
-                            .setNegativeButton("Adjust", null)
-                            .show()
+                        DialogHelper.showCustomDialog(
+                            context = this@SchedulesActivity,
+                            title = "Schedule Conflict ⚠️",
+                            message = "'$title' overlaps with existing schedule '${conflict.title}'.\n\nThese sessions will clash. Would you like to save anyway?",
+                            positiveText = "Save Anyway",
+                            positiveAction = { saveAction() },
+                            negativeText = "Adjust"
+                        )
                     } else {
                         saveAction()
                     }
                 }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+            },
+            negativeText = "Cancel"
+        )
     }
 
     companion object {
