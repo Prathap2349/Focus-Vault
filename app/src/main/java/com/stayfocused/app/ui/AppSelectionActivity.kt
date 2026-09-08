@@ -4,15 +4,19 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.stayfocused.app.R
 import com.stayfocused.app.adapter.AppListAdapter
 import com.stayfocused.app.data.AppDatabase
 import com.stayfocused.app.data.BlockedApp
 import com.stayfocused.app.databinding.ActivityAppSelectionBinding
+import com.stayfocused.app.databinding.DialogCustomAlertBinding
 import com.stayfocused.app.util.AppCategory
 import com.stayfocused.app.util.AppUtils
+import com.stayfocused.app.util.HapticHelper
 import com.stayfocused.app.util.InstalledAppInfo
 import com.stayfocused.app.util.PrefsManager
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +48,7 @@ class AppSelectionActivity : AppCompatActivity() {
                 db.blockedAppDao().upsert(BlockedApp(app.packageName, app.label, isSelected))
                 syncFastCache(db)
                 updateCounter()
+                updateCategoryChipCounts()
             }
         }
         binding.recyclerApps.adapter = adapter
@@ -71,6 +76,7 @@ class AppSelectionActivity : AppCompatActivity() {
 
             applyFilters()
             updateCounter()
+            updateCategoryChipCounts()
         }
     }
 
@@ -101,6 +107,7 @@ class AppSelectionActivity : AppCompatActivity() {
 
     private fun setupQuickActions() {
         binding.btnQuickSelectCategory.setOnClickListener {
+            HapticHelper.mediumClick(it)
             val appsToSelect = getFilteredList()
             lifecycleScope.launch {
                 val db = AppDatabase.getInstance(applicationContext)
@@ -109,23 +116,57 @@ class AppSelectionActivity : AppCompatActivity() {
                     db.blockedAppDao().upsert(BlockedApp(app.packageName, app.label, true))
                 }
                 syncFastCache(db)
-                adapter.notifyDataSetChanged()
+                applyFilters()
                 updateCounter()
+                updateCategoryChipCounts()
             }
         }
 
         binding.btnClearAll.setOnClickListener {
-            lifecycleScope.launch {
-                val db = AppDatabase.getInstance(applicationContext)
-                val appsToClear = if (currentCategory == AppCategory.ALL) allApps else getFilteredList()
-                appsToClear.forEach { app ->
-                    selectedPackages.remove(app.packageName)
-                    db.blockedAppDao().upsert(BlockedApp(app.packageName, app.label, false))
-                }
-                syncFastCache(db)
-                adapter.notifyDataSetChanged()
-                updateCounter()
+            HapticHelper.mediumClick(it)
+            if (selectedPackages.isEmpty()) return@setOnClickListener
+            showClearConfirmationDialog()
+        }
+    }
+
+    private fun showClearConfirmationDialog() {
+        val dialogBinding = DialogCustomAlertBinding.inflate(layoutInflater)
+        dialogBinding.tvDialogTitle.text = "Clear Blocked Apps?"
+        dialogBinding.tvDialogMessage.text = "This will unblock all ${selectedPackages.size} selected app(s) in this list."
+
+        val dialog = AlertDialog.Builder(this, R.style.Theme_StayFocused_Dialog)
+            .setView(dialogBinding.root)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogBinding.btnDialogPositive.visibility = View.VISIBLE
+        dialogBinding.btnDialogPositive.text = "Clear All"
+        dialogBinding.btnDialogPositive.setOnClickListener {
+            dialog.dismiss()
+            executeClearAll()
+        }
+
+        dialogBinding.btnDialogNegative.visibility = View.VISIBLE
+        dialogBinding.btnDialogNegative.text = "Cancel"
+        dialogBinding.btnDialogNegative.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun executeClearAll() {
+        lifecycleScope.launch {
+            val db = AppDatabase.getInstance(applicationContext)
+            val appsToClear = if (currentCategory == AppCategory.ALL) allApps else getFilteredList()
+            appsToClear.forEach { app ->
+                selectedPackages.remove(app.packageName)
+                db.blockedAppDao().upsert(BlockedApp(app.packageName, app.label, false))
             }
+            syncFastCache(db)
+            applyFilters()
+            updateCounter()
+            updateCategoryChipCounts()
         }
     }
 
@@ -140,12 +181,32 @@ class AppSelectionActivity : AppCompatActivity() {
 
     private fun applyFilters() {
         val filtered = getFilteredList()
-        adapter.updateList(filtered)
-        binding.tvEmptyApps.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+        val sorted = filtered.sortedWith(
+            compareByDescending<InstalledAppInfo> { selectedPackages.contains(it.packageName) }
+                .thenBy { it.label.lowercase() }
+        )
+        adapter.updateList(sorted)
+        binding.layoutEmptyState.visibility = if (sorted.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun updateCounter() {
-        binding.tvSelectedCount.text = "${selectedPackages.size} apps selected"
+        val count = selectedPackages.size
+        binding.tvSelectedCount.text = "$count app${if (count != 1) "s" else ""} blocked"
+    }
+
+    private fun updateCategoryChipCounts() {
+        val socialCount = allApps.count { it.category == AppCategory.SOCIAL && selectedPackages.contains(it.packageName) }
+        val gamesCount = allApps.count { it.category == AppCategory.GAMES && selectedPackages.contains(it.packageName) }
+        val entCount = allApps.count { it.category == AppCategory.ENTERTAINMENT && selectedPackages.contains(it.packageName) }
+        val shopCount = allApps.count { it.category == AppCategory.SHOPPING && selectedPackages.contains(it.packageName) }
+        val prodCount = allApps.count { it.category == AppCategory.PRODUCTIVITY && selectedPackages.contains(it.packageName) }
+
+        binding.chipAll.text = "📱 All (${selectedPackages.size})"
+        binding.chipSocial.text = if (socialCount > 0) "💬 Social ($socialCount)" else "💬 Social"
+        binding.chipGames.text = if (gamesCount > 0) "🎮 Games ($gamesCount)" else "🎮 Games"
+        binding.chipEntertainment.text = if (entCount > 0) "🍿 Entertainment ($entCount)" else "🍿 Entertainment"
+        binding.chipShopping.text = if (shopCount > 0) "🛍️ Shopping ($shopCount)" else "🛍️ Shopping"
+        binding.chipProductivity.text = if (prodCount > 0) "💼 Productivity ($prodCount)" else "💼 Productivity"
     }
 
     private suspend fun syncFastCache(db: AppDatabase) {

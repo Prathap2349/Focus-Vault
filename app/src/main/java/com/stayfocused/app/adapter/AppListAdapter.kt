@@ -1,9 +1,13 @@
 package com.stayfocused.app.adapter
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.stayfocused.app.R
 import com.stayfocused.app.databinding.ItemAppBinding
+import com.stayfocused.app.util.HapticHelper
 import com.stayfocused.app.util.InstalledAppInfo
 
 class AppListAdapter(
@@ -21,16 +25,38 @@ class AppListAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val app = displayedApps[position]
+
         holder.binding.tvAppLabel.text = app.label
+        val catName = app.category.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        holder.binding.tvAppCategory.text = "$catName • ${app.packageName}"
         holder.binding.ivAppIcon.setImageDrawable(app.icon)
+
         val isChecked = selectedPackages.contains(app.packageName)
-        holder.binding.cbSelected.isChecked = isChecked
+        holder.binding.switchSelected.isChecked = isChecked
+        updateRowState(holder.binding, isChecked)
 
         holder.binding.root.setOnClickListener {
             val newState = !selectedPackages.contains(app.packageName)
-            if (newState) selectedPackages.add(app.packageName) else selectedPackages.remove(app.packageName)
-            holder.binding.cbSelected.isChecked = newState
+            if (newState) {
+                selectedPackages.add(app.packageName)
+            } else {
+                selectedPackages.remove(app.packageName)
+            }
+            HapticHelper.lightClick(it)
+            holder.binding.switchSelected.isChecked = newState
+            updateRowState(holder.binding, newState)
             onToggle(app, newState)
+        }
+    }
+
+    private fun updateRowState(binding: ItemAppBinding, isSelected: Boolean) {
+        binding.viewAccentBar.visibility = if (isSelected) View.VISIBLE else View.GONE
+        if (isSelected) {
+            binding.layoutAppRow.setBackgroundResource(R.drawable.bg_item_app_selected)
+        } else {
+            val typedValue = android.util.TypedValue()
+            binding.root.context.theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+            binding.layoutAppRow.setBackgroundResource(typedValue.resourceId)
         }
     }
 
