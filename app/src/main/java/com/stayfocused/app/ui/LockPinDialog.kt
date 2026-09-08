@@ -4,21 +4,22 @@ import android.app.Activity
 import android.content.Context
 import android.text.InputType
 import android.view.Gravity
-import android.widget.ArrayAdapter
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import com.stayfocused.app.R
 import com.stayfocused.app.util.BiometricHelper
 import com.stayfocused.app.util.PrefsManager
 
 /**
- * This is the one PIN used everywhere Stay Focused needs one: unlocking a Lock Mode
- * session early, the general App Lock PIN protecting settings, and gating the app's own
- * launch (see MainActivity.onResume). One PIN, set once, changeable any time you can prove
- * you already know it - or recovered via the single security question set up alongside it.
+ * Modernized App Lock PIN & Recovery Dialog System for Focus Vault.
+ * Features rounded pill input fields, clean security question selection dialogs,
+ * biometric integration, and consistent Material card styling.
  */
 object LockPinDialog {
 
@@ -37,62 +38,57 @@ object LockPinDialog {
     }
 
     private fun showPinVerifyDialog(context: Context, onVerified: () -> Unit) {
-        val input = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "Enter your PIN"
+        val density = context.resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+
+        val input = createPillEditText(context, "Enter your PIN (4-8 digits)", isPassword = true)
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, (8 * density).toInt(), pad, 0)
+            addView(input)
         }
 
         val lockoutRemaining = com.stayfocused.app.manager.SecurityManager.getLockoutRemainingSeconds(context)
         val initialMsg = if (lockoutRemaining > 0) {
             "Too many incorrect attempts. Try again in $lockoutRemaining seconds."
         } else {
-            "This action needs your PIN to continue."
+            "This action requires your master PIN to continue."
         }
 
-        val dialog = AlertDialog.Builder(context)
-            .setTitle("Enter your PIN")
-            .setMessage(initialMsg)
-            .setView(input)
-            .setPositiveButton("Unlock", null)
-            .setNegativeButton("Cancel", null)
-            .setNeutralButton("Forgot PIN?", null)
-            .create()
-
-        dialog.setOnShowListener {
-            val unlockBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            if (lockoutRemaining > 0) unlockBtn.isEnabled = false
-
-            unlockBtn.setOnClickListener {
+        val dialog = showStyledDialog(
+            context = context,
+            title = "Enter Security PIN 🔒",
+            message = initialMsg,
+            customView = container,
+            positiveBtnText = "Unlock",
+            onPositive = { dlg, _ ->
                 val result = com.stayfocused.app.manager.SecurityManager.verifyPin(context, input.text.toString())
                 if (result.isSuccess) {
-                    dialog.dismiss()
+                    dlg.dismiss()
                     onVerified()
                 } else if (result.isLockedOut) {
                     input.text.clear()
-                    dialog.setMessage("Too many incorrect attempts. Locked for ${result.lockoutSeconds} seconds.")
-                    unlockBtn.isEnabled = false
                     Toast.makeText(context, "Locked for ${result.lockoutSeconds} seconds", Toast.LENGTH_SHORT).show()
                 } else {
                     input.text.clear()
-                    dialog.setMessage("Incorrect PIN. Attempts remaining: ${result.attemptsRemaining}")
                     Toast.makeText(context, "Incorrect PIN. ${result.attemptsRemaining} attempts left", Toast.LENGTH_SHORT).show()
                 }
-            }
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            },
+            negativeBtnText = "Cancel",
+            neutralBtnText = "Forgot PIN?",
+            onNeutral = {
                 promptForgotPin(context) {
-                    dialog.dismiss()
                     onVerified()
                 }
             }
+        )
+
+        if (lockoutRemaining > 0) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = false
         }
-        dialog.show()
     }
 
-    /** Full app-unlock gate shown when Stay Focused itself is opened/returned to and an App
-     * Lock PIN is set. Unlike [promptAndVerify] (used for one-off gated actions inside the
-     * app), this dialog cannot be dismissed by tapping outside it or pressing back - only a
-     * correct PIN, successful recovery via "Forgot PIN?", or explicitly choosing "Exit App",
-     * gets past it. */
+    /** Full app-unlock gate shown when Stay Focused itself is opened/returned to and an App Lock PIN is set. */
     fun promptAppUnlock(activity: Activity, onUnlocked: () -> Unit) {
         val fragmentActivity = activity as? androidx.fragment.app.FragmentActivity
         if (fragmentActivity != null && PrefsManager.isBiometricEnabled(activity) && BiometricHelper.isAvailable(activity)) {
@@ -108,60 +104,59 @@ object LockPinDialog {
     }
 
     private fun showAppUnlockPinDialog(activity: Activity, onUnlocked: () -> Unit) {
-        val input = EditText(activity).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "Enter your PIN"
+        val density = activity.resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+
+        val input = createPillEditText(activity, "Enter your master PIN", isPassword = true)
+        val container = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, (8 * density).toInt(), pad, 0)
+            addView(input)
         }
 
         val lockoutRemaining = com.stayfocused.app.manager.SecurityManager.getLockoutRemainingSeconds(activity)
         val initialMsg = if (lockoutRemaining > 0) {
             "Too many incorrect attempts. Try again in $lockoutRemaining seconds."
         } else {
-            "Enter your PIN to continue."
+            "Enter your PIN to access Stay Focused."
         }
 
-        val dialog = AlertDialog.Builder(activity)
-            .setTitle("Stay Focused is locked")
-            .setMessage(initialMsg)
-            .setView(input)
-            .setCancelable(false)
-            .setPositiveButton("Unlock", null)
-            .setNegativeButton("Exit App") { _, _ -> activity.finishAffinity() }
-            .setNeutralButton("Forgot PIN?", null)
-            .create()
-
-        dialog.setOnShowListener {
-            val unlockBtn = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            if (lockoutRemaining > 0) unlockBtn.isEnabled = false
-
-            unlockBtn.setOnClickListener {
+        val dialog = showStyledDialog(
+            context = activity,
+            title = "Stay Focused is Locked 🔐",
+            message = initialMsg,
+            customView = container,
+            positiveBtnText = "Unlock",
+            onPositive = { dlg, _ ->
                 val result = com.stayfocused.app.manager.SecurityManager.verifyPin(activity, input.text.toString())
                 if (result.isSuccess) {
-                    dialog.dismiss()
+                    dlg.dismiss()
                     onUnlocked()
                 } else if (result.isLockedOut) {
                     input.text.clear()
-                    dialog.setMessage("Too many incorrect attempts. Locked for ${result.lockoutSeconds} seconds.")
-                    unlockBtn.isEnabled = false
                     Toast.makeText(activity, "Locked for ${result.lockoutSeconds} seconds", Toast.LENGTH_SHORT).show()
                 } else {
                     input.text.clear()
-                    dialog.setMessage("Incorrect PIN. Attempts remaining: ${result.attemptsRemaining}")
                     Toast.makeText(activity, "Incorrect PIN. ${result.attemptsRemaining} attempts left", Toast.LENGTH_SHORT).show()
                 }
-            }
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            },
+            negativeBtnText = "Exit App",
+            onNegative = { activity.finishAffinity() },
+            neutralBtnText = "Forgot PIN?",
+            onNeutral = {
                 promptForgotPin(activity) {
-                    dialog.dismiss()
                     onUnlocked()
                 }
-            }
+            },
+            cancelable = false
+        )
+
+        if (lockoutRemaining > 0) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = false
         }
-        dialog.show()
     }
 
-    /** Sets a PIN for the first time, or changes an existing one (asks for the current PIN
-     * first if one is already set). Safe to call any time - handles both cases. */
+    /** Sets a PIN for the first time, or changes an existing one. */
     fun promptSetOrChangePin(context: Context, onDone: () -> Unit) {
         if (PrefsManager.hasLockPin(context)) {
             promptAndVerify(context) { promptNewPin(context, onDone) }
@@ -170,156 +165,152 @@ object LockPinDialog {
         }
     }
 
-    /** Walks someone who forgot their PIN through the single recovery question set up when
-     * the PIN was first created. A correct answer is required before a new PIN can be set.
-     * If cancelled at any point, onPinReset is simply never called - the caller's own lock
-     * dialog (still showing underneath) is what actually keeps things locked. If no recovery
-     * question was ever set (a PIN created before this feature existed), there's no way to
-     * recover it, and this explains that instead. */
+    /** Recovery question flow when a user forgets their PIN. */
     fun promptForgotPin(context: Context, onPinReset: () -> Unit) {
         if (!PrefsManager.hasSecurityAnswer(context)) {
-            AlertDialog.Builder(context)
-                .setTitle("Can't recover this PIN")
-                .setMessage(
-                    "No recovery question was ever set up for this PIN, so it can't be reset " +
-                        "this way. You'll need to uninstall and reinstall Stay Focused to clear it."
-                )
-                .setPositiveButton("OK", null)
-                .show()
+            showStyledDialog(
+                context = context,
+                title = "Can't Recover PIN ⚠️",
+                message = "No recovery question was set up for this PIN. You will need to uninstall and reinstall Stay Focused to clear it.",
+                customView = null,
+                positiveBtnText = "OK",
+                onPositive = { dlg, _ -> dlg.dismiss() }
+            )
             return
         }
 
-        val question = PrefsManager.SECURITY_QUESTIONS.getOrElse(PrefsManager.getSecurityQuestionIndex(context)) {
+        val questionIndex = PrefsManager.getSecurityQuestionIndex(context)
+        val questionText = PrefsManager.SECURITY_QUESTIONS.getOrElse(questionIndex) {
             PrefsManager.SECURITY_QUESTIONS.first()
         }
-        val answerInput = EditText(context).apply { hint = "Your answer" }
+
+        val density = context.resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+
+        val answerInput = createPillEditText(context, "Enter your recovery answer", isPassword = false)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (16 * context.resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(pad, (4 * density).toInt(), pad, 0)
             addView(TextView(context).apply {
-                text = question
-                textSize = 15f
-                setPadding(0, 0, 0, pad / 2)
+                text = "❓ $questionText"
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
+                setPadding(0, 0, 0, (12 * density).toInt())
             })
             addView(answerInput)
         }
 
-        val dialog = AlertDialog.Builder(context)
-            .setTitle("Answer your recovery question")
-            .setView(container)
-            .setPositiveButton("Verify", null) // overridden below so a wrong answer doesn't dismiss
-            .setNegativeButton("Cancel", null)
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        showStyledDialog(
+            context = context,
+            title = "Answer Security Question 🔑",
+            message = "Verify your answer to reset your master PIN:",
+            customView = container,
+            positiveBtnText = "Verify",
+            onPositive = { dlg, _ ->
                 if (PrefsManager.verifySecurityAnswer(context, answerInput.text.toString())) {
-                    dialog.dismiss()
+                    dlg.dismiss()
                     promptNewPin(context, onPinReset)
                 } else {
                     answerInput.text.clear()
-                    Toast.makeText(context, "That answer didn't match", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "That answer didn't match. Try again.", Toast.LENGTH_SHORT).show()
                 }
-            }
-        }
-        dialog.show()
+            },
+            negativeBtnText = "Cancel"
+        )
     }
 
-    /** If no recovery question has ever been set up yet, prompts for one (question + answer)
-     * and saves it, then calls [onDone]. If a recovery question already exists, calls
-     * [onDone] immediately with no prompt. Any code path that can create the very first
-     * PIN on this device (Settings' "App Lock PIN", or confirming a fresh Lock Mode PIN)
-     * should route through this afterward, so "Forgot PIN?" recovery is never left
-     * permanently unavailable just because of which screen happened to create the PIN. */
+    /** Prompts for a recovery question if none exists yet. */
     fun promptSecurityQuestionSetupIfNeeded(context: Context, onDone: () -> Unit) {
         if (PrefsManager.hasSecurityAnswer(context)) {
             onDone()
             return
         }
 
-        val questionSpinner = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, PrefsManager.SECURITY_QUESTIONS)
+        var selectedQuestionIndex = 0
+        val density = context.resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+
+        val answerInput = createPillEditText(context, "Enter your answer", isPassword = false)
+        val questionSelector = createQuestionSelector(context, PrefsManager.SECURITY_QUESTIONS, initialIndex = 0) { idx ->
+            selectedQuestionIndex = idx
         }
-        val answerInput = EditText(context).apply { hint = "Your answer" }
+
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (16 * context.resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(pad, (4 * density).toInt(), pad, 0)
             addView(TextView(context).apply {
-                text = "Pick a recovery question, in case you ever forget your PIN:"
-                gravity = Gravity.START
-                setPadding(0, 0, 0, pad / 2)
+                text = "Pick a recovery question in case you ever forget your PIN:"
+                textSize = 13f
+                setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                setPadding(0, 0, 0, (10 * density).toInt())
             })
-            addView(questionSpinner)
+            addView(questionSelector)
+            addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(1, (10 * density).toInt()) })
             addView(answerInput)
         }
 
-        val dialog = AlertDialog.Builder(context)
-            .setTitle("Set up PIN recovery")
-            .setView(container)
-            .setCancelable(false)
-            .setPositiveButton("Save", null) // overridden below so a blank answer doesn't dismiss
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        showStyledDialog(
+            context = context,
+            title = "Set Up PIN Recovery 🛡️",
+            message = "",
+            customView = container,
+            positiveBtnText = "Save",
+            onPositive = { dlg, _ ->
                 if (answerInput.text.isBlank()) {
                     Toast.makeText(context, "Please answer the recovery question", Toast.LENGTH_SHORT).show()
                 } else {
-                    PrefsManager.setSecurityAnswer(context, questionSpinner.selectedItemPosition, answerInput.text.toString())
-                    dialog.dismiss()
+                    PrefsManager.setSecurityAnswer(context, selectedQuestionIndex, answerInput.text.toString())
+                    dlg.dismiss()
                     onDone()
                 }
-            }
-        }
-        dialog.show()
+            },
+            cancelable = false
+        )
     }
 
     private fun promptNewPin(context: Context, onDone: () -> Unit) {
-        val newPin = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "New PIN (4-8 digits)"
-        }
-        val confirmPin = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = "Confirm new PIN"
-        }
+        val density = context.resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+        val gap = (10 * density).toInt()
 
-        // Only ask for a recovery question the very first time a PIN is ever set on this
-        // device - not every time it's changed afterward.
+        val newPin = createPillEditText(context, "New PIN (4-8 digits)", isPassword = true)
+        val confirmPin = createPillEditText(context, "Confirm new PIN", isPassword = true)
+
         val needsSecuritySetup = !PrefsManager.hasSecurityAnswer(context)
-        val questionSpinner = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, PrefsManager.SECURITY_QUESTIONS)
+        var selectedQuestionIndex = 0
+        val answerInput = createPillEditText(context, "Answer to recovery question", isPassword = false)
+        val questionSelector = createQuestionSelector(context, PrefsManager.SECURITY_QUESTIONS, initialIndex = 0) { idx ->
+            selectedQuestionIndex = idx
         }
-        val answerInput = EditText(context).apply { hint = "Your answer" }
 
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (16 * context.resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, 0)
+            setPadding(pad, (4 * density).toInt(), pad, 0)
             addView(newPin)
+            addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(1, gap) })
             addView(confirmPin)
+
             if (needsSecuritySetup) {
                 addView(TextView(context).apply {
-                    text = "Pick a recovery question, in case you ever forget your PIN:"
-                    gravity = Gravity.START
-                    setPadding(0, pad, 0, 0)
+                    text = "Pick a recovery question in case you forget your PIN:"
+                    textSize = 13f
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    setPadding(0, gap, 0, (8 * density).toInt())
                 })
-                addView(questionSpinner)
+                addView(questionSelector)
+                addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(1, gap) })
                 addView(answerInput)
             }
         }
 
-        val dialog = AlertDialog.Builder(context)
-            .setTitle(if (PrefsManager.hasLockPin(context)) "Change your PIN" else "Set a PIN")
-            .setView(container)
-            .setPositiveButton("Save", null) // overridden below so a validation failure doesn't dismiss
-            .setNegativeButton("Cancel", null)
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+        showStyledDialog(
+            context = context,
+            title = if (PrefsManager.hasLockPin(context)) "Change Master PIN 🔐" else "Set Master PIN 🔒",
+            message = "Create a 4-8 digit numeric PIN to protect focus settings and lock mode:",
+            customView = container,
+            positiveBtnText = "Save PIN",
+            onPositive = { dlg, _ ->
                 val pin = newPin.text.toString()
                 val confirm = confirmPin.text.toString()
                 when {
@@ -332,17 +323,151 @@ object LockPinDialog {
                         if (needsSecuritySetup) {
                             PrefsManager.setSecurityAnswer(
                                 context,
-                                questionSpinner.selectedItemPosition,
+                                selectedQuestionIndex,
                                 answerInput.text.toString()
                             )
                         }
-                        Toast.makeText(context, "PIN saved", Toast.LENGTH_SHORT).show()
-                        dialog.dismiss()
+                        Toast.makeText(context, "Master PIN saved", Toast.LENGTH_SHORT).show()
+                        dlg.dismiss()
                         onDone()
                     }
                 }
+            },
+            negativeBtnText = "Cancel"
+        )
+    }
+
+    private fun createPillEditText(context: Context, hintText: String, isPassword: Boolean = true): EditText {
+        val density = context.resources.displayMetrics.density
+        val hPad = (16 * density).toInt()
+        val vPad = (12 * density).toInt()
+
+        return EditText(context).apply {
+            inputType = if (isPassword) {
+                InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            } else {
+                InputType.TYPE_CLASS_TEXT
+            }
+            hint = hintText
+            textSize = 15f
+            setPadding(hPad, vPad, hPad, vPad)
+            background = ContextCompat.getDrawable(context, R.drawable.bg_search_pill)
+            setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+            setHintTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+            gravity = Gravity.CENTER_VERTICAL
+        }
+    }
+
+    private fun createQuestionSelector(
+        context: Context,
+        questions: List<String>,
+        initialIndex: Int = 0,
+        onSelected: (Int) -> Unit
+    ): View {
+        val density = context.resources.displayMetrics.density
+        val hPad = (16 * density).toInt()
+        val vPad = (12 * density).toInt()
+        var currentIndex = initialIndex.coerceIn(0, questions.size - 1)
+
+        val label = TextView(context).apply {
+            text = "❓ " + questions[currentIndex]
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
+            setPadding(hPad, vPad, hPad, vPad)
+            background = ContextCompat.getDrawable(context, R.drawable.bg_search_pill)
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+        }
+
+        label.setOnClickListener {
+            val items = questions.toTypedArray()
+            AlertDialog.Builder(context)
+                .setTitle("Select Recovery Question")
+                .setSingleChoiceItems(items, currentIndex) { dialog, which ->
+                    currentIndex = which
+                    label.text = "❓ " + questions[which]
+                    onSelected(which)
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
+        return label
+    }
+
+    private fun showStyledDialog(
+        context: Context,
+        title: String,
+        message: String,
+        customView: View?,
+        positiveBtnText: String,
+        onPositive: (AlertDialog, View?) -> Unit,
+        negativeBtnText: String? = null,
+        onNegative: (() -> Unit)? = null,
+        neutralBtnText: String? = null,
+        onNeutral: (() -> Unit)? = null,
+        cancelable: Boolean = true
+    ): AlertDialog {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_custom_alert, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvDialogTitle)
+        val tvMessage = dialogView.findViewById<TextView>(R.id.tvDialogMessage)
+        val container = dialogView.findViewById<android.widget.FrameLayout>(R.id.containerCustomView)
+        val btnPositive = dialogView.findViewById<android.widget.Button>(R.id.btnDialogPositive)
+        val btnNegative = dialogView.findViewById<android.widget.Button>(R.id.btnDialogNegative)
+
+        tvTitle.text = title
+        if (message.isNotBlank()) {
+            tvMessage.text = message
+            tvMessage.visibility = View.VISIBLE
+        } else {
+            tvMessage.visibility = View.GONE
+        }
+
+        if (customView != null) {
+            container.addView(customView)
+            container.visibility = View.VISIBLE
+        } else {
+            container.visibility = View.GONE
+        }
+
+        val builder = AlertDialog.Builder(context, R.style.Theme_StayFocused_Dialog)
+            .setView(dialogView)
+            .setCancelable(cancelable)
+
+        val dialog = builder.create()
+
+        btnPositive.text = positiveBtnText
+        btnPositive.visibility = View.VISIBLE
+        btnPositive.setOnClickListener {
+            onPositive(dialog, customView)
+        }
+
+        if (negativeBtnText != null) {
+            btnNegative.text = negativeBtnText
+            btnNegative.visibility = View.VISIBLE
+            btnNegative.setOnClickListener {
+                dialog.dismiss()
+                onNegative?.invoke()
             }
         }
+
+        if (neutralBtnText != null) {
+            val btnNeutral = android.widget.Button(context, null, 0, com.google.android.material.R.style.Widget_Material3_Button_TextButton).apply {
+                text = neutralBtnText
+                setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                textSize = 13f
+                setOnClickListener {
+                    dialog.dismiss()
+                    onNeutral?.invoke()
+                }
+            }
+            val parentButtons = btnNegative.parent as? LinearLayout
+            parentButtons?.addView(btnNeutral, 0)
+        }
+
         dialog.show()
+        return dialog
     }
 }

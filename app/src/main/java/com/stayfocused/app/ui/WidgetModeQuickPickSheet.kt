@@ -4,21 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.stayfocused.app.R
 import com.stayfocused.app.data.SessionMode
 import com.stayfocused.app.databinding.SheetWidgetModeQuickpickBinding
 
-/**
- * The widget's "Start" button used to open [FocusModeSelectionSheet] - the same full card-with-
- * bullet-points picker used inside the app. On a widget, tapping Start already implies "I want
- * to focus right now"; showing the full Lite/Deep/Iron explainer again just adds a screen to
- * read before you can start. This sheet is the same 3-mode choice with just an icon + short
- * label per mode - no descriptions. Full mode details are one tap away via
- * "What do these mean?", which opens [FocusModeSelectionSheet] as a read/choose reference
- * instead of duplicating that copy here.
- */
-class WidgetModeQuickPickSheet : BottomSheetDialogFragment() {
+class WidgetModeQuickPickSheet : DialogFragment() {
 
     private var _binding: SheetWidgetModeQuickpickBinding? = null
     private val binding get() = _binding!!
@@ -27,6 +19,18 @@ class WidgetModeQuickPickSheet : BottomSheetDialogFragment() {
         const val TAG = "WidgetModeQuickPickSheet"
         const val REQUEST_KEY = "widget_quick_pick_result"
         const val RESULT_MODE = "chosen_mode"
+        const val EXTRA_DURATION_MINUTES = "duration_minutes"
+
+        fun newInstance(durationMinutes: Int = 0): WidgetModeQuickPickSheet {
+            return WidgetModeQuickPickSheet().apply {
+                arguments = Bundle().apply { putInt(EXTRA_DURATION_MINUTES, durationMinutes) }
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setStyle(STYLE_NO_TITLE, R.style.Theme_StayFocused_Dialog)
     }
 
     override fun onCreateView(
@@ -38,12 +42,16 @@ class WidgetModeQuickPickSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val minutes = arguments?.getInt(EXTRA_DURATION_MINUTES, 0) ?: 0
+        if (minutes > 0) {
+            binding.tvDurationHeader.text = "🎯 $minutes MINUTE FOCUS TARGET"
+        }
+
         binding.quickCardLite.setOnClickListener { choose(SessionMode.NORMAL) }
         binding.quickCardDeep.setOnClickListener { choose(SessionMode.LOCK) }
         binding.quickCardIron.setOnClickListener { choose(SessionMode.STRICT) }
 
-        // Forward whatever gets chosen in the detailed sheet as our own result, so
-        // WidgetQuickStartActivity only ever needs to listen for one REQUEST_KEY.
         childFragmentManager.setFragmentResultListener(
             FocusModeSelectionSheet.REQUEST_KEY, this
         ) { _, result ->
@@ -60,6 +68,7 @@ class WidgetModeQuickPickSheet : BottomSheetDialogFragment() {
     }
 
     private fun choose(mode: SessionMode) {
+        com.stayfocused.app.util.HapticHelper.mediumClick(binding.root)
         setFragmentResult(REQUEST_KEY, Bundle().apply { putString(RESULT_MODE, mode.name) })
         dismiss()
     }

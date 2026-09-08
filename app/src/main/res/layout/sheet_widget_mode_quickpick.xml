@@ -1,134 +1,243 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/bg_light"
+    android:layout_margin="20dp"
+    android:background="@drawable/bg_dashboard_card"
     android:orientation="vertical"
-    android:paddingStart="20dp"
-    android:paddingEnd="20dp"
-    android:paddingTop="8dp"
-    android:paddingBottom="24dp">
+    android:padding="20dp">
 
-    <View
-        android:layout_width="36dp"
-        android:layout_height="4dp"
+    <!-- Selected Duration Pill Header -->
+    <TextView
+        android:id="@+id/tvDurationHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="14dp"
-        android:background="@drawable/bg_dot"
-        android:backgroundTint="@color/card_border" />
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_search_pill"
+        android:backgroundTint="@color/brand_primary_subtle"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="5dp"
+        android:text="🎯 SELECT DISCIPLINE LEVEL"
+        android:textColor="@color/brand_primary"
+        android:textSize="11sp"
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Choose a mode"
+        android:layout_gravity="center_horizontal"
+        android:text="Choose Focus Mode"
         android:textColor="@color/text_primary"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="16dp"
+        android:text="Tap a mode to start your focus session instantly."
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <!-- 1. Focus Mode (Lite) Card -->
     <LinearLayout
+        android:id="@+id/quickCardLite"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_mode_card_lite"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:clickable="true"
+        android:focusable="true">
 
-        <!-- ===== Focus Lite ===== -->
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_target"
+            app:tint="@color/brand_primary"
+            android:contentDescription="Focus Mode" />
+
         <LinearLayout
-            android:id="@+id/quickCardLite"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_mode_card_lite"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🟢"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Lite"
+                android:text="Focus Mode (Lite) 🟢"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="Standard protection · Stop anytime if needed"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- ===== Deep Focus ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textColor="@color/text_secondary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 2. Lock Mode (Deep) Card -->
+    <LinearLayout
+        android:id="@+id/quickCardDeep"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_mode_card_deep"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_lock"
+            app:tint="@color/brand_primary"
+            android:contentDescription="Lock Mode" />
+
         <LinearLayout
-            android:id="@+id/quickCardDeep"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_mode_card_deep"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Lock Mode (Deep) 🔐"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_badge_recommended"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="1dp"
+                    android:text="POPULAR"
+                    android:textColor="@color/white"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔵"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Deep"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="1dp"
+                android:text="Master PIN required to stop early or edit blocklist"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- ===== Iron Focus ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textColor="@color/text_secondary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 3. Strict Mode (Hardcore) Card -->
+    <LinearLayout
+        android:id="@+id/quickCardIron"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_mode_card_iron"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_shield"
+            app:tint="@color/strict_red"
+            android:contentDescription="Strict Mode" />
+
         <LinearLayout
-            android:id="@+id/quickCardIron"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_mode_card_iron"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="14dp"
-            android:paddingBottom="14dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Strict Mode (Iron) 🔴"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_badge_warning"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="1dp"
+                    android:text="HARDCORE"
+                    android:textColor="@color/white"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔴"
-                android:textSize="18sp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Iron"
-                android:textColor="@color/text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="1dp"
+                android:text="Unbreakable lock · Zero early exits until timer ends"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
         </LinearLayout>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textColor="@color/text_secondary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <TextView
@@ -136,10 +245,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="14dp"
-        android:text="What do these mean?"
-        android:textColor="@color/text_secondary"
+        android:layout_marginTop="4dp"
+        android:text="What do these mode levels mean?"
+        android:textColor="@color/brand_primary"
         android:textSize="12sp"
+        android:textStyle="bold"
         android:clickable="true"
         android:focusable="true" />
 

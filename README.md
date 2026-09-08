@@ -37,9 +37,14 @@ Choose your exact level of discipline for every focus session:
 - **Wide Banner (4x1)**: Displays live session countdown and full control actions.
 - **Large Bento (2x2)**: Expanded card showing active mode, target goals, progress ring, and controls.
 - **Compact Tile (2x1)**: Essential countdown timer and quick start trigger.
-- **Tiny Quick-Pick (1x1)**: 1-tap shortcut launching a transparent emergency/quick timer setup sheet (`WidgetQuickStartActivity`).
+- **Tiny Quick-Pick (1x1)**: 1-tap shortcut launching a centered 3-mode pop-up selection card (`WidgetModeQuickPickSheet`) with Bento design over translucent dim background to instantly start focus sessions.
 
-### 5. 🎨 Expanded Theme Engine & Dark Mode
+### 5. 🔑 Modernized PIN Security & Recovery System
+- **Pill-Shaped Input Card Dialogs**: App lock PIN verification, PIN creation/change, and security question recovery modals redesigned with clean Material cards and rounded pill inputs (`bg_search_pill`).
+- **Custom Question Selection Modal**: Replaced outdated Android dialog spinners with clean, modern Material dialog pickers for security recovery questions.
+- **Cryptographic Security**: PBKDF2 with 10,000 iterations + SHA256 HMAC and random salt generation for 100% offline PIN security.
+
+### 6. 🎨 Expanded Theme Engine & Dark Mode
 - **Vibrant Color Palettes**: Choose between 8 curated palettes:
   - 🌌 **Focus Indigo (Aurora)**
   - 🌆 **Midnight Violet**

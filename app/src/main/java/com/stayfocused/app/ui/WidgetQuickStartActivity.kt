@@ -1,6 +1,5 @@
 package com.stayfocused.app.ui
 
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -10,6 +9,7 @@ import com.stayfocused.app.util.PrefsManager
 class WidgetQuickStartActivity : AppCompatActivity() {
 
     private var chosenMode: SessionMode? = null
+    private var pendingDurationMillis: Long = 0L
 
     companion object {
         const val EXTRA_MODE = "mode"
@@ -44,7 +44,11 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             val modeName = result.getString(WidgetModeQuickPickSheet.RESULT_MODE)
             if (modeName != null) {
                 chosenMode = SessionMode.valueOf(modeName)
-                showTimerSetup(chosenMode!!)
+                if (pendingDurationMillis > 0) {
+                    startFocusSession(chosenMode!!, pendingDurationMillis)
+                } else {
+                    showTimerSetup(chosenMode!!)
+                }
             } else {
                 finish()
             }
@@ -54,8 +58,13 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             QuickTimerSetupSheet.REQUEST_KEY, this
         ) { _, result ->
             val durationMillis = result.getLong(QuickTimerSetupSheet.RESULT_DURATION_MILLIS, 0)
-            if (durationMillis > 0 && chosenMode != null) {
-                startFocusSession(chosenMode!!, durationMillis)
+            if (durationMillis > 0) {
+                pendingDurationMillis = durationMillis
+                if (chosenMode != null) {
+                    startFocusSession(chosenMode!!, durationMillis)
+                } else {
+                    showCenteredModeSelection((durationMillis / 60_000L).toInt())
+                }
             } else {
                 finish()
             }
@@ -66,15 +75,14 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             chosenMode = SessionMode.valueOf(preselectedMode)
             showTimerSetup(chosenMode!!)
         } else {
-            showModeSelection()
+            showTimerSetup(SessionMode.NORMAL)
         }
     }
 
-    private fun showModeSelection() {
-        val sheet = WidgetModeQuickPickSheet()
+    private fun showCenteredModeSelection(durationMinutes: Int) {
+        val sheet = WidgetModeQuickPickSheet.newInstance(durationMinutes)
         sheet.show(supportFragmentManager, WidgetModeQuickPickSheet.TAG)
         
-        // If the user dismisses the sheet without choosing, finish the activity
         supportFragmentManager.executePendingTransactions()
         sheet.dialog?.setOnDismissListener {
             if (chosenMode == null) finish()
@@ -88,10 +96,7 @@ class WidgetQuickStartActivity : AppCompatActivity() {
         
         supportFragmentManager.executePendingTransactions()
         sheet.dialog?.setOnDismissListener {
-            // If the user dismisses timer setup, we could go back or finish. 
-            // The prompt says "after i select the mode it will ask the timmer after i set that it eill start".
-            // So if they cancel here, just finish.
-            finish()
+            if (pendingDurationMillis <= 0L && chosenMode == null) finish()
         }
     }
 
