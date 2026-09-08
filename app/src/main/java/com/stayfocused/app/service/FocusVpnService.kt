@@ -3,6 +3,7 @@ package com.stayfocused.app.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
@@ -108,6 +109,23 @@ class FocusVpnService : VpnService() {
         "208.67.222.222", "208.67.220.220" // OpenDNS
     )
 
+    private fun getActiveDnsServer(context: Context): String {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            val activeNetwork = cm.activeNetwork
+            if (activeNetwork != null) {
+                val linkProperties = cm.getLinkProperties(activeNetwork)
+                val dnsServers = linkProperties?.dnsServers
+                if (!dnsServers.isNullOrEmpty()) {
+                    return dnsServers.first().hostAddress ?: UPSTREAM_DNS
+                }
+            }
+        } catch (e: Exception) {
+            // fallback
+        }
+        return UPSTREAM_DNS
+    }
+
     private fun establishVpn() {
         val builder = Builder()
             .setSession("Stay Focused")
@@ -171,8 +189,9 @@ class FocusVpnService : VpnService() {
                         try {
                             val upstreamSocket = DatagramSocket()
                             protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
+                            val activeDns = getActiveDnsServer(applicationContext)
                             val forwardPacket = java.net.DatagramPacket(
-                                dnsPayload, dnsPayload.size, InetSocketAddress(UPSTREAM_DNS, 53)
+                                dnsPayload, dnsPayload.size, InetSocketAddress(activeDns, 53)
                             )
                             upstreamSocket.send(forwardPacket)
 

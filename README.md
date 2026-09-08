@@ -85,6 +85,8 @@ Choose your exact level of discipline for every focus session:
 | 5 | **Stepper button characters & text cut off** — `-15m` rendered oddly and clipped vertically | Added `textAllCaps=false`, zeroed `insetTop`/`insetBottom`, and removed vertical padding to fit text inside 32dp bounds |
 | 6 | **Widget bypasses mode selection** — tapping widget jumped directly to timer | `WidgetQuickStartActivity` now always calls `showCenteredModeSelection()` first |
 | 7 | **Enable/Pause 24/7 VPN buttons missing on start** — Controls hidden on app open | `refreshVpnStatusCard()` now checks synchronous `PrefsManager` instead of async database load, instantly rendering controls |
+| 8 | **24/7 Block causes ALL sites to fail/block** — Upstream DNS silently timing out | Dropped hardcoded `8.8.8.8` DNS which is blocked by some networks; now dynamically queries the system's `ConnectivityManager` to forward DNS to the active local router/ISP DNS |
+| 9 | **Widget buttons unresponsive on Android 8+ (Vivo)** — Clicking widget did nothing | Fixed widget `PendingIntent` using `getService()` for background service execution (prohibited on Android 8+); upgraded to `getForegroundService()` for `SessionTimerService` |
 
 ---
 

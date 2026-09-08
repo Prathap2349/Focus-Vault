@@ -59,9 +59,15 @@ object WidgetIntents {
         val intent = Intent(context, SessionTimerService::class.java).apply {
             action = SessionTimerService.ACTION_RESUME
         }
-        return PendingIntent.getService(
-            context, requestCode(appWidgetId, ACTION_RESUME), intent, flags()
-        )
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(
+                context, requestCode(appWidgetId, ACTION_RESUME), intent, flags()
+            )
+        } else {
+            PendingIntent.getService(
+                context, requestCode(appWidgetId, ACTION_RESUME), intent, flags()
+            )
+        }
     }
 
     fun emergency(context: Context, appWidgetId: Int): PendingIntent {
