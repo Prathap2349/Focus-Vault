@@ -86,19 +86,30 @@ class WebsiteBlockActivity : AppCompatActivity() {
             loadSuggestions(db)
         }
 
+        binding.etDomain.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.tvDomainError.visibility = View.GONE
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
         binding.btnAddDomain.setOnClickListener {
             val raw = binding.etDomain.text.toString()
             val domain = normalizeDomain(raw)
             if (domain.isEmpty()) {
-                Toast.makeText(this, "Please enter a valid domain (e.g. youtube.com)", Toast.LENGTH_SHORT).show()
+                binding.tvDomainError.text = "Please enter a valid domain (e.g. youtube.com or reddit.com)"
+                binding.tvDomainError.visibility = View.VISIBLE
                 return@setOnClickListener
             }
 
             if (allSites.any { it.domain == domain }) {
-                Toast.makeText(this, "$domain is already on your block list", Toast.LENGTH_SHORT).show()
+                binding.tvDomainError.text = "$domain is already on your block list"
+                binding.tvDomainError.visibility = View.VISIBLE
                 return@setOnClickListener
             }
 
+            binding.tvDomainError.visibility = View.GONE
             binding.etDomain.text.clear()
             val newSite = BlockedSite(domain, true)
             allSites.add(0, newSite)
@@ -160,7 +171,11 @@ class WebsiteBlockActivity : AppCompatActivity() {
         } else {
             allSites.filter { it.domain.contains(searchQuery, ignoreCase = true) }
         }
-        adapter.updateList(filtered)
+        val sorted = filtered.sortedWith(
+            compareByDescending<BlockedSite> { it.isActive }
+                .thenBy { it.domain.lowercase() }
+        )
+        adapter.updateList(sorted)
         binding.tvEmptySites.visibility = if (allSites.isEmpty()) View.VISIBLE else View.GONE
     }
 

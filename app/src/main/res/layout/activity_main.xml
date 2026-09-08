@@ -406,11 +406,12 @@
                 android:clickable="true"
                 android:focusable="true">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📱"
-                    android:textSize="18sp" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_apps"
+                    app:tint="@color/brand_primary"
+                    android:contentDescription="Blocked Apps" />
 
                 <TextView
                     android:id="@+id/tvBlockedAppsCount"
@@ -434,11 +435,12 @@
                 android:clickable="true"
                 android:focusable="true">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🌐"
-                    android:textSize="18sp" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_globe"
+                    app:tint="@color/brand_primary"
+                    android:contentDescription="Websites" />
 
                 <TextView
                     android:id="@+id/tvBlockedSitesCount"
@@ -461,11 +463,12 @@
                 android:clickable="true"
                 android:focusable="true">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⏰"
-                    android:textSize="18sp" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_clock"
+                    app:tint="@color/brand_primary"
+                    android:contentDescription="Schedules" />
 
                 <TextView
                     android:id="@+id/tvSchedulesCount"

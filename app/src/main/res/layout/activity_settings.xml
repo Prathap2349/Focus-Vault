@@ -60,12 +60,13 @@
                 android:gravity="center_vertical"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:layout_marginEnd="12dp"
-                    android:text="🔒"
-                    android:textSize="22sp" />
+                    android:src="@drawable/ic_lock"
+                    app:tint="@color/strict_red"
+                    android:contentDescription="Strict Mode" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -119,12 +120,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🔑"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_key"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="App Lock PIN" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -175,12 +177,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🛡️"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_shield"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Uninstall Protection" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -231,12 +234,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="👆"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_fingerprint"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Biometric" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -299,12 +303,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🌓"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_dark_mode"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Display Mode" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -355,12 +360,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🎨"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_palette"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Color Palette" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -411,12 +417,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🖤"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_moon"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="AMOLED True Black" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -466,12 +473,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="⏸️"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_motion"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Reduce Motion" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -521,12 +529,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="✨"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_sparkles"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Focus Aura Breathing" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -576,12 +585,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="📳"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_vibration"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Haptic Feedback" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -631,12 +641,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🔔"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_bell"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Completion Sound" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -686,12 +697,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🎯"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_target"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Focus Goals" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -754,12 +766,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🩺"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_diagnostics"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Diagnostics" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -809,12 +822,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="🛡️"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_shield"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Privacy Center" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -864,12 +878,13 @@
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
                         android:layout_marginEnd="12dp"
-                        android:text="💾"
-                        android:textSize="20sp" />
+                        android:src="@drawable/ic_backup"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Backup and Restore" />
 
                     <LinearLayout
                         android:layout_width="0dp"

@@ -34,10 +34,10 @@
                 android:layout_width="0dp"
                 android:layout_height="44dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_preset_item"
-                android:hint="e.g. youtube.com or *.reddit.com"
+                android:background="@drawable/bg_search_pill"
+                android:hint="e.g. youtube.com or reddit.com"
                 android:inputType="textUri"
-                android:paddingHorizontal="12dp"
+                android:paddingHorizontal="16dp"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="14sp" />
@@ -50,6 +50,17 @@
                 android:layout_marginStart="8dp"
                 android:text="Block" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvDomainError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="4dp"
+            android:textColor="@color/strict_red"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="Please enter a valid domain" />
 
         <!-- Search & Preset Quick Categories -->
         <LinearLayout
@@ -68,26 +79,31 @@
                 android:textSize="13sp"
                 tools:text="0 sites blocked" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnQuickAddCategory"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="+ Preset Pack"
+                android:layout_height="36dp"
+                android:text="Preset Pack"
+                app:icon="@drawable/ic_plus"
+                app:iconSize="14dp"
+                app:iconTint="@color/brand_primary"
                 android:textColor="@color/brand_primary"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                app:strokeColor="@color/card_border"
+                app:cornerRadius="18dp" />
         </LinearLayout>
 
         <EditText
             android:id="@+id/etSearchSites"
             android:layout_width="match_parent"
             android:layout_height="40dp"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/bg_preset_item"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_search_pill"
             android:drawableStart="@android:drawable/ic_menu_search"
             android:drawablePadding="8dp"
             android:hint="Filter blocked domains…"
-            android:paddingHorizontal="12dp"
+            android:paddingHorizontal="16dp"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_secondary"
             android:textSize="13sp" />

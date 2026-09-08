@@ -47,6 +47,7 @@ class AppSelectionActivity : AppCompatActivity() {
                 val db = AppDatabase.getInstance(applicationContext)
                 db.blockedAppDao().upsert(BlockedApp(app.packageName, app.label, isSelected))
                 syncFastCache(db)
+                applyFilters()
                 updateCounter()
                 updateCategoryChipCounts()
             }
