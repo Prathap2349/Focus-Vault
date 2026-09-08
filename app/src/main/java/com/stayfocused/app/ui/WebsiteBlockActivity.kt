@@ -263,7 +263,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
 
     private fun refreshVpnStatusCard() {
         val isRunning = com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.get()
-        val hasPermanentSites = allSites.any { it.isPermanent }
+        val hasPermanentSites = PrefsManager.getPermanentBlockedDomains(this).isNotEmpty()
         val isPaused = PrefsManager.isPermanentBlockPaused(this)
 
         if (isRunning) {
@@ -471,6 +471,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
                 android.util.Log.d("WebsiteBlockActivity", "VPN permission not yet granted; Enable button will prompt")
             }
         }
+        refreshVpnStatusCard()
     }
 
 
