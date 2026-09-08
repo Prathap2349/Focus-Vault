@@ -194,6 +194,7 @@
                 android:paddingHorizontal="8dp"
                 android:layout_marginEnd="4dp"
                 android:text="-15m"
+                android:textAllCaps="false"
                 android:textSize="11sp" />
 
             <Button
@@ -206,6 +207,7 @@
                 android:paddingHorizontal="8dp"
                 android:layout_marginEnd="8dp"
                 android:text="-5m"
+                android:textAllCaps="false"
                 android:textSize="11sp" />
 
             <TextView
@@ -228,6 +230,7 @@
                 android:paddingHorizontal="8dp"
                 android:layout_marginStart="8dp"
                 android:text="+5m"
+                android:textAllCaps="false"
                 android:textSize="11sp" />
 
             <Button
@@ -240,6 +243,7 @@
                 android:paddingHorizontal="8dp"
                 android:layout_marginStart="4dp"
                 android:text="+15m"
+                android:textAllCaps="false"
                 android:textSize="11sp" />
 
             <Button
@@ -252,6 +256,7 @@
                 android:paddingHorizontal="8dp"
                 android:layout_marginStart="4dp"
                 android:text="+30m"
+                android:textAllCaps="false"
                 android:textSize="11sp" />
         </LinearLayout>
 

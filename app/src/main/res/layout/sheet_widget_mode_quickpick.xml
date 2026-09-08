@@ -124,30 +124,35 @@
             android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Lock Mode (Deep) 🔐"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:background="@drawable/bg_badge_recommended"
-                    android:paddingHorizontal="5dp"
-                    android:paddingVertical="1dp"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
                     android:text="POPULAR"
                     android:textColor="@color/white"
                     android:textSize="8sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:singleLine="true" />
             </LinearLayout>
 
             <TextView
@@ -196,30 +201,35 @@
             android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Strict Mode (Iron) 🔴"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
                     android:background="@drawable/bg_badge_warning"
-                    android:paddingHorizontal="5dp"
-                    android:paddingVertical="1dp"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
                     android:text="HARDCORE"
                     android:textColor="@color/white"
                     android:textSize="8sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:singleLine="true" />
             </LinearLayout>
 
             <TextView
