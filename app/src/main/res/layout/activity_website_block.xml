@@ -66,10 +66,11 @@
                 style="@style/DashboardCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
                 android:orientation="vertical"
                 android:padding="14dp">
 
+                <!-- Row 1: shield icon + status text + Disconnect button -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -94,6 +95,7 @@
                         android:textSize="13sp"
                         android:textStyle="bold" />
 
+                    <!-- Shown when VPN is connected -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnDisconnectVpn"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -105,7 +107,8 @@
                         app:strokeColor="@color/strict_red"
                         app:cornerRadius="17dp"
                         android:insetTop="0dp"
-                        android:insetBottom="0dp" />
+                        android:insetBottom="0dp"
+                        android:visibility="gone" />
                 </LinearLayout>
 
                 <TextView
@@ -115,7 +118,86 @@
                     android:text="Android shows a status bar key icon 🔑 when website filtering is active. Disconnect to remove the key icon instantly."
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
+
+                <!-- "Enable Blocking" button — shown when VPN is disconnected AND permanent sites exist -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEnableVpn"
+                    style="@style/PrimaryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="10dp"
+                    android:text="Enable 24/7 Blocking 🛡️"
+                    android:textSize="13sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:visibility="gone" />
+
+                <!-- "Pause 24/7" button — shown when VPN is connected -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPause247"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:text="⏸ Pause 24/7 Blocking"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="13sp"
+                    app:strokeColor="@color/brand_primary"
+                    app:cornerRadius="20dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:visibility="gone" />
             </LinearLayout>
+
+            <!-- Pause Banner — shown when 24/7 blocking is paused (timer countdown + Resume) -->
+            <LinearLayout
+                android:id="@+id/layoutPauseBanner"
+                style="@style/DashboardCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="14dp"
+                android:background="@drawable/bg_mode_card_iron"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏸ 24/7 Blocking Paused"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvPauseCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Resumes in 30:00"
+                        android:textColor="@color/brand_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnResumeNow"
+                    style="@style/PrimaryButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Resume Now →"
+                    android:textSize="12sp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
+            </LinearLayout>
+
+
 
             <!-- Vault Lock Guard Card -->
             <LinearLayout

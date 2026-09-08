@@ -1,12 +1,15 @@
 package com.stayfocused.app.ui
 
+import android.app.Activity
 import android.content.Intent
+import android.net.VpnService
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -26,10 +29,22 @@ class WebsiteBlockActivity : AppCompatActivity() {
     private var searchQuery = ""
     private var activeFilter = FILTER_ALL
 
+    // Countdown ticker for the pause banner
+    private val countdownHandler = Handler(Looper.getMainLooper())
+    private val countdownRunnable = object : Runnable {
+        override fun run() {
+            updatePauseBanner()
+            if (PrefsManager.isPermanentBlockPaused(this@WebsiteBlockActivity)) {
+                countdownHandler.postDelayed(this, 1000)
+            }
+        }
+    }
+
     companion object {
         private const val FILTER_ALL = 0
         private const val FILTER_PERMANENT = 1
         private const val FILTER_SESSION = 2
+        private const val VPN_PERMISSION_REQUEST_CODE = 7301
 
         val PRESET_PACKS = mapOf(
             "Social Media" to listOf("instagram.com", "facebook.com", "x.com", "tiktok.com", "reddit.com", "snapchat.com", "threads.net"),
@@ -197,25 +212,70 @@ class WebsiteBlockActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshVpnStatusCard()
+        // Restart countdown ticker if we're returning to screen while paused
+        if (PrefsManager.isPermanentBlockPaused(this)) {
+            countdownHandler.removeCallbacks(countdownRunnable)
+            countdownHandler.post(countdownRunnable)
+        }
     }
 
-    private fun removeSite(site: BlockedSite, db: AppDatabase) {
-        lifecycleScope.launch {
-            allSites.removeAll { it.domain == site.domain }
-            db.blockedSiteDao().upsert(site.copy(isActive = false))
-            syncFastCache(db)
-            applySearch()
-            updateSiteCounter()
-            Toast.makeText(this@WebsiteBlockActivity, "Unblocked ${site.domain}", Toast.LENGTH_SHORT).show()
+    override fun onDestroy() {
+        countdownHandler.removeCallbacks(countdownRunnable)
+        super.onDestroy()
+    }
+
+    @Deprecated("Using deprecated onActivityResult for VPN permission compatibility")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VPN_PERMISSION_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                // User granted VPN permission — start the service
+                startVpnService()
+                Toast.makeText(this, "24/7 Blocking enabled 🛡️", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "VPN permission denied — 24/7 blocking requires this", Toast.LENGTH_LONG).show()
+            }
         }
+    }
+
+    private fun requestVpnPermission() {
+        val permIntent = VpnService.prepare(this)
+        if (permIntent == null) {
+            // Already authorized — start immediately
+            startVpnService()
+        } else {
+            // Need to ask the user
+            @Suppress("DEPRECATION")
+            startActivityForResult(permIntent, VPN_PERMISSION_REQUEST_CODE)
+        }
+    }
+
+    private fun startVpnService() {
+        PrefsManager.setVpnManuallyStopped(this, false)
+        try {
+            startService(Intent(this, com.stayfocused.app.service.FocusVpnService::class.java))
+        } catch (e: Exception) {
+            android.util.Log.e("WebsiteBlockActivity", "Failed to start FocusVpnService", e)
+        }
+        // Give the service a moment to register before refreshing the card
+        countdownHandler.postDelayed({ refreshVpnStatusCard() }, 600)
     }
 
     private fun refreshVpnStatusCard() {
         val isRunning = com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.get()
+        val hasPermanentSites = allSites.any { it.isPermanent }
+        val isPaused = PrefsManager.isPermanentBlockPaused(this)
+
         if (isRunning) {
             binding.tvVpnStatusText.text = "VPN Status: Active (Filtering DNS)"
-            binding.tvVpnStatusText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.success_green))
+            binding.tvVpnStatusText.setTextColor(
+                androidx.core.content.ContextCompat.getColor(this, R.color.success_green)
+            )
             binding.btnDisconnectVpn.visibility = View.VISIBLE
+            binding.btnEnableVpn.visibility = View.GONE
+            // Show Pause button only when there are permanent sites and blocking isn't paused
+            binding.btnPause247.visibility = if (hasPermanentSites && !isPaused) View.VISIBLE else View.GONE
+
             binding.btnDisconnectVpn.setOnClickListener {
                 com.stayfocused.app.util.HapticHelper.mediumClick(it)
                 val stopIntent = Intent(this, com.stayfocused.app.service.FocusVpnService::class.java).apply {
@@ -228,10 +288,94 @@ class WebsiteBlockActivity : AppCompatActivity() {
                 Toast.makeText(this, "VPN disconnected — key icon hidden", Toast.LENGTH_SHORT).show()
                 refreshVpnStatusCard()
             }
+
+            binding.btnPause247.setOnClickListener {
+                com.stayfocused.app.util.HapticHelper.mediumClick(it)
+                showPauseOptions()
+            }
         } else {
             binding.tvVpnStatusText.text = "VPN Status: Disconnected"
-            binding.tvVpnStatusText.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary))
+            binding.tvVpnStatusText.setTextColor(
+                androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary)
+            )
             binding.btnDisconnectVpn.visibility = View.GONE
+            binding.btnPause247.visibility = View.GONE
+            // Show "Enable Blocking" only if user has permanent sites to block
+            binding.btnEnableVpn.visibility = if (hasPermanentSites) View.VISIBLE else View.GONE
+
+            binding.btnEnableVpn.setOnClickListener {
+                com.stayfocused.app.util.HapticHelper.mediumClick(it)
+                requestVpnPermission()
+            }
+        }
+
+        // Pause banner
+        updatePauseBanner()
+    }
+
+    private fun showPauseOptions() {
+        val options = arrayOf("Pause for 30 minutes", "Pause for 1 hour", "Pause for 2 hours", "Pause for 3 hours")
+        val durations = longArrayOf(30 * 60_000L, 60 * 60_000L, 2 * 60 * 60_000L, 3 * 60 * 60_000L)
+
+        DialogHelper.showSingleChoiceDialog(
+            context = this,
+            title = "⏸ Pause 24/7 Blocking",
+            items = options.toList(),
+            selectedIndex = 0
+        ) { which ->
+            val pauseUntil = System.currentTimeMillis() + durations[which]
+            PrefsManager.setPermanentBlockPause(this, pauseUntil)
+            refreshVpnStatusCard()
+            // Start countdown ticker
+            countdownHandler.removeCallbacks(countdownRunnable)
+            countdownHandler.post(countdownRunnable)
+            Toast.makeText(this, "24/7 blocking paused — tap Resume Now to re-enable", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updatePauseBanner() {
+        val isPaused = PrefsManager.isPermanentBlockPaused(this)
+        if (isPaused) {
+            binding.layoutPauseBanner.visibility = View.VISIBLE
+            binding.btnPause247.visibility = View.GONE
+
+            val remainingMs = PrefsManager.getPermanentBlockPauseUntil(this) - System.currentTimeMillis()
+            val totalSecs = (remainingMs / 1000).coerceAtLeast(0)
+            val hours = totalSecs / 3600
+            val mins = (totalSecs % 3600) / 60
+            val secs = totalSecs % 60
+            binding.tvPauseCountdown.text = if (hours > 0) {
+                "Resumes in ${hours}h ${mins}m ${secs}s"
+            } else {
+                "Resumes in %02d:%02d".format(mins, secs)
+            }
+
+            binding.btnResumeNow.setOnClickListener {
+                com.stayfocused.app.util.HapticHelper.mediumClick(it)
+                PrefsManager.clearPermanentBlockPause(this)
+                countdownHandler.removeCallbacks(countdownRunnable)
+                refreshVpnStatusCard()
+                Toast.makeText(this, "24/7 blocking resumed ✅", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            binding.layoutPauseBanner.visibility = View.GONE
+            countdownHandler.removeCallbacks(countdownRunnable)
+            // Re-show Pause button if VPN is still running
+            if (com.stayfocused.app.manager.ProtectionEngine.isVpnRunning.get() && allSites.any { it.isPermanent }) {
+                binding.btnPause247.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun removeSite(site: BlockedSite, db: AppDatabase) {
+        lifecycleScope.launch {
+            allSites.removeAll { it.domain == site.domain }
+            db.blockedSiteDao().upsert(site.copy(isActive = false))
+            syncFastCache(db)
+            applySearch()
+            updateSiteCounter()
+            refreshVpnStatusCard()
+            Toast.makeText(this@WebsiteBlockActivity, "Unblocked ${site.domain}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -310,17 +454,25 @@ class WebsiteBlockActivity : AppCompatActivity() {
         PrefsManager.setBlockedDomains(this, activeDomains)
         PrefsManager.setPermanentBlockedDomains(this, permanentDomains)
 
-        // If permanent blocked sites exist, automatically start VPN service so 24/7 filtering is active
-        if (permanentDomains.isNotEmpty() && !PrefsManager.isVpnManuallyStopped(this)) {
-            if (android.net.VpnService.prepare(this) == null) {
+        // Whenever the user has 24/7 sites, always ensure the VPN is running —
+        // critically: reset isVpnManuallyStopped so a prior manual disconnect
+        // doesn't permanently prevent the service from starting on new additions.
+        if (permanentDomains.isNotEmpty()) {
+            PrefsManager.setVpnManuallyStopped(this, false)
+            if (VpnService.prepare(this) == null) {
+                // Permission already granted — start right away
                 try {
                     startService(Intent(this, com.stayfocused.app.service.FocusVpnService::class.java))
                 } catch (e: Exception) {
                     android.util.Log.e("WebsiteBlockActivity", "Failed to start 24/7 FocusVpnService", e)
                 }
+            } else {
+                // Need VPN permission — the Enable button in refreshVpnStatusCard() handles this
+                android.util.Log.d("WebsiteBlockActivity", "VPN permission not yet granted; Enable button will prompt")
             }
         }
     }
+
 
     private fun loadSuggestions(db: AppDatabase) {
         val suggestions = PrefsManager.getTopSuggestedDomains(this, 5)

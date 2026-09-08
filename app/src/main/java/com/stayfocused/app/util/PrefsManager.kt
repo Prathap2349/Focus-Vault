@@ -37,6 +37,7 @@ object PrefsManager {
     private const val KEY_MONTHLY_GOAL_MINUTES = "monthly_goal_minutes"
     private const val KEY_VPN_SESSION_ONLY = "vpn_session_only"
     private const val KEY_VPN_MANUALLY_STOPPED = "vpn_manually_stopped"
+    private const val KEY_PERMANENT_PAUSE_UNTIL = "permanent_block_pause_until"
 
     const val THEME_SYSTEM = "system"
     const val THEME_LIGHT = "light"
@@ -417,6 +418,28 @@ object PrefsManager {
      * "day" used for the emergency-unlock daily counter above, reused by the streak tracker so
      * the two features agree about when a day rolls over. */
     fun currentDateString(): String = todayString()
+
+    // ── 24/7 Permanent Block Pause / Resume ──────────────────────────────────────────────────────
+    // Works identically to the session-level emergency pause: we store a millisecond timestamp
+    // in the future. Every check compares now() against it. When now() passes it the pause is
+    // over automatically. "Resume Now" just sets the timestamp to 0 to expire it early.
+
+    /** Pause 24/7 permanent website blocking until [untilMillis]. */
+    fun setPermanentBlockPause(context: Context, untilMillis: Long) {
+        prefs(context).edit().putLong(KEY_PERMANENT_PAUSE_UNTIL, untilMillis).apply()
+    }
+
+    /** End the pause immediately (or ensure there is no active pause). */
+    fun clearPermanentBlockPause(context: Context) {
+        prefs(context).edit().putLong(KEY_PERMANENT_PAUSE_UNTIL, 0L).apply()
+    }
+
+    fun getPermanentBlockPauseUntil(context: Context): Long =
+        prefs(context).getLong(KEY_PERMANENT_PAUSE_UNTIL, 0L)
+
+    /** Returns true when 24/7 permanent blocking is currently paused. */
+    fun isPermanentBlockPaused(context: Context): Boolean =
+        getPermanentBlockPauseUntil(context) > System.currentTimeMillis()
 
     private fun todayString(): String {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
