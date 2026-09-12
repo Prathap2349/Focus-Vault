@@ -107,23 +107,20 @@ object DnsPacketParser {
 
     /** Builds a synthetic NXDOMAIN DNS response wrapped back in IP+UDP, swapping src/dst. */
     fun buildNxDomainResponse(originalPacket: ByteArray, length: Int): ByteArray {
-        val buf = ByteBuffer.wrap(originalPacket, 0, length).duplicate()
-        buf.order(ByteOrder.BIG_ENDIAN)
         val ihl = (originalPacket[0].toInt() and 0xF) * 4
         val dnsStart = ihl + 8
-
-        val questionLength = length - dnsStart
-        val response = ByteArray(dnsStart + questionLength)
-        System.arraycopy(originalPacket, 0, response, 0, dnsStart + questionLength)
+        val dnsLength = length - dnsStart
+        val dnsPayload = ByteArray(dnsLength)
+        System.arraycopy(originalPacket, dnsStart, dnsPayload, 0, dnsLength)
 
         // DNS flags: QR=1 (response), Opcode=0, AA=0, TC=0, RD=1, RA=1, RCODE=3 (NXDOMAIN)
-        response[dnsStart + 2] = 0x81.toByte()
-        response[dnsStart + 3] = 0x83.toByte()
+        dnsPayload[2] = 0x81.toByte()
+        dnsPayload[3] = 0x83.toByte()
         // ANCOUNT = 0 (no answers)
-        response[dnsStart + 6] = 0
-        response[dnsStart + 7] = 0
+        dnsPayload[6] = 0
+        dnsPayload[7] = 0
 
-        return wrapAsIpUdpPacket(originalPacket, response, dnsStart, swap = true)
+        return wrapAsIpUdpPacket(originalPacket, dnsPayload, dnsStart, swap = true)
     }
 
     @Suppress("UNUSED_PARAMETER")
