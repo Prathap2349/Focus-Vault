@@ -2,7 +2,7 @@
 
 [![Android](https://img.shields.io/badge/Platform-Android_8.0%2B_%28API_26%2B%29-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin_1.9.22-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Download APK](https://img.shields.io/badge/Download-FocusVault.apk-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Prathap2349/Focus-Vault/raw/main/FocusVault.apk)
+[![Download APK](https://img.shields.io/badge/Download-FocusVault-release.apk-2ea44f?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Prathap2349/Focus-Vault/raw/main/FocusVault-release.apk)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_On--Device-0052CC?style=for-the-badge&logo=shield&logoColor=white)](#-privacy--security-guarantee)
 
 ---
@@ -124,7 +124,7 @@ com.focusvault.app/
 
 ### Download Pre-built APK
 Get the latest compiled binary directly:
-👉 [**Download FocusVault.apk**](https://github.com/Prathap2349/Focus-Vault/raw/main/FocusVault.apk)
+👉 [**Download FocusVault-release.apk**](https://github.com/Prathap2349/Focus-Vault/raw/main/FocusVault-release.apk)
 
 ### Prerequisites
 - **Android Studio**: Iguana (2023.2.1) or newer
