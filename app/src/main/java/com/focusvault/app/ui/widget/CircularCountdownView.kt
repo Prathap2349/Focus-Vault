@@ -39,7 +39,7 @@ class CircularCountdownView @JvmOverloads constructor(
 
     private var breathingAnimator: ValueAnimator? = null
     private var breathingScale: Float = 1f
-    private val breathingGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val breathingGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
 
 
     private var orbitalAngle: Float = 0f
@@ -48,6 +48,7 @@ class CircularCountdownView @JvmOverloads constructor(
             field = value
             if (value && !AnimationHelper.isReduceMotion(context)) {
                 startOrbitalAnimation()
+                startSheenAnimation()
                 startBreathingAnimation()
             } else {
                 stopOrbitalAnimation()
@@ -61,6 +62,9 @@ class CircularCountdownView @JvmOverloads constructor(
 
     private val strokeWidthPx = context.resources.displayMetrics.density * 9f
 
+    private val trackSheenPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+    private var sheenAngle = 0f
+    private var sheenAnimator: ValueAnimator? = null
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
@@ -108,9 +112,10 @@ class CircularCountdownView @JvmOverloads constructor(
             return
         }
         lockInAnimator?.cancel()
+        com.focusvault.app.util.HapticHelper.mediumClick(this)
         lockInAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
-            duration = 550L
-            interpolator = AccelerateDecelerateInterpolator()
+            duration = 650L
+            interpolator = android.view.animation.OvershootInterpolator(1.5f)
             addUpdateListener { va ->
                 rotationOffset = va.animatedValue as Float
                 invalidate()
@@ -149,7 +154,28 @@ class CircularCountdownView @JvmOverloads constructor(
         invalidate()
     }
 
-private fun startOrbitalAnimation() {
+
+    private fun startSheenAnimation() {
+        if (sheenAnimator?.isRunning == true) return
+        sheenAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
+            duration = 4000L
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = android.view.animation.LinearInterpolator()
+            addUpdateListener { va ->
+                sheenAngle = va.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+    
+    private fun stopSheenAnimation() {
+        sheenAnimator?.cancel()
+        sheenAnimator = null
+        invalidate()
+    }
+
+    private fun startOrbitalAnimation() {
         if (orbitalAnimator?.isRunning == true) return
         orbitalAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
             duration = 3800L
@@ -245,6 +271,14 @@ private fun startOrbitalAnimation() {
             intArrayOf(ringStartColor, ringEndColor, ringStartColor),
             floatArrayOf(0f, 0.5f, 1f)
         )
+        trackSheenPaint.strokeWidth = strokeWidthPx
+        trackSheenPaint.shader = SweepGradient(
+            w / 2f, h / 2f,
+            intArrayOf(Color.TRANSPARENT, Color.argb(60, 255, 255, 255), Color.TRANSPARENT),
+            floatArrayOf(0f, 0.5f, 1f)
+        )
+        breathingGlowPaint.strokeWidth = strokeWidthPx * 1.5f
+        breathingGlowPaint.maskFilter = android.graphics.BlurMaskFilter(strokeWidthPx, android.graphics.BlurMaskFilter.Blur.NORMAL)
         invalidate()
     }
 
@@ -264,10 +298,19 @@ private fun startOrbitalAnimation() {
         
         // Draw Breathing Glow
         if (isOrbitalActive) {
-            canvas.drawCircle(cx, cy, radius * breathingScale, breathingGlowPaint)
+            canvas.save()
+            canvas.scale(breathingScale, breathingScale, cx, cy)
+            canvas.drawArc(arcRect, 0f, 360f, false, breathingGlowPaint)
+            canvas.restore()
         }
 
         canvas.drawArc(arcRect, 0f, 360f, false, trackPaint)
+        if (!AnimationHelper.isReduceMotion(context) && isOrbitalActive) {
+            canvas.save()
+            canvas.rotate(sheenAngle, cx, cy)
+            canvas.drawArc(arcRect, 0f, 360f, false, trackSheenPaint)
+            canvas.restore()
+        }
         if (progress > 0f) {
             canvas.drawArc(arcRect, -90f, 360f * progress, false, progressPaint)
         }

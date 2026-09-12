@@ -34,19 +34,32 @@ class BlockOverlayActivity : AppCompatActivity() {
     private var quoteIndex = 0
     private val quoteRunnable = object : Runnable {
         override fun run() {
+            advanceQuote()
+        }
+    }
+    
+    private fun advanceQuote() {
+        quoteHandler.removeCallbacks(quoteRunnable)
+        if (com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+            quoteIndex = (quoteIndex + 1) % CALM_QUOTES.size
+            binding.tvQuote.text = CALM_QUOTES[quoteIndex]
+        } else {
             binding.tvQuote.animate()
                 .alpha(0f)
-                .setDuration(500)
+                .translationY(-16f)
+                .setDuration(250)
                 .withEndAction {
                     quoteIndex = (quoteIndex + 1) % CALM_QUOTES.size
                     binding.tvQuote.text = CALM_QUOTES[quoteIndex]
+                    binding.tvQuote.translationY = 16f
                     binding.tvQuote.animate()
                         .alpha(1f)
-                        .setDuration(500)
+                        .translationY(0f)
+                        .setDuration(250)
                         .start()
                 }.start()
-            quoteHandler.postDelayed(this, 5000)
         }
+        quoteHandler.postDelayed(quoteRunnable, 5000)
     }
 
     companion object {
@@ -122,13 +135,51 @@ class BlockOverlayActivity : AppCompatActivity() {
             }
         })
 
+        binding.tvQuote.setOnClickListener { advanceQuote() }
+        binding.tvQuoteHint.setOnClickListener { advanceQuote() }
+
         refreshUi()
+
+        if (!com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+            val isStrict = PrefsManager.isStrictModeActive(this)
+            val views = listOfNotNull(
+                binding.tvAppName,
+                binding.tvModeSubtitle,
+                if (isStrict) binding.cardStrictModeNotice else null,
+                binding.frameCountdownRing,
+                binding.tvQuote,
+                binding.tvQuoteHint,
+                binding.btnGoHome,
+                if (!isStrict) binding.btnEmergencyUnlockOverlay else null
+            )
+            views.forEach { it.alpha = 0f; it.translationY = 24f; it.visibility = android.view.View.VISIBLE }
+            com.focusvault.app.util.AnimationHelper.animateStaggeredCascade(views, baseDelayMs = 150, stepDelayMs = 50)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        binding.tvQuote.setOnClickListener { advanceQuote() }
+        binding.tvQuoteHint.setOnClickListener { advanceQuote() }
+
         refreshUi()
+
+        if (!com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+            val isStrict = PrefsManager.isStrictModeActive(this)
+            val views = listOfNotNull(
+                binding.tvAppName,
+                binding.tvModeSubtitle,
+                if (isStrict) binding.cardStrictModeNotice else null,
+                binding.frameCountdownRing,
+                binding.tvQuote,
+                binding.tvQuoteHint,
+                binding.btnGoHome,
+                if (!isStrict) binding.btnEmergencyUnlockOverlay else null
+            )
+            views.forEach { it.alpha = 0f; it.translationY = 24f; it.visibility = android.view.View.VISIBLE }
+            com.focusvault.app.util.AnimationHelper.animateStaggeredCascade(views, baseDelayMs = 150, stepDelayMs = 50)
+        }
     }
 
     private fun refreshUi() {
@@ -181,12 +232,27 @@ class BlockOverlayActivity : AppCompatActivity() {
         quoteHandler.removeCallbacks(quoteRunnable)
         quoteHandler.postDelayed(quoteRunnable, 5000)
 
-        val (heroBgRes, ringStart, ringEnd) = when {
-            isStrict -> Triple(R.drawable.bg_gradient_strict, R.color.gradient_strict_start, R.color.gradient_strict_end)
-            isLock -> Triple(R.drawable.bg_gradient_lock, R.color.gradient_lock_start, R.color.gradient_lock_end)
-            else -> Triple(R.drawable.bg_gradient_normal, R.color.gradient_normal_start, R.color.gradient_normal_end)
+        val heroBgRes: Int
+        val glowRes: Int
+        val ringStart: Int
+        val ringEnd: Int
+        if (isStrict) {
+            heroBgRes = R.drawable.bg_gradient_strict; glowRes = R.color.glow_strict; ringStart = R.color.gradient_strict_start; ringEnd = R.color.gradient_strict_end
+        } else if (isLock) {
+            heroBgRes = R.drawable.bg_gradient_lock; glowRes = R.color.glow_lock; ringStart = R.color.gradient_lock_start; ringEnd = R.color.gradient_lock_end
+        } else {
+            heroBgRes = R.drawable.bg_gradient_normal; glowRes = R.color.glow_normal; ringStart = R.color.gradient_normal_start; ringEnd = R.color.gradient_normal_end
         }
+        
         binding.rootOverlay.setBackgroundResource(heroBgRes)
+        
+        val radialGlow = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            gradientType = android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT
+            colors = intArrayOf(ContextCompat.getColor(this@BlockOverlayActivity, glowRes), android.graphics.Color.TRANSPARENT)
+            gradientRadius = resources.displayMetrics.density * 200f
+        }
+        binding.bgRadialGlow.background = radialGlow
         binding.ringCountdown.setColors(
             ContextCompat.getColor(this, ringStart),
             ContextCompat.getColor(this, ringEnd),

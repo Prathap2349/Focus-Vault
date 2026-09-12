@@ -1,12 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rootOverlay"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient_strict"
-    android:fillViewport="true">
+    >
+
+    <!-- Radial Glow Layer -->
+    <View
+        android:id="@+id/bgRadialGlow"
+        android:layout_width="500dp"
+        android:layout_height="500dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="-40dp" />
+
+    <!-- Noise Overlay Layer -->
+    <com.focusvault.app.ui.widget.NoiseOverlayView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -141,6 +159,18 @@
             android:textSize="13sp"
             android:lineSpacingExtra="2dp" />
 
+        <TextView
+            android:id="@+id/tvQuoteHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="Tap for more"
+            android:textColor="#80FFFFFF"
+            android:textSize="10sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.05" />
+
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
@@ -170,4 +200,5 @@
             android:textStyle="bold" />
 
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>

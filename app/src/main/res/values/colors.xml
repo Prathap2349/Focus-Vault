@@ -55,4 +55,11 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="overlay_dark">#E60B0C10</color>
+
+    <!-- New layered background glows -->
+    <color name="glow_normal">#406366F1</color>
+    <color name="glow_lock">#40818CF8</color>
+    <color name="glow_strict">#40F87171</color>
+    <color name="overlay_noise">#06FFFFFF</color>
 </resources>
+
