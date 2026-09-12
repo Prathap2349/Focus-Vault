@@ -43,40 +43,63 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Main Value / Timer Display -->
-    <TextView
-        android:id="@+id/tvWidgetCompactTimer"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="42:18"
-        android:textColor="@color/text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tvWidgetCompactSubtitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="remaining · 72% done"
-        android:textColor="@color/text_secondary"
-        android:textSize="10sp" />
-
-    <!-- Progress Bar -->
-    <ProgressBar
-        android:id="@+id/progressWidgetCompactGoal"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
         android:layout_marginTop="6dp"
         android:layout_marginBottom="6dp"
-        android:max="100"
-        android:progress="72"
-        android:progressTint="@color/brand_primary" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Circular Ring -->
+        <FrameLayout
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp">
+            <ProgressBar
+                android:id="@+id/progressWidgetCompactGoal"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:progressDrawable="@drawable/circular_progress"
+                android:max="100"
+                android:progress="72" />
+            <TextView
+                android:id="@+id/tvWidgetCompactRingLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="🛡️"
+                android:textSize="12sp" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tvWidgetCompactTimer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="42:18"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWidgetCompactSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="remaining · 72% done"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- Primary Action Button -->
     <Button

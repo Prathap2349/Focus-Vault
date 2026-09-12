@@ -1,44 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widgetTinyRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_dashboard_card"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="8dp">
+    android:background="@drawable/bg_dashboard_card">
 
-    <TextView
-        android:id="@+id/tvWidgetTinyIcon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🛡️"
-        android:textSize="22sp" />
+    <ProgressBar
+        android:id="@+id/pbWidgetTinyRing"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="8dp"
+        android:progressDrawable="@drawable/circular_progress"
+        android:max="100"
+        android:progress="0" />
 
-    <TextView
-        android:id="@+id/tvWidgetTinyValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="42:18"
-        android:textColor="@color/text_primary"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:gravity="center" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
 
-    <TextView
-        android:id="@+id/tvWidgetTinySub"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="FOCUS"
-        android:textColor="@color/text_secondary"
-        android:textSize="9sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05"
-        android:gravity="center" />
+        <TextView
+            android:id="@+id/tvWidgetTinyIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🛡️"
+            android:textSize="18sp" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/tvWidgetTinyValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="42:18"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:gravity="center" />
+            
+        <!-- Hidden by default, useful for space if needed -->
+        <TextView
+            android:id="@+id/tvWidgetTinySub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>
