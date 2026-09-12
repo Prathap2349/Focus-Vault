@@ -10,6 +10,8 @@
         <item name="android:windowBackground">@color/bg_light</item>
         <item name="android:statusBarColor">@color/bg_light</item>
         <item name="android:navigationBarColor">@color/bg_light</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
     </style>
 
     <style name="Theme.StayFocused.FullScreen" parent="Theme.StayFocused">

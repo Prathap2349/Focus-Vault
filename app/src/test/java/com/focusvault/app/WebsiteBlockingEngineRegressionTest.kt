@@ -314,6 +314,86 @@ class WebsiteBlockingEngineRegressionTest {
     }
 
     // =========================================================================
+    // 15. TCP RST Response for DoT / TCP probes (prevents connection hangs)
+    // =========================================================================
+    @Test
+    fun testTcpRstResponseGeneration() {
+        // Create mock TCP SYN to port 853 (DoT)
+        val tcpSyn = createMockTcpPacket(srcPort = 50000, dstPort = 853, seq = 1000L)
+        val rst = DnsPacketParser.buildTcpRstResponse(tcpSyn, tcpSyn.size)
+
+        assertNotNull("TCP RST response must be generated for incoming TCP", rst)
+        assertEquals("TCP RST packet must be exactly 40 bytes", 40, rst!!.size)
+
+        // Verify IP checksum
+        val ipCk = DnsPacketParser.computeChecksum(rst, 0, 20)
+        assertEquals("IP checksum must be 0", 0, ipCk)
+
+        // Verify TCP ports swapped: new src = 853, new dst = 50000
+        val rstBuf = ByteBuffer.wrap(rst, 20, 20).order(ByteOrder.BIG_ENDIAN)
+        val srcPort = rstBuf.short.toInt() and 0xFFFF
+        val dstPort = rstBuf.short.toInt() and 0xFFFF
+        assertEquals(853, srcPort)
+        assertEquals(50000, dstPort)
+
+        // Verify TCP flags: RST (0x04) | ACK (0x10) = 0x14
+        val flags = rst[33].toInt() and 0xFF
+        assertEquals("Flags must be RST|ACK (0x14)", 0x14, flags)
+    }
+
+    // =========================================================================
+    // 16. SERVFAIL Response for upstream failure (fast failure, no hanging)
+    // =========================================================================
+    @Test
+    fun testServFailResponseGeneration() {
+        val originalPacket = createMockPacket(protocol = 17, dstPort = 53, queryName = "example.com", dnsId = 0x5555)
+        val servFail = DnsPacketParser.buildServFailResponse(originalPacket, originalPacket.size)
+
+        assertNotNull(servFail)
+        val ipChecksum = DnsPacketParser.computeChecksum(servFail, 0, 20)
+        assertEquals("IP checksum must be 0", 0, ipChecksum)
+
+        // Verify RCODE is 2 (SERVFAIL)
+        val dnsFlagsLow = servFail[28 + 3].toInt() and 0xFF
+        assertEquals("RCODE must be 2 (SERVFAIL)", 0x82, dnsFlagsLow)
+    }
+
+    // =========================================================================
+    // 17. Explicit Prompt Requirements Matrix
+    // =========================================================================
+    @Test
+    fun testPromptRequiredNormalizationMatrix() {
+        assertEquals("youtube.com", DomainMatcher.normalizeBlockedDomain("https://www.youtube.com/watch?v=123"))
+        assertEquals("youtube.com", DomainMatcher.normalizeBlockedDomain("http://youtube.com/test"))
+        assertEquals("youtube.com", DomainMatcher.normalizeBlockedDomain("youtube.com:443"))
+        assertEquals("youtube.com", DomainMatcher.normalizeBlockedDomain("*.youtube.com"))
+        assertEquals("reddit.com", DomainMatcher.normalizeBlockedDomain("https://www.reddit.com/r/android/"))
+        assertEquals("instagram.com", DomainMatcher.normalizeBlockedDomain("*.instagram.com"))
+    }
+
+    @Test
+    fun testPromptRequiredMatchingMatrix() {
+        val blocked = setOf("youtube.com")
+        assertTrue(DomainMatcher.isDomainBlocked("youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("www.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("m.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("music.youtube.com", blocked))
+
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("github.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("notyoutube.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("youtube.com.example.com", blocked))
+    }
+
+    @Test
+    fun testPromptRequiredEmptyListMatrix() {
+        val empty = emptySet<String>()
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", empty))
+        assertFalse(DomainMatcher.isDomainBlocked("youtube.com", empty))
+        assertFalse(DomainMatcher.isDomainBlocked("github.com", empty))
+    }
+
+    // =========================================================================
     // Helper: Creates a raw mock IPv4 UDP/TCP DNS packet
     // =========================================================================
     private fun createMockPacket(
@@ -375,5 +455,35 @@ class WebsiteBlockingEngineRegressionTest {
         ipBytes[11] = (ck and 0xFF).toByte()
 
         return ipBytes + udpBytes + dnsBytes
+    }
+
+    private fun createMockTcpPacket(
+        srcPort: Int,
+        dstPort: Int,
+        seq: Long
+    ): ByteArray {
+        val out = ByteArray(40)
+        // IP Header (20 bytes)
+        out[0] = 0x45.toByte()
+        out[2] = 0.toByte(); out[3] = 40.toByte() // Total length
+        out[6] = 0x40.toByte() // DF flag
+        out[8] = 64.toByte() // TTL
+        out[9] = 6.toByte() // TCP
+        System.arraycopy(byteArrayOf(10, 0, 0, 2), 0, out, 12, 4) // Src
+        System.arraycopy(byteArrayOf(10, 0, 0, 2), 0, out, 16, 4) // Dst
+        val ipCk = DnsPacketParser.computeChecksum(out, 0, 20)
+        out[10] = (ipCk shr 8).toByte()
+        out[11] = (ipCk and 0xFF).toByte()
+
+        // TCP Header (20 bytes)
+        val tcpBuf = ByteBuffer.wrap(out, 20, 20).order(ByteOrder.BIG_ENDIAN)
+        tcpBuf.putShort(srcPort.toShort())
+        tcpBuf.putShort(dstPort.toShort())
+        tcpBuf.putInt(seq.toInt()) // seq
+        tcpBuf.putInt(0) // ack
+        out[32] = 0x50.toByte() // Data offset 5
+        out[33] = 0x02.toByte() // SYN (0x02)
+
+        return out
     }
 }

@@ -169,6 +169,25 @@ class WebsiteBlockActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
+        // Prevent parent ScrollView from intercepting touch / long-press for copy/paste
+        binding.etDomain.setOnTouchListener { v, event ->
+            v.parent?.requestDisallowInterceptTouchEvent(true)
+            if (event.action == android.view.MotionEvent.ACTION_UP || event.action == android.view.MotionEvent.ACTION_CANCEL) {
+                v.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+            false // return false so EditText handles cursor, typing, selection, and long-click paste normally
+        }
+
+        // Allow pressing keyboard Done/Enter to add domain
+        binding.etDomain.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                binding.btnAddDomain.performClick()
+                true
+            } else {
+                false
+            }
+        }
+
         binding.btnAddDomain.setOnClickListener {
             val raw = binding.etDomain.text.toString()
             val domain = normalizeDomain(raw)

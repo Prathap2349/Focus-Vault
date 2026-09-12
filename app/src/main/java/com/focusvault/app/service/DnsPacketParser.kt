@@ -105,7 +105,7 @@ object DnsPacketParser {
         }
     }
 
-    /** Builds a synthetic NXDOMAIN DNS response wrapped back in IP+UDP, swapping src/dst. */
+    /** Builds a synthetic NXDOMAIN DNS response (RCODE=3) wrapped back in IP+UDP, swapping src/dst. */
     fun buildNxDomainResponse(originalPacket: ByteArray, length: Int): ByteArray {
         val ihl = (originalPacket[0].toInt() and 0xF) * 4
         val dnsStart = ihl + 8
@@ -121,6 +121,79 @@ object DnsPacketParser {
         dnsPayload[7] = 0
 
         return wrapAsIpUdpPacket(originalPacket, dnsPayload, dnsStart, swap = true)
+    }
+
+    /** Builds a synthetic SERVFAIL DNS response (RCODE=2) wrapped in IP+UDP. */
+    fun buildServFailResponse(originalPacket: ByteArray, length: Int): ByteArray {
+        val ihl = (originalPacket[0].toInt() and 0xF) * 4
+        val dnsStart = ihl + 8
+        val dnsLength = length - dnsStart
+        val dnsPayload = ByteArray(dnsLength)
+        System.arraycopy(originalPacket, dnsStart, dnsPayload, 0, dnsLength)
+
+        // DNS flags: QR=1 (response), Opcode=0, AA=0, TC=0, RD=1, RA=1, RCODE=2 (SERVFAIL)
+        dnsPayload[2] = 0x81.toByte()
+        dnsPayload[3] = 0x82.toByte()
+        dnsPayload[6] = 0
+        dnsPayload[7] = 0
+
+        return wrapAsIpUdpPacket(originalPacket, dnsPayload, dnsStart, swap = true)
+    }
+
+    /**
+     * Builds a TCP RST response for any incoming TCP packet (e.g. DoT on port 853 or TCP DNS on port 53).
+     * This immediately refuses the TCP connection, preventing the client's resolver from hanging.
+     */
+    fun buildTcpRstResponse(originalPacket: ByteArray, length: Int): ByteArray? {
+        if (length < 40) return null
+        val versionAndIhl = originalPacket[0].toInt() and 0xFF
+        val version = (versionAndIhl shr 4) and 0xF
+        if (version != 4) return null
+        val ihl = (versionAndIhl and 0xF) * 4
+        if (ihl < 20 || length < ihl + 20) return null
+        val protocol = originalPacket[9].toInt() and 0xFF
+        if (protocol != 6) return null // TCP only
+
+        val buf = ByteBuffer.wrap(originalPacket, ihl, 20).order(ByteOrder.BIG_ENDIAN)
+        val srcPort = buf.short.toInt() and 0xFFFF
+        val dstPort = buf.short.toInt() and 0xFFFF
+        val seq = buf.int.toLong() and 0xFFFFFFFFL
+        val ack = buf.int.toLong() and 0xFFFFFFFFL
+
+        val out = ByteArray(40)
+        // IP Header
+        out[0] = 0x45.toByte()
+        out[2] = 0.toByte(); out[3] = 40.toByte() // Total length 40
+        out[6] = 0x40.toByte() // DF flag
+        out[8] = 64.toByte() // TTL
+        out[9] = 6.toByte() // Protocol TCP
+        // Swap IPs
+        System.arraycopy(originalPacket, 16, out, 12, 4) // new src = old dst
+        System.arraycopy(originalPacket, 12, out, 16, 4) // new dst = old src
+        val ipCk = computeChecksum(out, 0, 20)
+        out[10] = (ipCk shr 8).toByte()
+        out[11] = (ipCk and 0xFF).toByte()
+
+        // TCP Header
+        val tcpBuf = ByteBuffer.wrap(out, 20, 20).order(ByteOrder.BIG_ENDIAN)
+        tcpBuf.putShort(dstPort.toShort()) // new src port = old dst port
+        tcpBuf.putShort(srcPort.toShort()) // new dst port = old src port
+        tcpBuf.putInt(if (ack != 0L) ack.toInt() else 0) // seq
+        tcpBuf.putInt(((seq + 1) and 0xFFFFFFFFL).toInt()) // ack = incoming seq + 1
+        out[32] = 0x50.toByte() // Data offset 5 (20 bytes)
+        out[33] = 0x14.toByte() // RST (0x04) | ACK (0x10)
+
+        // TCP Checksum with pseudo-header
+        val pseudo = ByteArray(12 + 20)
+        System.arraycopy(out, 12, pseudo, 0, 8) // src IP + dst IP
+        pseudo[9] = 6.toByte() // protocol
+        pseudo[10] = 0; pseudo[11] = 20.toByte() // TCP length
+        System.arraycopy(out, 20, pseudo, 12, 20) // TCP header
+        val tcpCk = computeChecksum(pseudo, 0, pseudo.size)
+        out[36] = (tcpCk shr 8).toByte()
+        out[37] = (tcpCk and 0xFF).toByte()
+
+        return out
     }
 
     @Suppress("UNUSED_PARAMETER")
