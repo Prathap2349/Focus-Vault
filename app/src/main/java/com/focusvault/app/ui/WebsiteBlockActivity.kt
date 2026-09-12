@@ -56,21 +56,12 @@ class WebsiteBlockActivity : AppCompatActivity() {
 
         /**
          * Robust domain normalizer:
-         * - Strips protocol, user info, ports, paths, query params, fragments, and leading www.
-         * - Returns empty string if domain is invalid.
+         * - Delegates to DomainMatcher.normalizeBlockedDomain to strip protocol, user info,
+         *   ports, paths, query params, fragments, wildcards, and leading www.
+         * - Validates domain structure: returns empty string if domain is invalid.
          */
         fun normalizeDomain(input: String): String {
-            var d = input.trim().lowercase()
-            if (d.startsWith("http://")) d = d.removePrefix("http://")
-            if (d.startsWith("https://")) d = d.removePrefix("https://")
-            if (d.contains("@")) d = d.substringAfterLast("@")
-            if (d.contains("/")) d = d.substringBefore("/")
-            if (d.contains("?")) d = d.substringBefore("?")
-            if (d.contains("#")) d = d.substringBefore("#")
-            if (d.contains(":")) d = d.substringBefore(":")
-            d = d.removePrefix("www.")
-            d = d.trim('.')
-
+            val d = com.focusvault.app.service.DomainMatcher.normalizeBlockedDomain(input)
             // Validate domain structure (alphanumeric, hyphens, and at least one dot)
             val domainRegex = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
             return if (d.matches(domainRegex)) d else ""

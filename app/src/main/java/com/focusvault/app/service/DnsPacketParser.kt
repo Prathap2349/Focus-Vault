@@ -4,10 +4,11 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Minimal IPv4 + UDP + DNS packet parser/builder. Handles the standard case (no IP options,
- * IPv4 only) which covers the overwhelming majority of on-device DNS traffic. IPv6 DNS
- * queries are passed through unmodified by the caller (extractDnsQuery returns null for them,
- * so they're just dropped from the filter loop - see note in FocusVpnService).
+ * Minimal IPv4 + UDP + DNS packet parser/builder.
+ *
+ * Only processes outbound IPv4 UDP packets targeting DNS port 53.
+ * Non-DNS traffic and IPv6 traffic are not captured by the VPN's narrow
+ * 10.0.0.2/32 routing configuration.
  */
 object DnsPacketParser {
 
@@ -21,16 +22,29 @@ object DnsPacketParser {
         val dnsId: Int
     )
 
+    /**
+     * Parses an IPv4 UDP DNS query packet.
+     * Returns null if:
+     * - Packet is too short (< 28 bytes for IP + UDP header)
+     * - Version != 4 (not IPv4)
+     * - Protocol != 17 (not UDP)
+     * - Destination port != 53 (not standard DNS)
+     * - Packet is malformed or truncated
+     */
     fun extractDnsQuery(packet: ByteBuffer): DnsQuery? {
         try {
             packet.order(ByteOrder.BIG_ENDIAN)
-            if (packet.remaining() < 20) return null
+            if (packet.remaining() < 28) return null
+
             val versionAndIhl = packet.get(0).toInt()
             val version = (versionAndIhl shr 4) and 0xF
-            if (version != 4) return null // only IPv4 handled
+            if (version != 4) return null // IPv4 only
+
             val ihl = (versionAndIhl and 0xF) * 4
+            if (ihl < 20 || packet.limit() < ihl + 8) return null
+
             val protocol = packet.get(9).toInt() and 0xFF
-            if (protocol != 17) return null // only UDP
+            if (protocol != 17) return null // UDP only
 
             val sourceIp = ByteArray(4)
             val destIp = ByteArray(4)
@@ -41,91 +55,19 @@ object DnsPacketParser {
             packet.position(ihl)
             val srcPort = packet.short.toInt() and 0xFFFF
             val dstPort = packet.short.toInt() and 0xFFFF
-            packet.short // length
+            val udpLength = packet.short.toInt() and 0xFFFF
             packet.short // checksum
-            if (dstPort != 53) return null // only outbound DNS queries
+
+            if (dstPort != 53) return null // only standard outbound DNS queries
+            if (udpLength < 8) return null
 
             val dnsStart = ihl + 8
-            val dnsId = ((packet.get(dnsStart).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 1).toInt() and 0xFF)
-            val qdCount = ((packet.get(dnsStart + 4).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 5).toInt() and 0xFF)
-            if (qdCount < 1) return null
-
-            var pos = dnsStart + 12
-            val nameBuilder = StringBuilder()
-            var jumps = 0
-            while (true) {
-                val len = packet.get(pos).toInt() and 0xFF
-                if (len == 0) break
-                if ((len and 0xC0) == 0xC0) {
-                    // DNS name compression pointer: rare in the question section, but legal.
-                    // The pointer is 2 bytes; the low 14 bits give the offset (from the start
-                    // of the DNS message) to jump to and keep reading the name from there.
-                    // (The raw payload forwarded below is copied independently of this parse,
-                    // so we don't need to track where the name "ends" in the original bytes.)
-                    if (jumps++ > 16) throw IllegalStateException("DNS compression pointer loop")
-                    val offsetHigh = len and 0x3F
-                    val offsetLow = packet.get(pos + 1).toInt() and 0xFF
-                    pos = dnsStart + (offsetHigh shl 8 or offsetLow)
-                    continue
-                }
-                pos += 1
-                for (i in 0 until len) {
-                    nameBuilder.append(packet.get(pos + i).toInt().toChar())
-                }
-                pos += len
-                nameBuilder.append('.')
-            }
-            val queryName = nameBuilder.toString().removeSuffix(".").lowercase()
-
-            val dnsPayloadLength = packet.limit() - dnsStart
-            val dnsPayload = ByteArray(dnsPayloadLength)
-            packet.position(dnsStart)
-            packet.get(dnsPayload)
-
-            return DnsQuery(queryName, dnsPayload, sourceIp, destIp, srcPort, dstPort, dnsId)
-        } catch (e: Exception) {
-            return null
-        }
-    }
-
-    /**
-     * Like [extractDnsQuery] but accepts UDP packets on ANY destination port,
-     * not just port 53. Used for handling DNS-over-TLS (port 853) or other
-     * non-standard DNS traffic that enters the tunnel. We extract the raw DNS
-     * payload so it can be re-forwarded on plain port 53 to our upstream.
-     */
-    fun extractDnsQueryAnyPort(packet: ByteBuffer): DnsQuery? {
-        try {
-            packet.order(ByteOrder.BIG_ENDIAN)
-            if (packet.remaining() < 20) return null
-            val versionAndIhl = packet.get(0).toInt()
-            val version = (versionAndIhl shr 4) and 0xF
-            if (version != 4) return null // only IPv4 handled
-            val ihl = (versionAndIhl and 0xF) * 4
-            val protocol = packet.get(9).toInt() and 0xFF
-            if (protocol != 17) return null // only UDP
-
-            val sourceIp = ByteArray(4)
-            val destIp = ByteArray(4)
-            packet.position(12)
-            packet.get(sourceIp)
-            packet.get(destIp)
-
-            packet.position(ihl)
-            val srcPort = packet.short.toInt() and 0xFFFF
-            val dstPort = packet.short.toInt() and 0xFFFF
-            packet.short // length
-            packet.short // checksum
-            // NOTE: No port 53 check here — accept any port
-
-            val dnsStart = ihl + 8
-            if (packet.limit() <= dnsStart + 12) return null
+            if (packet.limit() < dnsStart + 12) return null // DNS header is 12 bytes
 
             val dnsId = ((packet.get(dnsStart).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 1).toInt() and 0xFF)
             val qdCount = ((packet.get(dnsStart + 4).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 5).toInt() and 0xFF)
             if (qdCount < 1) return null
 
-            // Try to parse the domain name
             var pos = dnsStart + 12
             val nameBuilder = StringBuilder()
             var jumps = 0
@@ -133,7 +75,8 @@ object DnsPacketParser {
                 val len = packet.get(pos).toInt() and 0xFF
                 if (len == 0) break
                 if ((len and 0xC0) == 0xC0) {
-                    if (jumps++ > 16) return null
+                    if (pos + 1 >= packet.limit()) return null
+                    if (jumps++ > 16) return null // prevent pointer loops
                     val offsetHigh = len and 0x3F
                     val offsetLow = packet.get(pos + 1).toInt() and 0xFF
                     pos = dnsStart + (offsetHigh shl 8 or offsetLow)
@@ -151,6 +94,7 @@ object DnsPacketParser {
             if (queryName.isEmpty()) return null
 
             val dnsPayloadLength = packet.limit() - dnsStart
+            if (dnsPayloadLength <= 0) return null
             val dnsPayload = ByteArray(dnsPayloadLength)
             packet.position(dnsStart)
             packet.get(dnsPayload)
@@ -168,7 +112,6 @@ object DnsPacketParser {
         val ihl = (originalPacket[0].toInt() and 0xF) * 4
         val dnsStart = ihl + 8
 
-        // Copy the question section as-is, then append minimal NXDOMAIN header flags
         val questionLength = length - dnsStart
         val response = ByteArray(dnsStart + questionLength)
         System.arraycopy(originalPacket, 0, response, 0, dnsStart + questionLength)
@@ -213,13 +156,13 @@ object DnsPacketParser {
 
         // --- UDP header ---
         if (swap) {
-            out[ihl] = templatePacket[ihl + 2]; out[ihl + 1] = templatePacket[ihl + 3]     // src port = original dst port (53)
-            out[ihl + 2] = templatePacket[ihl]; out[ihl + 3] = templatePacket[ihl + 1]     // dst port = original src port
+            out[ihl] = templatePacket[ihl + 2]; out[ihl + 1] = templatePacket[ihl + 3] // src port = original dst port (53)
+            out[ihl + 2] = templatePacket[ihl]; out[ihl + 3] = templatePacket[ihl + 1] // dst port = original src port
         }
         val udpLength = 8 + dnsPayload.size
         val udpLenBuf = ByteBuffer.allocate(2).order(ByteOrder.BIG_ENDIAN).putShort(udpLength.toShort())
         out[ihl + 4] = udpLenBuf.get(0); out[ihl + 5] = udpLenBuf.get(1)
-        out[ihl + 6] = 0; out[ihl + 7] = 0 // UDP checksum left as 0 (optional for IPv4)
+        out[ihl + 6] = 0; out[ihl + 7] = 0 // UDP checksum 0 (valid in IPv4 UDP)
 
         // --- DNS payload ---
         System.arraycopy(dnsPayload, 0, out, dnsStart, dnsPayload.size)
@@ -227,7 +170,7 @@ object DnsPacketParser {
         return out
     }
 
-    private fun computeChecksum(data: ByteArray, offset: Int, length: Int): Int {
+    fun computeChecksum(data: ByteArray, offset: Int, length: Int): Int {
         var sum = 0
         var i = offset
         while (i < offset + length - 1) {

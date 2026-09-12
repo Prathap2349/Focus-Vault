@@ -6,6 +6,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -21,21 +24,34 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 
 /**
- * Local DNS-filtering VPN — complete rewrite for reliability.
+ * Narrowly scoped on-device DNS-filtering VPN for Focus Vault.
  *
- * Key design principles (learned from 15 iterations of debugging):
- *  1. Capture the REAL upstream DNS server BEFORE the VPN is established,
- *     because once the VPN is up, ConnectivityManager may report the VPN's
- *     own address (10.0.0.2) as the DNS server → forwarding loop.
- *  2. ALWAYS check protect() return value. If it fails, the forwarding
- *     socket's traffic goes back into the VPN → infinite loop → ALL DNS dies.
- *  3. Log every step so failures are visible in `adb logcat -s FocusVPN`.
- *  4. Never swallow exceptions silently.
+ * ARCHITECTURE GUARANTEES:
+ * 1. NARROW TUNNEL ROUTE: We route ONLY the dummy DNS IP (10.0.0.2/32).
+ *    Non-DNS traffic (HTTP, HTTPS, TCP, QUIC, VoIP, streaming, local LAN)
+ *    does NOT match 10.0.0.2/32 and completely bypasses the tunnel at the
+ *    kernel routing level. It is NEVER captured, diverted, or dropped.
+ *
+ * 2. APP EXCLUSION: Focus Vault itself is excluded from the VPN via
+ *    addDisallowedApplication(packageName) so its own sockets automatically
+ *    use the underlying physical network.
+ *
+ * 3. REAL UPSTREAM DNS RESOLUTION: Upstream queries are directed first to
+ *    the device's real physical network DNS (Wi-Fi DHCP or Cellular carrier DNS),
+ *    with protect(socket) and network.bindSocket(socket) to prevent routing loops.
+ *    Public resolvers (8.8.8.8, 1.1.1.1) serve strictly as fallbacks.
+ *
+ * 4. STRICT DOMAIN MATCHING: Domain blocking uses exact boundary matching
+ *    (DomainMatcher.isDomainBlocked) so blocking "youtube.com" blocks
+ *    youtube.com, www.youtube.com, m.youtube.com, music.youtube.com,
+ *    but NEVER blocks google.com, github.com, notyoutube.com, or youtube.com.example.com.
  */
 class FocusVpnService : VpnService() {
 
@@ -45,21 +61,21 @@ class FocusVpnService : VpnService() {
     private var running = false
     private val outputMutex = Mutex()
 
-    /** The REAL upstream DNS server, captured BEFORE the VPN is established. */
-    @Volatile
-    private var capturedUpstreamDns: String = "8.8.8.8"
-
     companion object {
         private const val TAG = "FocusVPN"
         const val CHANNEL_ID = "focus_vpn_channel"
         const val NOTIF_ID = 1002
         const val REVOKED_CHANNEL_ID = "focus_vpn_revoked_channel"
         const val REVOKED_NOTIF_ID = 1004
-        const val UPSTREAM_DNS = "8.8.8.8"
         const val ACTION_STOP = "com.focusvault.app.service.ACTION_STOP_VPN"
 
-        /** DNS servers to try if the captured one fails. */
-        private val FALLBACK_DNS = listOf("8.8.8.8", "8.8.4.4", "1.1.1.1", "9.9.9.9")
+        /** Tunnel configuration constants */
+        private const val TUNNEL_IP = "10.0.0.2"
+        private const val TUNNEL_PREFIX = 32 // Exactly 1 IP: 10.0.0.2/32
+        private const val TUNNEL_MTU = 1500
+
+        /** Public DNS fallbacks used only if the physical carrier/Wi-Fi DNS fails */
+        private val PUBLIC_FALLBACK_DNS = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4", "9.9.9.9")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -72,24 +88,22 @@ class FocusVpnService : VpnService() {
         if (running && vpnInterface != null) {
             return START_STICKY
         }
-        try {
-            // *** CRITICAL: Capture DNS BEFORE establishing VPN ***
-            capturedUpstreamDns = discoverRealDnsServer()
-            Log.i(TAG, "✅ Captured real DNS before VPN: $capturedUpstreamDns")
 
+        try {
             establishVpn()
             if (vpnInterface == null) {
-                Log.e(TAG, "❌ VPN interface is null after establish()")
+                Log.e(TAG, "❌ VPN interface could not be established; stopping service")
                 com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
                 stopSelf()
                 return START_NOT_STICKY
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to establish VPN", e)
+            Log.e(TAG, "❌ Exception establishing VPN", e)
             com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
             stopSelf()
             return START_NOT_STICKY
         }
+
         running = true
         com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(true)
         scope.launch { runTunnelLoop() }
@@ -108,121 +122,138 @@ class FocusVpnService : VpnService() {
         stopSelf()
     }
 
-    /**
-     * Discovers the device's REAL DNS server BEFORE the VPN is established.
-     * After the VPN starts, ConnectivityManager may return 10.0.0.2 (our tunnel),
-     * which would create a forwarding loop that kills ALL DNS resolution.
-     */
-    private fun discoverRealDnsServer(): String {
+    private fun establishVpn() {
+        val builder = Builder()
+            .setSession("Focus Vault")
+            .addAddress(TUNNEL_IP, TUNNEL_PREFIX)
+            .addDnsServer(TUNNEL_IP)
+            // *** CRITICAL ARCHITECTURAL DECISION ***
+            // Route ONLY the dummy DNS IP 10.0.0.2/32 into the tunnel.
+            // DO NOT route 10.0.0.0/8 or 0.0.0.0/0. This guarantees non-DNS
+            // traffic is never captured or dropped.
+            .addRoute(TUNNEL_IP, TUNNEL_PREFIX)
+            .setMtu(TUNNEL_MTU)
+            .setBlocking(true)
+
+        // Exclude Focus Vault itself from the VPN to guarantee that forwarding
+        // sockets always reach the physical network without looping back.
         try {
-            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-            val activeNetwork = cm.activeNetwork
-            if (activeNetwork != null) {
-                val lp = cm.getLinkProperties(activeNetwork)
-                val servers = lp?.dnsServers
-                if (!servers.isNullOrEmpty()) {
-                    Log.d(TAG, "System DNS servers: ${servers.map { it.hostAddress }}")
-                    // Pick the first IPv4 DNS that isn't our tunnel
-                    val ipv4 = servers.firstOrNull {
-                        it is java.net.Inet4Address &&
-                        it.hostAddress != "10.0.0.2" &&
-                        !it.hostAddress.isNullOrEmpty()
-                    }
-                    if (ipv4 != null) {
-                        Log.d(TAG, "Using system IPv4 DNS: ${ipv4.hostAddress}")
-                        return ipv4.hostAddress!!
-                    }
-                    // Fallback: any non-tunnel address
-                    val any = servers.firstOrNull {
-                        it.hostAddress != "10.0.0.2" && !it.hostAddress.isNullOrEmpty()
-                    }
-                    if (any != null) {
-                        Log.d(TAG, "Using system DNS (non-IPv4): ${any.hostAddress}")
-                        return any.hostAddress!!
+            builder.addDisallowedApplication(packageName)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not add disallowed application: ${e.message}")
+        }
+
+        vpnInterface = builder.establish()
+        Log.i(TAG, "✅ VPN established on $TUNNEL_IP/$TUNNEL_PREFIX")
+    }
+
+    /**
+     * Discovers active physical network DNS servers (Wi-Fi, Cellular) that are
+     * NOT part of the VPN. Returns an ordered list of DNS endpoints to try.
+     */
+    private data class DnsEndpoint(val address: String, val network: Network?)
+
+    private fun discoverUpstreamDnsServers(): List<DnsEndpoint> {
+        val endpoints = mutableListOf<DnsEndpoint>()
+        val seenIps = mutableSetOf<String>()
+
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val allNetworks = cm.allNetworks
+            for (network in allNetworks) {
+                val caps = cm.getNetworkCapabilities(network) ?: continue
+                // Exclude any VPN transport to avoid loops
+                if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue
+                if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue
+
+                val lp = cm.getLinkProperties(network) ?: continue
+                for (dns in lp.dnsServers) {
+                    val ip = dns.hostAddress
+                    if (!ip.isNullOrEmpty() && ip != TUNNEL_IP && !ip.startsWith("127.") && seenIps.add(ip)) {
+                        if (dns is Inet4Address) {
+                            endpoints.add(DnsEndpoint(ip, network))
+                        }
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to discover DNS server", e)
+            Log.w(TAG, "Error discovering physical network DNS", e)
         }
-        Log.w(TAG, "No system DNS found, falling back to $UPSTREAM_DNS")
-        return UPSTREAM_DNS
+
+        // Add public DNS fallbacks
+        for (fallback in PUBLIC_FALLBACK_DNS) {
+            if (seenIps.add(fallback)) {
+                endpoints.add(DnsEndpoint(fallback, null))
+            }
+        }
+
+        return endpoints
     }
 
     /**
-     * Forwards a DNS query to the given server. Returns the response or null.
-     * CRITICAL: Checks protect() return value to prevent routing loops.
+     * Forwards a raw DNS payload to an upstream DNS server via a protected socket.
+     * Checks protect() return value; if protection fails, safely aborts to prevent loops.
      */
-    private fun forwardDnsQuery(dnsPayload: ByteArray, serverIp: String): java.net.DatagramPacket? {
+    private fun forwardDnsQuery(dnsPayload: ByteArray, endpoint: DnsEndpoint): DatagramPacket? {
         var socket: DatagramSocket? = null
         try {
             socket = DatagramSocket()
 
-            // *** CRITICAL: Check protect() return value ***
-            val protected = protect(socket)
-            if (!protected) {
-                Log.e(TAG, "❌ protect() FAILED for $serverIp — aborting to prevent routing loop")
+            // Bind to physical network if known
+            if (endpoint.network != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                try {
+                    endpoint.network.bindSocket(socket)
+                } catch (e: Exception) {
+                    Log.d(TAG, "Could not bind to network: ${e.message}")
+                }
+            }
+
+            // Protect from VPN routing
+            val isProtected = protect(socket)
+            if (!isProtected) {
+                Log.e(TAG, "❌ protect() returned false for ${endpoint.address} — aborting to avoid loop")
                 socket.close()
                 return null
             }
 
-            val fwd = java.net.DatagramPacket(
+            val forwardPacket = DatagramPacket(
                 dnsPayload, dnsPayload.size,
-                InetSocketAddress(serverIp, 53)
+                InetSocketAddress(endpoint.address, 53)
             )
-            socket.soTimeout = 5000 // 5 seconds (was 3, too aggressive for slow networks)
-            socket.send(fwd)
+            socket.soTimeout = 2500 // 2.5s per server
+            socket.send(forwardPacket)
 
-            val replyBuf = ByteArray(4096)
-            val reply = java.net.DatagramPacket(replyBuf, replyBuf.size)
-            socket.receive(reply)
+            val replyBuffer = ByteArray(4096)
+            val replyPacket = DatagramPacket(replyBuffer, replyBuffer.size)
+            socket.receive(replyPacket)
             socket.close()
-            return reply
+            return replyPacket
         } catch (e: Exception) {
-            Log.w(TAG, "⚠️ DNS forward to $serverIp failed: ${e.javaClass.simpleName}: ${e.message}")
             try { socket?.close() } catch (_: Exception) {}
             return null
         }
     }
 
     /**
-     * Tries forwarding a DNS query through multiple servers until one succeeds.
-     * Uses the pre-captured DNS server first, then fallbacks.
+     * Resolves a DNS query through the discovered upstream servers.
      */
-    private fun resolveWithFallback(dnsPayload: ByteArray): java.net.DatagramPacket? {
-        // Build ordered list: captured DNS first, then fallbacks (deduplicated)
-        val servers = mutableListOf(capturedUpstreamDns)
-        FALLBACK_DNS.forEach { if (it != capturedUpstreamDns) servers.add(it) }
-
-        for (server in servers) {
-            val reply = forwardDnsQuery(dnsPayload, server)
-            if (reply != null) return reply
+    private fun resolveDns(dnsPayload: ByteArray): DatagramPacket? {
+        val endpoints = discoverUpstreamDnsServers()
+        for (endpoint in endpoints) {
+            val reply = forwardDnsQuery(dnsPayload, endpoint)
+            if (reply != null && reply.length > 12) {
+                return reply
+            }
         }
-
-        Log.e(TAG, "❌ ALL DNS servers failed! Tried: $servers")
         return null
-    }
-
-    private fun establishVpn() {
-        val builder = Builder()
-            .setSession("Focus Vault")
-            .addAddress("10.0.0.2", 32)
-            .addDnsServer("10.0.0.2")
-            .addRoute("10.0.0.0", 8)
-            .setMtu(1500)
-
-        vpnInterface = builder.establish()
-        Log.i(TAG, "VPN established: fd=${vpnInterface?.fd}")
     }
 
     private suspend fun runTunnelLoop() {
         val fd = vpnInterface ?: run {
-            Log.e(TAG, "TUN fd is null, aborting tunnel loop")
+            Log.e(TAG, "TUN fd is null; aborting loop")
             com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
             return
         }
-
-        Log.i(TAG, "🚀 Tunnel loop started. Upstream DNS: $capturedUpstreamDns")
 
         try {
             val input = FileInputStream(fd.fileDescriptor)
@@ -230,63 +261,36 @@ class FocusVpnService : VpnService() {
             val buffer = ByteArray(32767)
 
             while (running) {
-                val length = try { input.read(buffer) } catch (e: Exception) {
-                    Log.w(TAG, "TUN read error: ${e.message}")
-                    break
-                }
+                val length = try { input.read(buffer) } catch (e: Exception) { break }
                 if (length <= 0) continue
 
                 val rawPacket = buffer.copyOf(length)
                 val packet = ByteBuffer.wrap(rawPacket, 0, length)
                 val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet)
 
-                if (udpDnsQuery == null) {
-                    // Not a standard UDP/port-53 DNS query.
-                    // Try extracting as any-port UDP (handles DoT redirect, etc.)
-                    val fallback = DnsPacketParser.extractDnsQueryAnyPort(
-                        ByteBuffer.wrap(rawPacket, 0, length)
-                    )
-                    if (fallback != null) {
-                        Log.d(TAG, "📡 Non-port-53 DNS for: ${fallback.queryName} (port ${fallback.destPort})")
-                        val payload = fallback.rawDnsPayload
-                        val raw = rawPacket.copyOf(length)
-                        val len = length
-                        scope.launch(Dispatchers.IO) {
-                            val reply = resolveWithFallback(payload)
-                            if (reply != null) {
-                                try {
-                                    val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
-                                        originalRequestPacket = raw,
-                                        originalLength = len,
-                                        dnsAnswer = reply.data.copyOf(reply.length)
-                                    )
-                                    outputMutex.withLock { output.write(fullReply) }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Failed to write non-53 DNS reply", e)
-                                }
-                            }
-                        }
-                    }
-                    continue
-                }
+                // If not standard IPv4 UDP port 53 DNS, safely skip.
+                // Because our route is 10.0.0.2/32, nothing other than traffic to 10.0.0.2
+                // ever reaches here, so non-DNS Internet traffic is never affected.
+                if (udpDnsQuery == null) continue
 
-                // --- Standard UDP/53 DNS query ---
                 val queryDomain = udpDnsQuery.queryName
 
-                // Build the set of currently blocked domains
+                // Fetch currently active blocked domains
                 val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this))
                     PrefsManager.getBlockedDomains(this) else emptySet()
                 val permanentBlocked = if (!PrefsManager.isPermanentBlockPaused(this))
                     PrefsManager.getPermanentBlockedDomains(this) else emptySet()
-                val allBlockedDomains = sessionBlocked + permanentBlocked
+                val allBlocked = sessionBlocked + permanentBlocked
 
+                // Check emergency pause and individual pauses
                 val isBlocked = !PrefsManager.isEmergencyPauseActive(this) &&
-                    allBlockedDomains.any { rawBlocked ->
-                        val blocked = rawBlocked.removePrefix("*.").removePrefix("www.").lowercase()
-                        val qName = queryDomain.removePrefix("www.").lowercase()
-                        val matches = qName == blocked || qName.endsWith(".$blocked")
-                        matches && !PrefsManager.isIndividualSitePaused(this@FocusVpnService, blocked)
-                    }
+                    DomainMatcher.isDomainBlocked(
+                        queryDomain = queryDomain,
+                        blockedDomains = allBlocked.filterNot { raw ->
+                            val b = DomainMatcher.normalizeBlockedDomain(raw)
+                            PrefsManager.isIndividualSitePaused(this@FocusVpnService, b)
+                        }.toSet()
+                    )
 
                 if (isBlocked) {
                     Log.d(TAG, "🛑 BLOCKED: $queryDomain")
@@ -299,12 +303,12 @@ class FocusVpnService : VpnService() {
                         PrefsManager.recordQueriedDomain(this, queryDomain)
                     }
 
-                    // Forward asynchronously so we don't block the read loop
                     val dnsPayload = udpDnsQuery.rawDnsPayload
                     val rawCopy = rawPacket.copyOf(length)
                     val lenCopy = length
+
                     scope.launch(Dispatchers.IO) {
-                        val reply = resolveWithFallback(dnsPayload)
+                        val reply = resolveDns(dnsPayload)
                         if (reply != null) {
                             try {
                                 val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
@@ -314,18 +318,17 @@ class FocusVpnService : VpnService() {
                                 )
                                 outputMutex.withLock { output.write(fullReply) }
                             } catch (e: Exception) {
-                                Log.e(TAG, "Failed to write DNS reply for $queryDomain", e)
+                                Log.e(TAG, "Failed writing reply for $queryDomain", e)
                             }
                         }
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Tunnel loop crashed", e)
+            Log.e(TAG, "Tunnel loop terminated", e)
         } finally {
             running = false
             com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
-            Log.i(TAG, "Tunnel loop ended")
         }
     }
 
@@ -352,7 +355,6 @@ class FocusVpnService : VpnService() {
                     startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
                     startedSuccessfully = true
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to start with SPECIAL_USE type, retrying without", e)
                     startForeground(NOTIF_ID, notification)
                     startedSuccessfully = true
                 }
@@ -363,8 +365,9 @@ class FocusVpnService : VpnService() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start foreground notification", e)
         }
+
         if (!startedSuccessfully) {
-            Log.e(TAG, "Could not start foreground notification; stopping")
+            Log.e(TAG, "Could not start foreground notification; stopping self")
             stopSelf()
         }
     }
