@@ -141,11 +141,12 @@ class FocusVpnService : VpnService() {
             .addRoute("10.0.0.0", 8) // narrow route; we only actually care about DNS
             .setMtu(1500)
 
-        // Also capture traffic to known DoH/DoT bootstrap IPs (any port/protocol) so it lands
-        // in runTunnelLoop() instead of leaving the device unfiltered. It won't match the
-        // plain-UDP/port-53 check in extractDnsQuery, so it's silently dropped there rather
-        // than forwarded - see the KNOWN_DOH_RESOLVER_IPS doc comment above for the caveat.
-        KNOWN_DOH_RESOLVER_IPS.forEach { ip -> builder.addRoute(ip, 32) }
+        // We previously routed traffic to known DoH/DoT bootstrap IPs here.
+        // However, this caused all Private DNS traffic (e.g. DoT on port 853) to be routed
+        // into the tunnel, where it was silently dropped by extractDnsQuery (which only handles
+        // plain UDP/port 53). Dropping Private DNS breaks system-wide internet resolution.
+        // By removing these /32 routes, DoT/DoH traffic explicitly passes through natively.
+        // KNOWN_DOH_RESOLVER_IPS.forEach { ip -> builder.addRoute(ip, 32) }
 
         vpnInterface = builder.establish()
     }

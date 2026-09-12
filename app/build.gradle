@@ -18,7 +18,10 @@ android {
 
     signingConfigs {
         release {
-            initWith(signingConfigs.debug)
+            storeFile file("release.keystore")
+            storePassword "android"
+            keyAlias "release"
+            keyPassword "android"
         }
     }
 
