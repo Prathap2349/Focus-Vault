@@ -2,12 +2,15 @@ package com.focusvault.app
 
 import com.focusvault.app.service.DnsPacketParser
 import com.focusvault.app.service.DomainMatcher
+import com.focusvault.app.service.DomainVerifier
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.UnknownHostException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -605,5 +608,113 @@ class WebsiteBlockingEngineRegressionTest {
         out[33] = 0x02.toByte() // SYN (0x02)
 
         return out
+    }
+
+    // =========================================================================
+    // 26. DomainVerifier: Syntax validation rejects invalid domains
+    // =========================================================================
+    @Test
+    fun testDomainVerifierRejectsInvalidSyntax() = runBlocking {
+        val invalidInputs = listOf(
+            "",
+            "   ",
+            "com",
+            "youtube",
+            "example..com",
+            "http://",
+            "???",
+            "-example.com",
+            "example.123",
+            "example.c",
+            "user@domain"
+        )
+
+        for (input in invalidInputs) {
+            val result = DomainVerifier.verifyDomain(rawInput = input, isNetworkConnected = true)
+            assertTrue("Input '$input' must fail syntax validation",
+                result is DomainVerifier.VerificationResult.InvalidSyntax)
+        }
+    }
+
+    // =========================================================================
+    // 27. DomainVerifier: Network offline returns NetworkUnavailable
+    // =========================================================================
+    @Test
+    fun testDomainVerifierNetworkUnavailableWhenOffline() = runBlocking {
+        val result = DomainVerifier.verifyDomain(
+            rawInput = "youtube.com",
+            isNetworkConnected = false
+        )
+        assertEquals(DomainVerifier.VerificationResult.NetworkUnavailable, result)
+    }
+
+    // =========================================================================
+    // 28. DomainVerifier: Nonexistent domain returns DomainNotFound
+    // =========================================================================
+    @Test
+    fun testDomainVerifierRejectsNonexistentDomain() = runBlocking {
+        // Set test hook simulating DNS UnknownHostException
+        DomainVerifier.customResolver = { domain ->
+            if (domain == "nonexistent-fake-domain-99999.com") {
+                throw UnknownHostException("Host not found: $domain")
+            }
+            true
+        }
+
+        try {
+            val result = DomainVerifier.verifyDomain(
+                rawInput = "https://nonexistent-fake-domain-99999.com/path",
+                isNetworkConnected = true
+            )
+            assertEquals(DomainVerifier.VerificationResult.DomainNotFound, result)
+        } finally {
+            DomainVerifier.customResolver = null
+        }
+    }
+
+    // =========================================================================
+    // 29. DomainVerifier: Valid domain resolves and normalizes cleanly
+    // =========================================================================
+    @Test
+    fun testDomainVerifierResolvesValidDomain() = runBlocking {
+        DomainVerifier.customResolver = { domain ->
+            domain == "youtube.com"
+        }
+
+        try {
+            val result = DomainVerifier.verifyDomain(
+                rawInput = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                isNetworkConnected = true
+            )
+            assertTrue(result is DomainVerifier.VerificationResult.Valid)
+            assertEquals("youtube.com", (result as DomainVerifier.VerificationResult.Valid).normalizedDomain)
+        } finally {
+            DomainVerifier.customResolver = null
+        }
+    }
+
+    // =========================================================================
+    // 30. DomainMatcher exact rule matching and boundary safety
+    // =========================================================================
+    @Test
+    fun testDomainMatcherGetMatchingRuleContract() {
+        val blocked = setOf("youtube.com", "instagram.com")
+
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("www.youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("m.youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("music.youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("sub.deep.youtube.com", blocked))
+
+        assertNull("notyoutube.com must NOT match youtube.com",
+            DomainMatcher.getMatchingRule("notyoutube.com", blocked))
+        assertNull("youtube.com.foo must NOT match youtube.com",
+            DomainMatcher.getMatchingRule("youtube.com.foo", blocked))
+        assertNull("google.com must NOT match",
+            DomainMatcher.getMatchingRule("google.com", blocked))
+        assertNull("github.com must NOT match",
+            DomainMatcher.getMatchingRule("github.com", blocked))
+        assertNull("empty query",
+            DomainMatcher.getMatchingRule("", blocked))
     }
 }

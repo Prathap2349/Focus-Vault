@@ -1,8 +1,12 @@
 package com.focusvault.app.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,6 +22,7 @@ import com.focusvault.app.adapter.SiteListAdapter
 import com.focusvault.app.data.AppDatabase
 import com.focusvault.app.data.BlockedSite
 import com.focusvault.app.databinding.ActivityWebsiteBlockBinding
+import com.focusvault.app.service.DomainVerifier
 import com.focusvault.app.util.PrefsManager
 import kotlinx.coroutines.launch
 
@@ -189,7 +194,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
         }
 
         binding.btnAddDomain.setOnClickListener {
-            val raw = binding.etDomain.text.toString()
+            val raw = binding.etDomain.text.toString().trim()
             val domain = normalizeDomain(raw)
             if (domain.isEmpty()) {
                 binding.tvDomainError.text = "Please enter a valid domain (e.g. youtube.com or reddit.com)"
@@ -204,22 +209,55 @@ class WebsiteBlockActivity : AppCompatActivity() {
             }
 
             val isPermanent = binding.switchBlockPermanent.isChecked
-            binding.tvDomainError.visibility = View.GONE
-            binding.etDomain.text.clear()
 
-            val newSite = BlockedSite(domain = domain, isActive = true, isPermanent = isPermanent)
-            allSites.add(0, newSite)
+            // Loading state while verifying domain
+            binding.btnAddDomain.isEnabled = false
+            binding.btnAddDomain.text = "Checking..."
+            binding.tvDomainError.visibility = View.GONE
 
             lifecycleScope.launch {
-                db.blockedSiteDao().upsert(newSite)
-                syncFastCache(db)
-                applySearch()
-                updateSiteCounter()
-                Toast.makeText(
-                    this@WebsiteBlockActivity,
-                    if (isPermanent) "Added $domain to 24/7 Permanent Block" else "Added $domain to Session Block",
-                    Toast.LENGTH_SHORT
-                ).show()
+                try {
+                    val verificationResult = DomainVerifier.verifyDomain(
+                        rawInput = raw,
+                        isNetworkConnected = isNetworkConnected(),
+                        timeoutMs = 2500L
+                    )
+
+                    when (verificationResult) {
+                        is DomainVerifier.VerificationResult.Valid -> {
+                            val verifiedDomain = verificationResult.normalizedDomain
+                            binding.tvDomainError.visibility = View.GONE
+                            binding.etDomain.text?.clear()
+
+                            val newSite = BlockedSite(domain = verifiedDomain, isActive = true, isPermanent = isPermanent)
+                            allSites.add(0, newSite)
+                            db.blockedSiteDao().upsert(newSite)
+                            syncFastCache(db)
+                            applySearch()
+                            updateSiteCounter()
+                            Toast.makeText(
+                                this@WebsiteBlockActivity,
+                                if (isPermanent) "Added $verifiedDomain to 24/7 Permanent Block" else "Added $verifiedDomain to Session Block",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        is DomainVerifier.VerificationResult.InvalidSyntax -> {
+                            binding.tvDomainError.text = "Please enter a valid domain (e.g. youtube.com or reddit.com)"
+                            binding.tvDomainError.visibility = View.VISIBLE
+                        }
+                        is DomainVerifier.VerificationResult.DomainNotFound -> {
+                            binding.tvDomainError.text = "Website not found. Enter an existing domain."
+                            binding.tvDomainError.visibility = View.VISIBLE
+                        }
+                        is DomainVerifier.VerificationResult.NetworkUnavailable -> {
+                            binding.tvDomainError.text = "Network unavailable. Cannot verify website existence."
+                            binding.tvDomainError.visibility = View.VISIBLE
+                        }
+                    }
+                } finally {
+                    binding.btnAddDomain.isEnabled = true
+                    binding.btnAddDomain.text = "Add"
+                }
             }
         }
 
@@ -535,6 +573,31 @@ class WebsiteBlockActivity : AppCompatActivity() {
                 }
             }
             binding.chipGroupSuggestions.addView(chip)
+        }
+    }
+
+    private fun isNetworkConnected(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val active = cm.activeNetwork
+            if (active != null) {
+                val caps = cm.getNetworkCapabilities(active)
+                if (caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                    return true
+                }
+            }
+            for (net in cm.allNetworks) {
+                val caps = cm.getNetworkCapabilities(net) ?: continue
+                if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                    return true
+                }
+            }
+            return false
+        } else {
+            @Suppress("DEPRECATION")
+            val ni = cm.activeNetworkInfo
+            @Suppress("DEPRECATION")
+            return ni != null && ni.isConnected
         }
     }
 }

@@ -162,9 +162,9 @@ class FocusWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.tvWidgetCompactBadge, streakLabel(snapshot.streak))
 
         if (snapshot.isActive) {
-            views.setTextViewText(R.id.tvWidgetCompactMode, snapshot.modeLabel.uppercase())
+            views.setTextViewText(R.id.tvWidgetCompactMode, "FOCUS MODE")
             views.setTextViewText(R.id.tvWidgetCompactTimer, snapshot.remainingFormatted)
-            views.setTextViewText(R.id.tvWidgetCompactSubtitle, "remaining · ${snapshot.sessionElapsedPercent}% elapsed")
+            views.setTextViewText(R.id.tvWidgetCompactSubtitle, "remaining")
             views.setProgressBar(R.id.progressWidgetCompactGoal, 100, snapshot.sessionElapsedPercent, false)
             views.setTextViewText(R.id.tvWidgetCompactRingLabel, "🛡️")
             views.setTextViewText(R.id.btnWidgetCompactAction, "View Session")
@@ -172,18 +172,18 @@ class FocusWidgetProvider : AppWidgetProvider() {
         } else if (snapshot.isPaused) {
             views.setTextViewText(R.id.tvWidgetCompactMode, "PAUSED")
             views.setTextViewText(R.id.tvWidgetCompactTimer, snapshot.remainingFormatted)
-            views.setTextViewText(R.id.tvWidgetCompactSubtitle, "Session paused")
+            views.setTextViewText(R.id.tvWidgetCompactSubtitle, "paused")
             views.setProgressBar(R.id.progressWidgetCompactGoal, 100, snapshot.sessionElapsedPercent, false)
             views.setTextViewText(R.id.tvWidgetCompactRingLabel, "⏸️")
             views.setTextViewText(R.id.btnWidgetCompactAction, "Resume")
             views.setOnClickPendingIntent(R.id.btnWidgetCompactAction, WidgetIntents.resumeSession(context, appWidgetId))
         } else {
-            views.setTextViewText(R.id.tvWidgetCompactMode, "READY")
-            views.setTextViewText(R.id.tvWidgetCompactTimer, "Focus")
-            views.setTextViewText(R.id.tvWidgetCompactSubtitle, "Tap start to begin")
+            views.setTextViewText(R.id.tvWidgetCompactMode, "TODAY'S GOAL")
+            views.setTextViewText(R.id.tvWidgetCompactTimer, "${snapshot.todayMinutes}/${snapshot.goalMinutes}m")
+            views.setTextViewText(R.id.tvWidgetCompactSubtitle, if (snapshot.isGoalComplete) "Goal complete" else "Daily goal")
             views.setProgressBar(R.id.progressWidgetCompactGoal, 100, snapshot.goalProgressPercent, false)
             views.setTextViewText(R.id.tvWidgetCompactRingLabel, if (snapshot.streak > 0) "🔥" else "🛡️")
-            views.setTextViewText(R.id.btnWidgetCompactAction, "Start Session")
+            views.setTextViewText(R.id.btnWidgetCompactAction, "Start")
             views.setOnClickPendingIntent(R.id.btnWidgetCompactAction, WidgetIntents.openModeSheet(context, appWidgetId))
         }
 
@@ -200,12 +200,12 @@ class FocusWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.tvWidgetWideStreak, streakLabel(snapshot.streak))
 
         if (snapshot.isActive) {
-            views.setTextViewText(R.id.tvWidgetWideMode, snapshot.modeLabel.uppercase())
+            views.setTextViewText(R.id.tvWidgetWideMode, "FOCUS MODE")
             views.setTextViewText(R.id.tvWidgetWideTimer, snapshot.remainingFormatted)
             views.setTextViewText(R.id.tvWidgetWideDetailLeft, "Started ${snapshot.sessionStartFormatted}")
             views.setTextViewText(R.id.tvWidgetWideDetailRight, "${snapshot.sessionElapsedPercent}%")
             views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.sessionElapsedPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, "Ends ${snapshot.sessionEndFormatted} · ${snapshot.todayMinutes}/${snapshot.goalMinutes}m today")
+            views.setTextViewText(R.id.tvWidgetWideSub, "Ends ${snapshot.sessionEndFormatted}")
             views.setTextViewText(R.id.btnWidgetWideAction, "View")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.openApp(context, appWidgetId))
         } else if (snapshot.isPaused) {
@@ -214,16 +214,16 @@ class FocusWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.tvWidgetWideDetailLeft, "Session Paused")
             views.setTextViewText(R.id.tvWidgetWideDetailRight, "--")
             views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.sessionElapsedPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, "Tap Resume to continue focus")
+            views.setTextViewText(R.id.tvWidgetWideSub, "Tap Resume to continue")
             views.setTextViewText(R.id.btnWidgetWideAction, "Resume")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.resumeSession(context, appWidgetId))
         } else {
             views.setTextViewText(R.id.tvWidgetWideMode, "TODAY'S GOAL")
             views.setTextViewText(R.id.tvWidgetWideTimer, "${snapshot.todayMinutes}/${snapshot.goalMinutes}m")
-            views.setTextViewText(R.id.tvWidgetWideDetailLeft, if (snapshot.isGoalComplete) "Goal completed!" else "${snapshot.goalMinutes - snapshot.todayMinutes}m remaining")
+            views.setTextViewText(R.id.tvWidgetWideDetailLeft, if (snapshot.isGoalComplete) "Goal complete" else "${(snapshot.goalMinutes - snapshot.todayMinutes).coerceAtLeast(0)}m left")
             views.setTextViewText(R.id.tvWidgetWideDetailRight, "${snapshot.goalProgressPercent}%")
             views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.goalProgressPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, snapshot.nextScheduleFormatted ?: "Ready for your next focus session")
+            views.setTextViewText(R.id.tvWidgetWideSub, snapshot.nextScheduleFormatted ?: "Ready to focus")
             views.setTextViewText(R.id.btnWidgetWideAction, "Start")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.openModeSheet(context, appWidgetId))
         }

@@ -450,7 +450,7 @@ class FocusVpnService : VpnService() {
                             // STATE 3: UPSTREAM FAILURE
                             // The query was allowed, but DNS resolution failed upstream.
                             // Log this as an upstream/network failure. NEVER report it as BLOCKED.
-                            Log.w(TAG, "⚠️ [STATE: UPSTREAM FAILURE] Upstream DNS servers failed to resolve allowed domain: $queryDomain. Returning SERVFAIL (NOT BLOCKED).")
+                            Log.w(TAG, "UPSTREAM DNS FAILURE: Upstream DNS servers timed out or unreachable for allowed domain: $queryDomain (returning SERVFAIL, NOT BLOCKED)")
                             try {
                                 val servFail = DnsPacketParser.buildServFailResponse(rawCopy, lenCopy, qLen)
                                 outputMutex.withLock { output.write(servFail) }
