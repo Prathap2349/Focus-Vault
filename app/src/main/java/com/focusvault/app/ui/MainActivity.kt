@@ -161,18 +161,22 @@ class MainActivity : AppCompatActivity() {
             guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
         }
         binding.btnManageApps.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, AppSelectionActivity::class.java)) }
         }
         binding.btnManageSites.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, WebsiteBlockActivity::class.java)) }
         }
         binding.btnManagePresets.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, PresetsActivity::class.java)) }
         }
         binding.btnManageSchedules.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, SchedulesActivity::class.java)) }
         }
@@ -191,23 +195,29 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnQuickCustom.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             HapticHelper.lightClick(it)
             showCustomDurationPicker()
         }
 
         binding.btnQuick25.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             selectPresetDuration(25 * 60_000L)
         }
         binding.btnQuick45.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             selectPresetDuration(45 * 60_000L)
         }
         binding.btnQuick60.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             selectPresetDuration(60 * 60_000L)
         }
         binding.btnQuick90.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             selectPresetDuration(90 * 60_000L)
         }
         binding.btnQuick120.setOnClickListener {
+            com.focusvault.app.util.HapticHelper.lightClick(it)
             selectPresetDuration(120 * 60_000L)
         }
         binding.tvPermissionWarning.setOnClickListener { openAccessibilitySettings() }
@@ -456,10 +466,20 @@ class MainActivity : AppCompatActivity() {
             )
             binding.progressGoalBar.progress = (goalProgress * 100).toInt()
             val remaining = stats.goalMinutes - stats.todayMinutes
-            binding.tvGoalRemaining.text = if (remaining <= 0)
+            
+            binding.tvGoalRemaining.text = if (remaining <= 0) {
+                if (stats.todayMinutes > 0 && !com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).getBoolean("goal_celebrated_today", false)) {
+                    com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", true).apply()
+                    com.focusvault.app.util.HapticHelper.successHaptic(binding.cardGoal)
+                    binding.cardGoal.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200)
+                        .withEndAction { binding.cardGoal.animate().scaleX(1f).scaleY(1f).setDuration(200).start() }.start()
+                }
                 "Goal achieved! 🎉"
-            else
+            } else {
+                com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", false).apply()
                 "${formatMinutes(remaining)} remaining"
+            }
+
 
             // Streak Badge
             binding.tvStreakBadge.text = if (stats.streak > 0) "🔥 ${stats.streak}d streak" else "🌱 Start streak"
@@ -706,9 +726,34 @@ class MainActivity : AppCompatActivity() {
             val apps = db.blockedAppDao().getAllOnce().count { it.isActive }
             val sites = db.blockedSiteDao().getActiveDomainsOnce().size
             val schedules = db.scheduledSessionDao().getAllOnce().count { it.isEnabled }
-            binding.tvBlockedAppsCount.text = "$apps Apps"
-            binding.tvBlockedSitesCount.text = "$sites Sites"
-            binding.tvSchedulesCount.text = if (schedules > 0) "$schedules active" else "Schedules"
+            
+            val primaryColor = ContextCompat.getColor(this@MainActivity, R.color.brand_primary)
+            val secondaryColor = ContextCompat.getColor(this@MainActivity, R.color.text_secondary)
+            
+            if (apps > 0) {
+                binding.tvBlockedAppsCount.text = "$apps blocked"
+                binding.tvBlockedAppsCount.setTextColor(secondaryColor)
+            } else {
+                binding.tvBlockedAppsCount.text = "Tap to add"
+                binding.tvBlockedAppsCount.setTextColor(primaryColor)
+            }
+            
+            if (sites > 0) {
+                binding.tvBlockedSitesCount.text = "$sites blocked"
+                binding.tvBlockedSitesCount.setTextColor(secondaryColor)
+            } else {
+                binding.tvBlockedSitesCount.text = "Tap to add"
+                binding.tvBlockedSitesCount.setTextColor(primaryColor)
+            }
+            
+            if (schedules > 0) {
+                binding.tvSchedulesCount.text = "$schedules active"
+                binding.tvSchedulesCount.setTextColor(secondaryColor)
+            } else {
+                binding.tvSchedulesCount.text = "Tap to create"
+                binding.tvSchedulesCount.setTextColor(primaryColor)
+            }
+
         }
     }
 

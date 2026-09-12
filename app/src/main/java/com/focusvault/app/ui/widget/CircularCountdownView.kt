@@ -37,14 +37,21 @@ class CircularCountdownView @JvmOverloads constructor(
     private var orbitalAnimator: ValueAnimator? = null
     private var lockInAnimator: ValueAnimator? = null
 
+    private var breathingAnimator: ValueAnimator? = null
+    private var breathingScale: Float = 1f
+    private val breathingGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
+
     private var orbitalAngle: Float = 0f
     var isOrbitalActive: Boolean = false
         set(value) {
             field = value
             if (value && !AnimationHelper.isReduceMotion(context)) {
                 startOrbitalAnimation()
+                startBreathingAnimation()
             } else {
                 stopOrbitalAnimation()
+                stopBreathingAnimation()
             }
         }
 
@@ -119,7 +126,30 @@ class CircularCountdownView @JvmOverloads constructor(
         }
     }
 
-    private fun startOrbitalAnimation() {
+    
+    private fun startBreathingAnimation() {
+        if (breathingAnimator?.isRunning == true) return
+        breathingAnimator = ValueAnimator.ofFloat(1f, 1.15f).apply {
+            duration = 4000L
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = AccelerateDecelerateInterpolator()
+            addUpdateListener { va ->
+                breathingScale = va.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    private fun stopBreathingAnimation() {
+        breathingAnimator?.cancel()
+        breathingAnimator = null
+        breathingScale = 1f
+        invalidate()
+    }
+
+private fun startOrbitalAnimation() {
         if (orbitalAnimator?.isRunning == true) return
         orbitalAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
             duration = 3800L
@@ -145,6 +175,7 @@ class CircularCountdownView @JvmOverloads constructor(
         ringEndColor = end
         trackColor = track
         particleGlowPaint.color = Color.argb(120, Color.red(start), Color.green(start), Color.blue(start))
+        breathingGlowPaint.color = Color.argb(15, Color.red(start), Color.green(start), Color.blue(start))
         rebuild()
     }
 
@@ -228,6 +259,12 @@ class CircularCountdownView @JvmOverloads constructor(
         canvas.save()
         if (rotationOffset != 0f) {
             canvas.rotate(rotationOffset, cx, cy)
+        }
+
+        
+        // Draw Breathing Glow
+        if (isOrbitalActive) {
+            canvas.drawCircle(cx, cy, radius * breathingScale, breathingGlowPaint)
         }
 
         canvas.drawArc(arcRect, 0f, 360f, false, trackPaint)

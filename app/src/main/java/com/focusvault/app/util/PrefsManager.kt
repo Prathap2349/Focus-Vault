@@ -70,7 +70,7 @@ object PrefsManager {
     @Volatile private var cachedBlockedPackages: Set<String>? = null
     @Volatile private var cachedBlockedDomains: Set<String>? = null
 
-    private fun prefs(context: Context) =
+    fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun setBlockedPackages(context: Context, packages: Set<String>) {
