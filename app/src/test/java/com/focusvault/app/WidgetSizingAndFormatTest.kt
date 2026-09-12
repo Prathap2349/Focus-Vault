@@ -61,4 +61,32 @@ class WidgetSizingAndFormatTest {
         assertEquals("00:00", WidgetDataProvider.formatRemainingMMSS(-5000L)) // Negative clamped
         assertEquals("1:25:30", WidgetDataProvider.formatRemainingMMSS((1 * 3600 + 25 * 60 + 30) * 1000L))
     }
+
+    @Test
+    fun testUserRequestedResizingScenarios() {
+        // 1x1 tile: strictly TINY
+        assertEquals(WidgetSizeTier.TINY, resolveSizeTier(80, 80))
+
+        // 2x2 square card: COMPACT (vertical layout with button at bottom)
+        assertEquals(WidgetSizeTier.COMPACT, resolveSizeTier(140, 140))
+
+        // 4x1 horizontal banner: WIDE (horizontal layout with button on right)
+        assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(260, 70))
+
+        // 4x2 dashboard: LARGE
+        assertEquals(WidgetSizeTier.LARGE, resolveSizeTier(260, 140))
+
+        // Small horizontal resize (e.g. 160x80) -> WIDE (fits newly redesigned 0dp weight=1 layout)
+        assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(160, 80))
+
+        // Small vertical resize (e.g. 140x100) -> If width < 150dp and short, snaps safely to TINY or COMPACT
+        // If width is 140dp and height is 120dp -> COMPACT
+        assertEquals(WidgetSizeTier.COMPACT, resolveSizeTier(140, 120))
+
+        // Medium resize (e.g. 200x110) -> WIDE
+        assertEquals(WidgetSizeTier.WIDE, resolveSizeTier(200, 110))
+
+        // Large resize (e.g. 320x220) -> LARGE
+        assertEquals(WidgetSizeTier.LARGE, resolveSizeTier(320, 220))
+    }
 }

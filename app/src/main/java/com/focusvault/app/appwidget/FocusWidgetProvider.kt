@@ -3,7 +3,9 @@ package com.focusvault.app.appwidget
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import com.focusvault.app.R
@@ -42,8 +44,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 appWidgetIds.forEach { id ->
                     try {
                         val options = appWidgetManager.getAppWidgetOptions(id)
-                        val tier = resolveSizeTier(options)
-                        val views = buildRemoteViews(context, snapshot, id, tier)
+                        val views = createWidgetRemoteViews(context, snapshot, id, options)
                         appWidgetManager.updateAppWidget(id, views)
                     } catch (e: Exception) {
                         android.util.Log.e("FocusWidgetProvider", "Failed to update widget $id", e)
@@ -78,8 +79,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 previousJob?.cancelAndJoin()
                 delay(DEBOUNCE_MILLIS)
                 val snapshot = WidgetDataProvider.buildSnapshot(context.applicationContext)
-                val tier = resolveSizeTier(newOptions)
-                val views = buildRemoteViews(context, snapshot, appWidgetId, tier)
+                val views = createWidgetRemoteViews(context, snapshot, appWidgetId, newOptions)
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             } catch (e: CancellationException) {
                 // Expected when user is actively resizing
@@ -104,7 +104,46 @@ class FocusWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun buildRemoteViews(
+    /**
+     * Constructs genuinely responsive RemoteViews:
+     * - On Android 12+ (API 31+), supplies an exact multi-size mapping (SizeF -> RemoteViews)
+     *   allowing the Android system launcher to pick the best layout dynamically upon resize.
+     * - On pre-Android 12, evaluates size tiers via resolveSizeTier() based on current widget options.
+     */
+    fun createWidgetRemoteViews(
+        context: Context,
+        snapshot: WidgetSnapshot,
+        appWidgetId: Int,
+        options: Bundle? = null
+    ): RemoteViews {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val tinyViews = buildTiny(context, snapshot, appWidgetId)
+                val compactViews = buildCompact(context, snapshot, appWidgetId)
+                val wideViews = buildWide(context, snapshot, appWidgetId)
+                val largeViews = buildLarge(context, snapshot, appWidgetId)
+
+                val sizeMap = mapOf(
+                    // 1x1 tile (minimum 60x60 dp)
+                    SizeF(60f, 60f) to tinyViews,
+                    // 2x2 or narrow card (vertical layout: button at bottom)
+                    SizeF(110f, 90f) to compactViews,
+                    // 4x1 or wide banner (horizontal layout: button on right)
+                    SizeF(150f, 50f) to wideViews,
+                    // 4x2+ full dashboard (width >= 220dp, height >= 115dp)
+                    SizeF(220f, 115f) to largeViews
+                )
+                return RemoteViews(sizeMap)
+            } catch (e: Exception) {
+                android.util.Log.w("FocusWidgetProvider", "Failed to construct responsive size map, falling back", e)
+            }
+        }
+
+        val tier = resolveSizeTier(options)
+        return buildRemoteViews(context, snapshot, appWidgetId, tier)
+    }
+
+    fun buildRemoteViews(
         context: Context,
         snapshot: WidgetSnapshot,
         appWidgetId: Int,
@@ -202,28 +241,19 @@ class FocusWidgetProvider : AppWidgetProvider() {
         if (snapshot.isActive) {
             views.setTextViewText(R.id.tvWidgetWideMode, "FOCUS MODE")
             views.setTextViewText(R.id.tvWidgetWideTimer, snapshot.remainingFormatted)
-            views.setTextViewText(R.id.tvWidgetWideDetailLeft, "Started ${snapshot.sessionStartFormatted}")
-            views.setTextViewText(R.id.tvWidgetWideDetailRight, "${snapshot.sessionElapsedPercent}%")
-            views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.sessionElapsedPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, "Ends ${snapshot.sessionEndFormatted}")
-            views.setTextViewText(R.id.btnWidgetWideAction, "View")
+            views.setTextViewText(R.id.tvWidgetWideSub, "remaining")
+            views.setTextViewText(R.id.btnWidgetWideAction, "View Session")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.openApp(context, appWidgetId))
         } else if (snapshot.isPaused) {
             views.setTextViewText(R.id.tvWidgetWideMode, "PAUSED")
             views.setTextViewText(R.id.tvWidgetWideTimer, snapshot.remainingFormatted)
-            views.setTextViewText(R.id.tvWidgetWideDetailLeft, "Session Paused")
-            views.setTextViewText(R.id.tvWidgetWideDetailRight, "--")
-            views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.sessionElapsedPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, "Tap Resume to continue")
+            views.setTextViewText(R.id.tvWidgetWideSub, "paused")
             views.setTextViewText(R.id.btnWidgetWideAction, "Resume")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.resumeSession(context, appWidgetId))
         } else {
             views.setTextViewText(R.id.tvWidgetWideMode, "TODAY'S GOAL")
             views.setTextViewText(R.id.tvWidgetWideTimer, "${snapshot.todayMinutes}/${snapshot.goalMinutes}m")
-            views.setTextViewText(R.id.tvWidgetWideDetailLeft, if (snapshot.isGoalComplete) "Goal complete" else "${(snapshot.goalMinutes - snapshot.todayMinutes).coerceAtLeast(0)}m left")
-            views.setTextViewText(R.id.tvWidgetWideDetailRight, "${snapshot.goalProgressPercent}%")
-            views.setProgressBar(R.id.progressWidgetWide, 100, snapshot.goalProgressPercent, false)
-            views.setTextViewText(R.id.tvWidgetWideSub, snapshot.nextScheduleFormatted ?: "Ready to focus")
+            views.setTextViewText(R.id.tvWidgetWideSub, if (snapshot.isGoalComplete) "Goal complete" else "Daily goal")
             views.setTextViewText(R.id.btnWidgetWideAction, "Start")
             views.setOnClickPendingIntent(R.id.btnWidgetWideAction, WidgetIntents.openModeSheet(context, appWidgetId))
         }

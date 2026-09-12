@@ -11,62 +11,31 @@
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
-    <!-- Left: Status & Timer -->
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:minWidth="90dp">
-
-        <TextView
-            android:id="@+id/tvWidgetWideMode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="FOCUS MODE"
-            android:textColor="@color/text_secondary"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.06"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/tvWidgetWideTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="42:18"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
-    </LinearLayout>
-
-    <!-- Center: Progress Bar, Streak & Details -->
+    <!-- Left: Flexible content using 0dp and weight="1" -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="10dp"
         android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:layout_marginEnd="8dp">
 
+        <!-- Top line: Mode label + optional streak badge -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/tvWidgetWideDetailLeft"
-                android:layout_width="0dp"
+                android:id="@+id/tvWidgetWideMode"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Started 2:15 PM"
+                android:text="TODAY'S GOAL"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.06"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
@@ -74,8 +43,7 @@
                 android:id="@+id/tvWidgetWideStreak"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
+                android:layout_marginStart="6dp"
                 android:background="@drawable/widget_badge_streak"
                 android:paddingStart="5dp"
                 android:paddingEnd="5dp"
@@ -84,57 +52,78 @@
                 android:text="🔥 7d"
                 android:textColor="@color/accent_streak"
                 android:textSize="9sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvWidgetWideDetailRight"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="72%"
-                android:textColor="@color/brand_primary"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:maxLines="1" />
         </LinearLayout>
 
-        <ProgressBar
-            android:id="@+id/progressWidgetWide"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="3dp"
-            android:max="100"
-            android:progress="72"
-            android:progressTint="@color/brand_primary" />
-
-        <TextView
-            android:id="@+id/tvWidgetWideSub"
+        <!-- Bottom line: Timer + subtitle -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:text="Ends 2:57 PM · 34 min to daily goal"
-            android:textColor="@color/text_secondary"
-            android:textSize="10sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="2dp">
+
+            <TextView
+                android:id="@+id/tvWidgetWideTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/120m"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvWidgetWideSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Daily goal"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Right: Action Button alone, vertically centered, guaranteed never to be pushed out -->
+    <!-- Right: Constrained Action Button that NEVER exceeds the card -->
     <Button
         android:id="@+id/btnWidgetWideAction"
         android:layout_width="wrap_content"
         android:layout_height="32dp"
         android:layout_gravity="center_vertical"
         android:background="@drawable/widget_btn_primary"
-        android:minWidth="64dp"
+        android:minWidth="0dp"
         android:minHeight="0dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:paddingTop="0dp"
         android:paddingBottom="0dp"
-        android:text="View"
+        android:text="Start"
         android:textAllCaps="false"
         android:textColor="@color/white"
-        android:textSize="11sp"
+        android:textSize="12sp"
         android:textStyle="bold" />
+
+    <!-- Compatibility views so all referenced IDs safely exist with zero footprint -->
+    <TextView
+        android:id="@+id/tvWidgetWideDetailLeft"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvWidgetWideDetailRight"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <ProgressBar
+        android:id="@+id/progressWidgetWide"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
 
 </LinearLayout>
