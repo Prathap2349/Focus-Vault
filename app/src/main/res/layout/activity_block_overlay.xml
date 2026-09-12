@@ -183,19 +183,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:backgroundTint="@color/white"
-            android:textColor="#0F172A"
+            android:backgroundTint="@color/brand_primary"
+            android:textColor="@color/white"
             android:text="🏠 Return to Home"
             android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnEmergencyUnlockOverlay"
-            style="@style/PrimaryButton"
+            style="@style/SecondaryButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:backgroundTint="@color/gold_xp"
-            android:textColor="#0F172A"
+            android:textColor="@color/text_primary"
             android:text="🚨 Emergency unlock"
             android:textStyle="bold" />
 

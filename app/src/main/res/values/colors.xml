@@ -1,69 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ===== Centralized Semantic Color System ===== -->
-    <!-- Primary Brand / Focus Mode: Indigo / Blue-Violet -->
-    <color name="brand_primary">#6366F1</color>
-    <color name="brand_primary_dark">#4F46E5</color>
-    <color name="brand_primary_subtle">#1A6366F1</color>
+    <!-- ===== Centralized Semantic Color System: Premium Dark + Electric Violet ===== -->
+    <!-- Primary Brand / Focus Mode: Electric Violet -->
+    <color name="brand_primary">#8B5CF6</color>
+    <color name="brand_primary_dark">#7C3AED</color>
+    <color name="brand_primary_subtle">#268B5CF6</color>
 
-    <!-- Secondary Accent: Modern Digital Teal -->
-    <color name="secondary_teal">#14B8A6</color>
-    <color name="secondary_teal_dark">#0D9488</color>
-    <color name="secondary_teal_subtle">#1A14B8A6</color>
+    <!-- Secondary Accent: Modern Digital Cyan -->
+    <color name="secondary_teal">#22D3EE</color>
+    <color name="secondary_teal_dark">#06B6D4</color>
+    <color name="secondary_teal_subtle">#2622D3EE</color>
 
-    <!-- Success: Fresh Green/Teal -->
+    <!-- Success: Fresh Green -->
     <color name="success_green">#22C55E</color>
-    <color name="success_green_subtle">#1A22C55E</color>
+    <color name="success_green_subtle">#2622C55E</color>
 
     <!-- Warning / Paused: Warm Amber -->
     <color name="warning_amber">#F59E0B</color>
-    <color name="warning_amber_subtle">#1AF59E0B</color>
+    <color name="warning_amber_subtle">#26F59E0B</color>
     <color name="accent_streak">#F59E0B</color>
 
     <!-- Error / Strict Mode: Crimson Red -->
     <color name="strict_red">#EF4444</color>
-    <color name="strict_red_subtle">#1AEF4444</color>
+    <color name="strict_red_subtle">#26EF4444</color>
 
     <!-- Lock Mode: Electric Violet -->
-    <color name="lock_blue">#818CF8</color>
+    <color name="lock_blue">#8B5CF6</color>
     <color name="gold_xp">#FBBF24</color>
 
     <!-- Gradient Stops for Rings and Badges -->
-    <color name="gradient_normal_start">#6366F1</color>
-    <color name="gradient_normal_end">#4F46E5</color>
-    <color name="gradient_lock_start">#818CF8</color>
-    <color name="gradient_lock_end">#6366F1</color>
+    <color name="gradient_normal_start">#8B5CF6</color>
+    <color name="gradient_normal_end">#7C3AED</color>
+    <color name="gradient_lock_start">#A78BFA</color>
+    <color name="gradient_lock_end">#8B5CF6</color>
     <color name="gradient_strict_start">#F87171</color>
     <color name="gradient_strict_end">#EF4444</color>
     <color name="gradient_streak_start">#FCD34D</color>
     <color name="gradient_streak_end">#F59E0B</color>
 
-    <!-- Light Theme Surfaces (Soft Neutral / Elevated Cards) -->
-    <color name="bg_light">#F8FAFC</color>
-    <color name="bg_card">#FFFFFF</color>
-    <color name="card_surface">#FFFFFF</color>
-    <color name="card_surface_elevated">#F1F5F9</color>
-    <color name="card_border">#E2E8F0</color>
-    <color name="divider">#E2E8F0</color>
+    <!-- Dark Theme Surfaces (Deep Obsidian & Slate Cards) -->
+    <color name="bg_light">#080B12</color>
+    <color name="bg_dark">#080B12</color>
+    <color name="bg_card">#111827</color>
+    <color name="card_surface">#111827</color>
+    <color name="card_surface_secondary">#151B2B</color>
+    <color name="card_surface_elevated">#1A2233</color>
+    <color name="card_border">#1E293B</color>
+    <color name="divider">#1E293B</color>
 
     <!-- Typography Colors -->
-    <color name="text_primary">#0F172A</color>
-    <color name="text_secondary">#64748B</color>
-    <color name="text_muted">#94A3B8</color>
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
 
     <!-- Basic Constants -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="overlay_dark">#E60B0C10</color>
+    <color name="overlay_dark">#E6080B12</color>
 
-    <!-- New layered background glows -->
-    <color name="glow_normal">#406366F1</color>
-    <color name="glow_lock">#40818CF8</color>
-    <color name="glow_strict">#40F87171</color>
+    <!-- Layered background glows -->
+    <color name="glow_normal">#338B5CF6</color>
+    <color name="glow_lock">#338B5CF6</color>
+    <color name="glow_strict">#33EF4444</color>
     <color name="overlay_noise">#06FFFFFF</color>
-    <color name="success_green_chip_bg">#3322C55E</color>
-    <color name="warning_amber_chip_bg">#33F59E0B</color>
-    <color name="strict_red_chip_bg">#33EF4444</color>
-    <color name="premium_obsidian">#1E293B</color>
+    <color name="success_green_chip_bg">#2622C55E</color>
+    <color name="warning_amber_chip_bg">#26F59E0B</color>
+    <color name="strict_red_chip_bg">#26EF4444</color>
+    <color name="premium_obsidian">#111827</color>
 </resources>
-

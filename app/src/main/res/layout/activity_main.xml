@@ -51,9 +51,11 @@
                 android:id="@+id/cardHeaderShield"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/overlay_dark"
+                app:cardBackgroundColor="@color/card_surface_secondary"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
+                app:strokeColor="@color/card_border"
+                app:strokeWidth="1dp"
                 android:layout_marginEnd="12dp">
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -117,9 +119,11 @@
             android:id="@+id/cardHeroFocus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/bg_card"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/card_surface"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1dp"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -193,7 +197,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         style="@style/Widget.MaterialComponents.Button"
-                        app:backgroundTint="@color/premium_obsidian"
+                        app:backgroundTint="@color/brand_primary"
+                        app:cornerRadius="18dp"
                         android:text="START FOCUS"
                         android:textColor="@color/white"
                         android:textSize="16sp"
@@ -210,6 +215,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
                             style="@style/Widget.MaterialComponents.Button"
+                            app:backgroundTint="@color/brand_primary"
+                            app:cornerRadius="18dp"
                             android:text="RESUME FOCUS"
                             android:textColor="@color/white"
                             android:textSize="16sp"
@@ -221,6 +228,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
                             style="@style/Widget.MaterialComponents.Button"
+                            app:backgroundTint="@color/warning_amber"
+                            app:cornerRadius="18dp"
                             android:text="EMERGENCY PAUSE"
                             android:textColor="@color/white"
                             android:textSize="16sp"
@@ -230,7 +239,10 @@
                             android:id="@+id/btnStopEarly"
                             android:layout_width="match_parent"
                             android:layout_height="56dp"
-                            style="@style/Widget.MaterialComponents.Button"
+                            style="@style/CompactOutlinedButton"
+                            app:cornerRadius="18dp"
+                            app:strokeColor="@color/card_border"
+                            app:strokeWidth="1dp"
                             android:text="STOP EARLY"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
@@ -242,6 +254,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         style="@style/Widget.MaterialComponents.Button"
+                        app:backgroundTint="@color/strict_red"
+                        app:cornerRadius="18dp"
                         android:text="EMERGENCY UNLOCK (3 left)"
                         android:textColor="@color/white"
                         android:textSize="16sp"
@@ -265,9 +279,11 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardBackgroundColor="@color/bg_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="1dp">
+                app:cardBackgroundColor="@color/card_surface"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_border"
+                app:strokeWidth="1dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -290,9 +306,11 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardBackgroundColor="@color/bg_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="1dp">
+                app:cardBackgroundColor="@color/card_surface"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_border"
+                app:strokeWidth="1dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -341,12 +359,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
-                <Button android:id="@+id/btnQuickCustom" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Custom" android:layout_marginEnd="8dp"/>
-                <Button android:id="@+id/btnQuick25" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25m" android:layout_marginEnd="8dp"/>
-                <Button android:id="@+id/btnQuick45" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="45m" android:layout_marginEnd="8dp"/>
-                <Button android:id="@+id/btnQuick60" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="60m" android:layout_marginEnd="8dp"/>
-                <Button android:id="@+id/btnQuick90" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90m" android:layout_marginEnd="8dp"/>
-                <Button android:id="@+id/btnQuick120" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="120m" />
+                <Button android:id="@+id/btnQuickCustom" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Custom" android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnQuick25" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25m" android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnQuick45" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="45m" android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnQuick60" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="60m" android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnQuick90" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="90m" android:layout_marginEnd="8dp"/>
+                <Button android:id="@+id/btnQuick120" style="@style/CompactOutlinedButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="120m" />
             </LinearLayout>
         </HorizontalScrollView>
 

@@ -56,9 +56,9 @@ class CircularCountdownView @JvmOverloads constructor(
             }
         }
 
-    private var ringStartColor: Int = Color.parseColor("#6366F1") // Indigo
-    private var ringEndColor: Int = Color.parseColor("#4F46E5")
-    private var trackColor: Int = Color.argb(25, 99, 102, 241)
+    private var ringStartColor: Int = Color.parseColor("#8B5CF6") // Electric Violet
+    private var ringEndColor: Int = Color.parseColor("#7C3AED")
+    private var trackColor: Int = Color.argb(40, 139, 92, 246)
 
     private val strokeWidthPx = context.resources.displayMetrics.density * 9f
 
@@ -234,22 +234,22 @@ class CircularCountdownView @JvmOverloads constructor(
                 // Dynamic Color Shifting: As session completes (final 15%), blend into emerald/teal
                 if (remainingRatio < 0.15f) {
                     setColors(
-                        Color.parseColor("#10B981"), // Emerald
-                        Color.parseColor("#06B6D4"), // Cyan
-                        Color.argb(30, 16, 185, 129)
+                        Color.parseColor("#22C55E"), // Success Green
+                        Color.parseColor("#22D3EE"), // Cyan
+                        Color.argb(35, 34, 197, 94)
                     )
                 } else {
                     setColors(
-                        Color.parseColor("#6366F1"), // Indigo
-                        Color.parseColor("#4F46E5"),
-                        Color.argb(30, 99, 102, 241)
+                        Color.parseColor("#8B5CF6"), // Electric Violet
+                        Color.parseColor("#7C3AED"),
+                        Color.argb(35, 139, 92, 246)
                     )
                 }
             }
             else -> setColors(
-                Color.parseColor("#6366F1"),
-                Color.parseColor("#818CF8"),
-                Color.argb(110, 99, 102, 241) // More visible empty track
+                Color.parseColor("#8B5CF6"),
+                Color.parseColor("#7C3AED"),
+                Color.argb(60, 139, 92, 246) // Visible empty track
             )
         }
     }

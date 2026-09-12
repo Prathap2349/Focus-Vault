@@ -20,7 +20,7 @@ data class ThemeColors(
 object ThemeManager {
 
     enum class Palette(val key: String, val displayName: String, val previewColor: String) {
-        AURORA("aurora", "Focus Indigo", "#6366F1"),
+        AURORA("aurora", "Electric Violet", "#8B5CF6"),
         MIDNIGHT("midnight", "Midnight Violet", "#7C5CFF"),
         OCEAN("ocean", "Ocean Blue", "#00B4D8"),
         FOREST("forest", "Forest Emerald", "#14B8A6"),
@@ -52,8 +52,8 @@ object ThemeManager {
         val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val isAmoled = isNight && (palette == Palette.AMOLED_BLACK || PrefsManager.isAmoledMode(context))
 
-        val baseBg = if (isAmoled) Color.BLACK else if (isNight) Color.parseColor("#0B0C10") else Color.parseColor("#F8FAFC")
-        val baseCard = if (isAmoled) Color.parseColor("#08080A") else if (isNight) Color.parseColor("#13141C") else Color.WHITE
+        val baseBg = if (isAmoled) Color.BLACK else Color.parseColor("#080B12")
+        val baseCard = if (isAmoled) Color.parseColor("#08080A") else Color.parseColor("#111827")
 
         return when (palette) {
             Palette.MIDNIGHT -> ThemeColors(
@@ -132,9 +132,9 @@ object ThemeManager {
                 isDark = isNight
             )
             Palette.AURORA -> ThemeColors(
-                primary = Color.parseColor("#6366F1"),
-                primaryDark = Color.parseColor("#4F46E5"),
-                accent = Color.parseColor("#14B8A6"),
+                primary = Color.parseColor("#8B5CF6"),
+                primaryDark = Color.parseColor("#7C3AED"),
+                accent = Color.parseColor("#22D3EE"),
                 background = baseBg,
                 cardBackground = baseCard,
                 isDark = isNight
