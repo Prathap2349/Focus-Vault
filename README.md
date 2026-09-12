@@ -88,6 +88,10 @@ Choose your exact level of discipline for every focus session:
 | 8 | **24/7 Block causes ALL sites to fail/block** — Upstream DNS silently timing out | Dropped hardcoded `8.8.8.8` DNS which is blocked by some networks; now dynamically queries the system's `ConnectivityManager` to forward DNS to the active local router/ISP IPv4 DNS. |
 | 9 | **Widget buttons unresponsive or hidden** — Start button pushed off-screen | Fixed widget responsive breakpoints and aggressively optimized `widget_compact.xml` margins/padding so the 'Start' button comfortably fits inside smaller 2x2 widget bounds on low-DPI devices like the Vivo Y9. |
 | 10 | **All websites failing to load when VPN active** — DNS routing loop | Removed `UPSTREAM_DNS` from the VPN's intercept routing table. Previously, if the phone's native `protect()` method failed, forwarding DNS to a filtered IP caused an infinite VPN loop. It now safely bypasses the VPN tunnel natively. |
+| 11 | **Hero timer subtitle text overflows** outside the circular ring | Constrained `frameFocusRingContainer` inner layout to 160dp width and applied `maxLines=2` / `12sp` to ensure text safely wraps inside the ring |
+| 12 | **Preset/Schedule buttons render with clipped text** ("Start", "+ Create") | Created `PrimaryButtonCompact` style with 36dp minHeight and applied it so vertical padding no longer squeezes text |
+| 13 | **Idle "Ready to Focus" ring looks washed out** and nearly invisible | Increased the idle track alpha in `CircularCountdownView` to 110 for a clear, confident solid indigo ring |
+| 14 | **"Action Needed" status pill doesn't read as urgent enough** | Tinted the `cardHeaderShield` background to match its status (Red/Amber/Green) and added a pulsing `ValueAnimator` for the "Action Needed" state |
 
 ---
 
