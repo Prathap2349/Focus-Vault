@@ -29,6 +29,25 @@ class BlockOverlayActivity : AppCompatActivity() {
     private var ticker: CountDownTimer? = null
     private var sessionTotalMillis: Long = 1L
     private var currentBlockedPackage: String? = null
+    
+    private val quoteHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var quoteIndex = 0
+    private val quoteRunnable = object : Runnable {
+        override fun run() {
+            binding.tvQuote.animate()
+                .alpha(0f)
+                .setDuration(500)
+                .withEndAction {
+                    quoteIndex = (quoteIndex + 1) % CALM_QUOTES.size
+                    binding.tvQuote.text = CALM_QUOTES[quoteIndex]
+                    binding.tvQuote.animate()
+                        .alpha(1f)
+                        .setDuration(500)
+                        .start()
+                }.start()
+            quoteHandler.postDelayed(this, 5000)
+        }
+    }
 
     companion object {
         const val EXTRA_BLOCKED_PACKAGE = "blocked_package"
@@ -63,6 +82,7 @@ class BlockOverlayActivity : AppCompatActivity() {
             }
             startActivity(homeIntent)
             finish()
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.slide_out_right)
         }
 
         binding.btnEmergencyUnlockOverlay.setOnClickListener {
@@ -155,8 +175,11 @@ class BlockOverlayActivity : AppCompatActivity() {
             binding.btnEmergencyUnlockOverlay.visibility = android.view.View.VISIBLE
         }
 
-        // Random calm quote
-        binding.tvQuote.text = CALM_QUOTES[(System.currentTimeMillis() % CALM_QUOTES.size).toInt()]
+        // Rotating calm quote
+        quoteIndex = (System.currentTimeMillis() % CALM_QUOTES.size).toInt()
+        binding.tvQuote.text = CALM_QUOTES[quoteIndex]
+        quoteHandler.removeCallbacks(quoteRunnable)
+        quoteHandler.postDelayed(quoteRunnable, 5000)
 
         val (heroBgRes, ringStart, ringEnd) = when {
             isStrict -> Triple(R.drawable.bg_gradient_strict, R.color.gradient_strict_start, R.color.gradient_strict_end)
@@ -213,6 +236,7 @@ class BlockOverlayActivity : AppCompatActivity() {
     override fun onDestroy() {
         com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameCountdownRing)
         ticker?.cancel()
+        quoteHandler.removeCallbacks(quoteRunnable)
         super.onDestroy()
     }
 }

@@ -134,9 +134,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            SessionStateManager.sessionFlow.collect {
+            SessionStateManager.sessionFlow.collect { session ->
                 refreshSessionUi()
                 refreshDashboardStats()
+                
+                // Update distraction count for the new UI card
+                binding.tvDistractionsCount.text = (session?.distractionsBlocked ?: 0).toString()
             }
         }
 
