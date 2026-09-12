@@ -7,7 +7,7 @@
 
 ---
 
-**Focus Vault** (package `com.stayfocused.app`) is an ultra-reliable, privacy-first native Android application and website blocker built for extreme discipline and deep focus. Focus Vault integrates unbypassable session protection, local DNS packet filtering, 24/7 permanent Vault Lock, PBKDF2 cryptographic locks, custom multi-tier home screen widgets, and offline analytics into a clean, modern Material interface.
+**Focus Vault** (package `com.focusvault.app`) is an ultra-reliable, privacy-first native Android application and website blocker built for extreme discipline and deep focus. Focus Vault integrates unbypassable session protection, local DNS packet filtering, 24/7 permanent Vault Lock, PBKDF2 cryptographic locks, custom multi-tier home screen widgets, and offline analytics into a clean, modern Material interface.
 
 ---
 
@@ -107,7 +107,7 @@ Focus Vault is engineered to operate **100% offline**:
 Focus Vault follows a modular, reactive Android architecture:
 
 ```
-com.stayfocused.app/
+com.focusvault.app/
 ├── adapter/          # RecyclerView Adapters (AppListAdapter, SiteListAdapter, HistoryAdapter)
 ├── appwidget/        # 4-Tier Home Screen Widgets & RemoteViews Provider
 ├── data/             # Room Database Entities, DAOs & Migrations (AppDatabase, BlockedApp, BlockedSite)

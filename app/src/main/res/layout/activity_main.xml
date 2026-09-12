@@ -149,7 +149,7 @@
                 android:layout_height="220dp"
                 android:layout_gravity="center_horizontal">
 
-                <com.stayfocused.app.ui.widget.CircularCountdownView
+                <com.focusvault.app.ui.widget.CircularCountdownView
                     android:id="@+id/ringGoalProgress"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
@@ -564,7 +564,7 @@
                 android:textStyle="bold"
                 android:letterSpacing="0.08" />
 
-            <com.stayfocused.app.ui.widget.WeeklyBarChartView
+            <com.focusvault.app.ui.widget.WeeklyBarChartView
                 android:id="@+id/chartWeekly"
                 android:layout_width="match_parent"
                 android:layout_height="90dp" />

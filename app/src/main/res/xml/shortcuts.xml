@@ -9,8 +9,8 @@
         android:shortcutLongLabel="@string/shortcut_start_focus_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.stayfocused.app"
-            android:targetClass="com.stayfocused.app.ui.MainActivity" />
+            android:targetPackage="com.focusvault.app"
+            android:targetClass="com.focusvault.app.ui.MainActivity" />
     </shortcut>
 
     <shortcut
@@ -21,8 +21,8 @@
         android:shortcutLongLabel="@string/shortcut_study_mode_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.stayfocused.app"
-            android:targetClass="com.stayfocused.app.ui.PresetsActivity" />
+            android:targetPackage="com.focusvault.app"
+            android:targetClass="com.focusvault.app.ui.PresetsActivity" />
     </shortcut>
 
     <shortcut
@@ -33,8 +33,8 @@
         android:shortcutLongLabel="@string/shortcut_system_health_long">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetPackage="com.stayfocused.app"
-            android:targetClass="com.stayfocused.app.ui.DiagnosticsActivity" />
+            android:targetPackage="com.focusvault.app"
+            android:targetClass="com.focusvault.app.ui.DiagnosticsActivity" />
     </shortcut>
 
 </shortcuts>

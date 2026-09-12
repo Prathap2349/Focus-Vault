@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.stayfocused.app'
+    namespace 'com.focusvault.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.stayfocused.app"
+        applicationId "com.focusvault.app"
         minSdk 26
         targetSdk 34
         versionCode 1

@@ -64,7 +64,7 @@
             android:layout_height="190dp"
             android:layout_marginTop="28dp">
 
-            <com.stayfocused.app.ui.widget.CircularCountdownView
+            <com.focusvault.app.ui.widget.CircularCountdownView
                 android:id="@+id/ringCountdown"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />

@@ -1,11 +1,11 @@
 # Add project specific ProGuard rules here.
--keep class com.stayfocused.app.data.** { *; }
--keep class com.stayfocused.app.appwidget.** { *; }
--keep class com.stayfocused.app.manager.** { *; }
--keep class com.stayfocused.app.service.** { *; }
--keep class com.stayfocused.app.receiver.** { *; }
--keep class com.stayfocused.app.ui.** { *; }
--keep class com.stayfocused.app.util.** { *; }
+-keep class com.focusvault.app.data.** { *; }
+-keep class com.focusvault.app.appwidget.** { *; }
+-keep class com.focusvault.app.manager.** { *; }
+-keep class com.focusvault.app.service.** { *; }
+-keep class com.focusvault.app.receiver.** { *; }
+-keep class com.focusvault.app.ui.** { *; }
+-keep class com.focusvault.app.util.** { *; }
 
 # Room SQLite & KSP reflection
 -keep class * extends androidx.room.RoomDatabase

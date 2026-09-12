@@ -155,7 +155,7 @@
             android:name=".service.FocusTileService"
             android:exported="true"
             android:icon="@drawable/bg_dot"
-            android:label="Stay Focused"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
