@@ -176,7 +176,8 @@ class FocusVpnService : VpnService() {
                 val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && allBlockedDomains.any { rawBlocked ->
                     val blocked = rawBlocked.removePrefix("*.").removePrefix("www.").lowercase()
                     val qName = udpDnsQuery.queryName.removePrefix("www.").lowercase()
-                    qName == blocked || qName.endsWith(".$blocked")
+                    val matches = qName == blocked || qName.endsWith(".$blocked")
+                    matches && !PrefsManager.isIndividualSitePaused(this@FocusVpnService, blocked)
                 }
 
                 if (isBlocked) {

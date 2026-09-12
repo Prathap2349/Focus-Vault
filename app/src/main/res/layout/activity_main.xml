@@ -116,7 +116,7 @@
             android:id="@+id/cardHeroFocus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/card_bg"
+            app:cardBackgroundColor="@color/bg_card"
             app:cardCornerRadius="24dp"
             app:cardElevation="2dp"
             android:layout_marginBottom="16dp">
@@ -153,7 +153,7 @@
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="4dp"
                             android:text="READY TO FOCUS"
-                            android:textColor="@color/accent_primary"
+                            android:textColor="@color/brand_primary"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
@@ -190,7 +190,7 @@
                         android:layout_height="56dp"
                         style="@style/Widget.MaterialComponents.Button"
                         android:text="START FOCUS"
-                        android:textColor="@color/text_on_accent"
+                        android:textColor="@color/white"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -206,7 +206,7 @@
                             android:layout_height="56dp"
                             style="@style/Widget.MaterialComponents.Button"
                             android:text="RESUME FOCUS"
-                            android:textColor="@color/text_on_accent"
+                            android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:visibility="gone"
@@ -217,7 +217,7 @@
                             android:layout_height="56dp"
                             style="@style/Widget.MaterialComponents.Button"
                             android:text="EMERGENCY PAUSE"
-                            android:textColor="@color/text_on_accent"
+                            android:textColor="@color/white"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="8dp"/>
@@ -238,7 +238,7 @@
                         android:layout_height="56dp"
                         style="@style/Widget.MaterialComponents.Button"
                         android:text="EMERGENCY UNLOCK (3 left)"
-                        android:textColor="@color/text_on_accent"
+                        android:textColor="@color/white"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:visibility="gone" />
@@ -260,7 +260,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardBackgroundColor="@color/card_bg"
+                app:cardBackgroundColor="@color/bg_card"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp">
                 <LinearLayout
@@ -285,7 +285,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardBackgroundColor="@color/card_bg"
+                app:cardBackgroundColor="@color/bg_card"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="1dp">
                 <LinearLayout
@@ -295,7 +295,7 @@
                     android:gravity="center_vertical"
                     android:padding="16dp">
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Distractions Resisted" android:textColor="@color/text_secondary" android:textSize="14sp"/>
-                    <TextView android:id="@+id/tvDistractionsCount" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="0" android:textColor="@color/accent_primary" android:textSize="32sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvDistractionsCount" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="0" android:textColor="@color/brand_primary" android:textSize="32sp" android:textStyle="bold"/>
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="today" android:textColor="@color/text_secondary" android:textSize="12sp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

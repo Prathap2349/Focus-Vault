@@ -96,6 +96,26 @@ class WebsiteBlockActivity : AppCompatActivity() {
             }
         }
         binding.recyclerSites.adapter = adapter
+        
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(0, androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT) {
+            override fun onMove(recyclerView: androidx.recyclerview.widget.RecyclerView, viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, target: androidx.recyclerview.widget.RecyclerView.ViewHolder): Boolean = false
+            override fun getSwipeDirs(recyclerView: androidx.recyclerview.widget.RecyclerView, viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder): Int {
+                if (viewHolder !is SiteListAdapter.SiteViewHolder) return 0
+                return super.getSwipeDirs(recyclerView, viewHolder)
+            }
+            override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) {
+                if (viewHolder is SiteListAdapter.SiteViewHolder) {
+                    val pos = viewHolder.bindingAdapterPosition
+                    val site = adapter.getSiteAt(pos)
+                    if (site != null) {
+                        PrefsManager.pauseIndividualSite(this@WebsiteBlockActivity, site.domain, 10 * 60 * 1000L) // 10 minutes
+                        Toast.makeText(this@WebsiteBlockActivity, "${site.domain} paused for 10 mins", Toast.LENGTH_SHORT).show()
+                        adapter.notifyItemChanged(pos)
+                    }
+                }
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(binding.recyclerSites)
 
         lifecycleScope.launch {
             val existing = db.blockedSiteDao().getActiveSitesOnce()

@@ -445,4 +445,39 @@ object PrefsManager {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
         return sdf.format(java.util.Date())
     }
+
+    // --- Individual Site Pausing (Task 3) ---
+    private const val KEY_PAUSED_SITES = "paused_sites_json"
+
+    fun pauseIndividualSite(context: android.content.Context, domain: String, durationMillis: Long) {
+        val prefs = prefs(context)
+        val currentJson = prefs.getString(KEY_PAUSED_SITES, "{}") ?: "{}"
+        try {
+            val jsonObject = org.json.JSONObject(currentJson)
+            jsonObject.put(domain, System.currentTimeMillis() + durationMillis)
+            prefs.edit().putString(KEY_PAUSED_SITES, jsonObject.toString()).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun isIndividualSitePaused(context: android.content.Context, domain: String): Boolean {
+        val prefs = prefs(context)
+        val currentJson = prefs.getString(KEY_PAUSED_SITES, "{}") ?: "{}"
+        return try {
+            val jsonObject = org.json.JSONObject(currentJson)
+            if (jsonObject.has(domain)) {
+                val expiry = jsonObject.getLong(domain)
+                if (System.currentTimeMillis() < expiry) {
+                    true
+                } else {
+                    jsonObject.remove(domain)
+                    prefs.edit().putString(KEY_PAUSED_SITES, jsonObject.toString()).apply()
+                    false
+                }
+            } else false
+        } catch (e: Exception) {
+            false
+        }
+    }
 }
