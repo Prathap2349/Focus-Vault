@@ -42,6 +42,12 @@
         <item name="android:paddingBottom">12dp</item>
     </style>
 
+    <style name="PrimaryButtonCompact" parent="PrimaryButton">
+        <item name="android:minHeight">36dp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+    </style>
+
     <style name="SecondaryButton" parent="Widget.Material3.Button.TonalButton">
         <item name="backgroundTint">@color/card_surface_elevated</item>
         <item name="cornerRadius">18dp</item>

@@ -249,7 +249,7 @@ class CircularCountdownView @JvmOverloads constructor(
             else -> setColors(
                 Color.parseColor("#6366F1"),
                 Color.parseColor("#818CF8"),
-                Color.argb(40, 99, 102, 241) // More visible empty track
+                Color.argb(110, 99, 102, 241) // More visible empty track
             )
         }
     }

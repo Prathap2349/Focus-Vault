@@ -412,6 +412,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvHeaderShieldIcon.text = "🛡️"
                 binding.tvHeaderShieldText.text = "Protected"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.success_green))
+                applyShieldBackground(R.color.success_green_chip_bg, false)
                 binding.tvProtectionStatusIcon.text = "🛡️"
                 binding.tvProtectionStatusTitle.text = "System Protection Active"
                 binding.tvProtectionStatusSub.text = "All protection services running · Checked ${report.getFormattedLastChecked()}"
@@ -420,6 +421,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvHeaderShieldIcon.text = "⚠️"
                 binding.tvHeaderShieldText.text = "Attention"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
+                applyShieldBackground(R.color.warning_amber_chip_bg, false)
                 binding.tvProtectionStatusIcon.text = "⚠️"
                 binding.tvProtectionStatusTitle.text = "Protection Partially Active"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
@@ -428,6 +430,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvHeaderShieldIcon.text = "✕"
                 binding.tvHeaderShieldText.text = "Action Needed"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
+                applyShieldBackground(R.color.strict_red_chip_bg, true)
                 binding.tvProtectionStatusIcon.text = "🔴"
                 binding.tvProtectionStatusTitle.text = "Protection Requires Action"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
@@ -436,6 +439,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Time-of-day greeting for the dashboard header. */
+    
+    private var shieldPulseAnimator: android.animation.ValueAnimator? = null
+
+    private fun applyShieldBackground(colorRes: Int, shouldPulse: Boolean) {
+        binding.cardHeaderShield.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, colorRes))
+        shieldPulseAnimator?.cancel()
+        if (shouldPulse && !com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+            shieldPulseAnimator = android.animation.ValueAnimator.ofFloat(1f, 0.6f).apply {
+                duration = 800L
+                repeatMode = android.animation.ValueAnimator.REVERSE
+                repeatCount = android.animation.ValueAnimator.INFINITE
+                addUpdateListener { va ->
+                    binding.cardHeaderShield.alpha = va.animatedValue as Float
+                }
+                start()
+            }
+        } else {
+            binding.cardHeaderShield.alpha = 1f
+        }
+    }
+
     private fun refreshGreeting() {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         binding.tvGreeting.text = when {

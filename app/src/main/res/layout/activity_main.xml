@@ -140,8 +140,9 @@
                         android:layout_height="match_parent" />
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="160dp"
                         android:layout_height="match_parent"
+                        android:layout_gravity="center"
                         android:gravity="center"
                         android:orientation="vertical">
 
@@ -174,7 +175,9 @@
                             android:layout_marginTop="4dp"
                             android:text="Tap to adjust"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="12sp"
+                            android:maxLines="2"
+                            android:gravity="center" />
                     </LinearLayout>
                 </FrameLayout>
 

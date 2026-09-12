@@ -61,5 +61,8 @@
     <color name="glow_lock">#40818CF8</color>
     <color name="glow_strict">#40F87171</color>
     <color name="overlay_noise">#06FFFFFF</color>
+    <color name="success_green_chip_bg">#3322C55E</color>
+    <color name="warning_amber_chip_bg">#33F59E0B</color>
+    <color name="strict_red_chip_bg">#33EF4444</color>
 </resources>
 
