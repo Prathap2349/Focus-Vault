@@ -6,14 +6,17 @@
     android:background="@drawable/bg_dashboard_card"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="12dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <!-- Left: Status & Timer -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:minWidth="100dp">
+        android:minWidth="90dp">
 
         <TextView
             android:id="@+id/tvWidgetWideMode"
@@ -23,7 +26,9 @@
             android:textColor="@color/text_secondary"
             android:textSize="10sp"
             android:textStyle="bold"
-            android:letterSpacing="0.06" />
+            android:letterSpacing="0.06"
+            android:maxLines="1"
+            android:ellipsize="end" />
 
         <TextView
             android:id="@+id/tvWidgetWideTimer"
@@ -33,22 +38,26 @@
             android:text="42:18"
             android:textColor="@color/text_primary"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
     </LinearLayout>
 
-    <!-- Center: Progress Bar & Details -->
+    <!-- Center: Progress Bar, Streak & Details -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:orientation="vertical">
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/tvWidgetWideDetailLeft"
@@ -57,7 +66,25 @@
                 android:layout_weight="1"
                 android:text="Started 2:15 PM"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
+                android:textSize="10sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvWidgetWideStreak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/widget_badge_streak"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:text="🔥 7d"
+                android:textColor="@color/accent_streak"
+                android:textSize="9sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvWidgetWideDetailRight"
@@ -73,8 +100,8 @@
             android:id="@+id/progressWidgetWide"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="5dp"
-            android:layout_marginTop="4dp"
+            android:layout_height="4dp"
+            android:layout_marginTop="3dp"
             android:max="100"
             android:progress="72"
             android:progressTint="@color/brand_primary" />
@@ -83,7 +110,7 @@
             android:id="@+id/tvWidgetWideSub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:text="Ends 2:57 PM · 34 min to daily goal"
             android:textColor="@color/text_secondary"
             android:textSize="10sp"
@@ -91,42 +118,23 @@
             android:ellipsize="end" />
     </LinearLayout>
 
-    <!-- Right: Streak & Action -->
-    <LinearLayout
+    <!-- Right: Action Button alone, vertically centered, guaranteed never to be pushed out -->
+    <Button
+        android:id="@+id/btnWidgetWideAction"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="end">
-
-        <TextView
-            android:id="@+id/tvWidgetWideStreak"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/widget_badge_streak"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:text="🔥 7d"
-            android:textColor="@color/accent_streak"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnWidgetWideAction"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/widget_btn_primary"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:text="View"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:layout_height="32dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/widget_btn_primary"
+        android:minWidth="64dp"
+        android:minHeight="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"
+        android:text="View"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="11sp"
+        android:textStyle="bold" />
 
 </LinearLayout>

@@ -400,9 +400,21 @@ class WebsiteBlockingEngineRegressionTest {
     fun testUserAcceptanceTest1_BlockYoutubeAllowsUnrelated() {
         val blocked = setOf("youtube.com")
         assertTrue(DomainMatcher.isDomainBlocked("youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("www.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("m.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("music.youtube.com", blocked))
+
         assertFalse(DomainMatcher.isDomainBlocked("google.com", blocked))
         assertFalse(DomainMatcher.isDomainBlocked("github.com", blocked))
         assertFalse(DomainMatcher.isDomainBlocked("wikipedia.org", blocked))
+        assertFalse("notyoutube.com must NOT be blocked", DomainMatcher.isDomainBlocked("notyoutube.com", blocked))
+        assertFalse("youtube.com.foo must NOT be blocked", DomainMatcher.isDomainBlocked("youtube.com.foo", blocked))
+
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("www.youtube.com", blocked))
+        assertEquals("youtube.com", DomainMatcher.getMatchingRule("music.youtube.com", blocked))
+        assertEquals(null, DomainMatcher.getMatchingRule("google.com", blocked))
+        assertEquals(null, DomainMatcher.getMatchingRule("youtube.com.foo", blocked))
     }
 
     @Test

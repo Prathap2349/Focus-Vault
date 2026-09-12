@@ -79,6 +79,8 @@ class FocusVpnService : VpnService() {
         private val PUBLIC_FALLBACK_DNS = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1")
     }
 
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopVpnInternal()
@@ -107,6 +109,7 @@ class FocusVpnService : VpnService() {
 
         running = true
         com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(true)
+        registerNetworkCallback()
         Log.i(TAG, "🚀 VPN ESTABLISHED on $TUNNEL_IP/$TUNNEL_PREFIX")
         scope.launch { runTunnelLoop() }
         return START_STICKY
@@ -114,6 +117,7 @@ class FocusVpnService : VpnService() {
 
     fun stopVpnInternal() {
         running = false
+        unregisterNetworkCallback()
         com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
         try { vpnInterface?.close() } catch (_: Exception) {}
         vpnInterface = null
@@ -123,6 +127,61 @@ class FocusVpnService : VpnService() {
         } catch (_: Exception) {}
         Log.i(TAG, "🛑 VPN STOPPED")
         stopSelf()
+    }
+
+    private fun registerNetworkCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            try {
+                val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                networkCallback = object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        updateUnderlyingNetworks()
+                    }
+                    override fun onLost(network: Network) {
+                        updateUnderlyingNetworks()
+                    }
+                    override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                        updateUnderlyingNetworks()
+                    }
+                }
+                val request = android.net.NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build()
+                cm.registerNetworkCallback(request, networkCallback!!)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed registering network callback: ${e.message}")
+            }
+        }
+    }
+
+    private fun unregisterNetworkCallback() {
+        try {
+            networkCallback?.let {
+                val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                cm.unregisterNetworkCallback(it)
+            }
+        } catch (_: Exception) {}
+        networkCallback = null
+    }
+
+    private fun updateUnderlyingNetworks() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            try {
+                val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                val physicalNetworks = cm.allNetworks.filter { net ->
+                    val caps = cm.getNetworkCapabilities(net)
+                    caps != null && !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                        (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                         caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                         caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                }
+                if (physicalNetworks.isNotEmpty()) {
+                    setUnderlyingNetworks(physicalNetworks.toTypedArray())
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not set underlying networks: ${e.message}")
+            }
+        }
     }
 
     private fun establishVpn() {
@@ -142,24 +201,7 @@ class FocusVpnService : VpnService() {
             Log.w(TAG, "Could not add disallowed application: ${e.message}")
         }
 
-        // Inform Android of the underlying physical networks (Wi-Fi / Cellular)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            try {
-                val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                val physicalNetworks = cm.allNetworks.filter { net ->
-                    val caps = cm.getNetworkCapabilities(net)
-                    caps != null && !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
-                        (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                         caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                         caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-                }
-                if (physicalNetworks.isNotEmpty()) {
-                    setUnderlyingNetworks(physicalNetworks.toTypedArray())
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not set underlying networks: ${e.message}")
-            }
-        }
+        updateUnderlyingNetworks()
 
         vpnInterface = builder.establish()
     }
@@ -176,10 +218,29 @@ class FocusVpnService : VpnService() {
 
         try {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+            // 1. Prioritize the currently active network (Wi-Fi or Mobile)
+            val activeNet = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) cm.activeNetwork else null
+            if (activeNet != null) {
+                val caps = cm.getNetworkCapabilities(activeNet)
+                if (caps != null && !caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                    val lp = cm.getLinkProperties(activeNet)
+                    if (lp != null) {
+                        for (dns in lp.dnsServers) {
+                            val ip = dns.hostAddress?.substringBefore("%") // strip scope id
+                            if (!ip.isNullOrEmpty() && ip != TUNNEL_IP && !ip.startsWith("127.") && !ip.startsWith("fe80:") && seenIps.add(ip)) {
+                                endpoints.add(DnsEndpoint(ip, activeNet))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Discover other physical network DNS servers
             val allNetworks = cm.allNetworks
             for (network in allNetworks) {
+                if (network == activeNet) continue
                 val caps = cm.getNetworkCapabilities(network) ?: continue
-                // Exclude any VPN transport
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue
                 val isPhysical = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
                     caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
@@ -188,7 +249,7 @@ class FocusVpnService : VpnService() {
 
                 val lp = cm.getLinkProperties(network) ?: continue
                 for (dns in lp.dnsServers) {
-                    val ip = dns.hostAddress
+                    val ip = dns.hostAddress?.substringBefore("%")
                     if (!ip.isNullOrEmpty() && ip != TUNNEL_IP && !ip.startsWith("127.") && !ip.startsWith("fe80:") && seenIps.add(ip)) {
                         endpoints.add(DnsEndpoint(ip, network))
                     }
@@ -198,14 +259,14 @@ class FocusVpnService : VpnService() {
             Log.w(TAG, "Error discovering physical network DNS", e)
         }
 
-        // Add public DNS fallbacks
+        // 3. Add public DNS fallbacks (always available)
         for (fallback in PUBLIC_FALLBACK_DNS) {
             if (seenIps.add(fallback)) {
                 endpoints.add(DnsEndpoint(fallback, null))
             }
         }
 
-        // Prioritize the last working DNS server if present
+        // 4. Prioritize the last known working DNS server if present
         val cached = lastWorkingDnsAddress
         if (cached != null) {
             val idx = endpoints.indexOfFirst { it.address == cached }
@@ -237,7 +298,7 @@ class FocusVpnService : VpnService() {
                 dnsPayload, dnsPayload.size,
                 InetSocketAddress(endpoint.address, 53)
             )
-            socket.soTimeout = 900 // fast 900ms timeout per socket
+            socket.soTimeout = 2500 // 2500ms per socket
             socket.send(forwardPacket)
 
             val replyBuffer = ByteArray(4096)
@@ -267,8 +328,8 @@ class FocusVpnService : VpnService() {
         val endpoints = discoverUpstreamDnsServers()
         if (endpoints.isEmpty()) return@withContext null
 
-        // Race top candidates concurrently (cached working server, primary physical DNS, and public fallback)
-        val candidates = endpoints.take(3)
+        // Race top candidates concurrently (cached server, active physical network DNS, and public fallbacks)
+        val candidates = endpoints.take(4)
         val resultChannel = kotlinx.coroutines.channels.Channel<DatagramPacket>(candidates.size)
 
         val jobs = candidates.map { endpoint ->
@@ -282,7 +343,7 @@ class FocusVpnService : VpnService() {
 
         var winningReply: DatagramPacket? = null
         try {
-            kotlinx.coroutines.withTimeoutOrNull(1100L) {
+            kotlinx.coroutines.withTimeoutOrNull(3500L) {
                 winningReply = resultChannel.receiveCatching().getOrNull()
             }
         } catch (_: Exception) {
@@ -292,8 +353,8 @@ class FocusVpnService : VpnService() {
         }
 
         // If top candidates didn't answer, fallback sequentially to remaining endpoints
-        if (winningReply == null && endpoints.size > 3) {
-            for (fallbackEndpoint in endpoints.drop(3)) {
+        if (winningReply == null && endpoints.size > 4) {
+            for (fallbackEndpoint in endpoints.drop(4)) {
                 val reply = forwardDnsQuery(dnsPayload, fallbackEndpoint, expectedId)
                 if (reply != null) {
                     return@withContext reply
@@ -325,18 +386,12 @@ class FocusVpnService : VpnService() {
                 val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet)
 
                 if (udpDnsQuery == null) {
-                    // Check if incoming packet is TCP (e.g. DoT on port 853 or TCP DNS on port 53).
-                    // Send an immediate TCP RST so the client gets Connection Refused and
-                    // falls back to UDP 53 without hanging for 5-10 seconds!
-                    val rst = DnsPacketParser.buildTcpRstResponse(rawPacket, length)
-                    if (rst != null) {
-                        outputMutex.withLock { output.write(rst) }
-                    }
+                    // Non-DNS packet: do NOT generate TCP RST. Simply ignore/drop from TUN
+                    // without interfering with normal connectivity for unrelated traffic.
                     continue
                 }
 
                 val queryDomain = udpDnsQuery.queryName
-                Log.d(TAG, "DNS QUERY: $queryDomain")
 
                 // Fetch active blocked domains
                 val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this))
@@ -345,22 +400,30 @@ class FocusVpnService : VpnService() {
                     PrefsManager.getPermanentBlockedDomains(this) else emptySet()
                 val allBlocked = sessionBlocked + permanentBlocked
 
-                val isBlocked = !PrefsManager.isEmergencyPauseActive(this) &&
-                    DomainMatcher.isDomainBlocked(
-                        queryDomain = queryDomain,
-                        blockedDomains = allBlocked.filterNot { raw ->
-                            val b = DomainMatcher.normalizeBlockedDomain(raw)
-                            PrefsManager.isIndividualSitePaused(this@FocusVpnService, b)
-                        }.toSet()
-                    )
+                val effectiveBlocked = allBlocked.filterNot { raw ->
+                    val b = DomainMatcher.normalizeBlockedDomain(raw)
+                    PrefsManager.isIndividualSitePaused(this@FocusVpnService, b)
+                }.toSet()
+
+                val matchedRule = DomainMatcher.getMatchingRule(queryDomain, effectiveBlocked)
+                val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && (matchedRule != null)
+
+                // Required Debug Logging Format:
+                Log.d(TAG, "INPUT DNS QUERY:\n$queryDomain\n\nBLOCK DECISION:\n$isBlocked\n\nMATCHED BLOCK RULE:\n${if (isBlocked) (matchedRule ?: "none") else "none"}")
 
                 if (isBlocked) {
-                    Log.i(TAG, "🛑 BLOCKED: $queryDomain")
+                    // STATE 1: BLOCKED
+                    // The DNS query matches an explicitly configured blocking rule.
+                    // Return the intentional blocking response.
+                    Log.i(TAG, "🛑 [STATE: BLOCKED] $queryDomain matched rule: $matchedRule")
                     com.focusvault.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
                     val nxResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length, udpDnsQuery.questionSectionLength)
                     outputMutex.withLock { output.write(nxResponse) }
                 } else {
-                    Log.d(TAG, "✅ ALLOWED: $queryDomain")
+                    // STATE 2: ALLOWED
+                    // The DNS query does not match any blocking rule.
+                    // Resolve it normally through a working upstream DNS server.
+                    Log.d(TAG, "✅ [STATE: ALLOWED] $queryDomain resolving upstream")
                     if (PrefsManager.isSessionCurrentlyActive(this)) {
                         PrefsManager.recordQueriedDomain(this, queryDomain)
                     }
@@ -384,6 +447,10 @@ class FocusVpnService : VpnService() {
                                 Log.e(TAG, "Failed writing reply for $queryDomain", e)
                             }
                         } else {
+                            // STATE 3: UPSTREAM FAILURE
+                            // The query was allowed, but DNS resolution failed upstream.
+                            // Log this as an upstream/network failure. NEVER report it as BLOCKED.
+                            Log.w(TAG, "⚠️ [STATE: UPSTREAM FAILURE] Upstream DNS servers failed to resolve allowed domain: $queryDomain. Returning SERVFAIL (NOT BLOCKED).")
                             try {
                                 val servFail = DnsPacketParser.buildServFailResponse(rawCopy, lenCopy, qLen)
                                 outputMutex.withLock { output.write(servFail) }
@@ -444,6 +511,7 @@ class FocusVpnService : VpnService() {
 
     override fun onDestroy() {
         running = false
+        unregisterNetworkCallback()
         com.focusvault.app.manager.ProtectionEngine.isVpnRunning.set(false)
         serviceJob.cancel()
         vpnInterface?.close()

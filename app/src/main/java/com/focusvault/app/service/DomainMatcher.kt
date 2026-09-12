@@ -62,6 +62,27 @@ object DomainMatcher {
 
     /**
      * Evaluates whether [queryDomain] matches any entry in [blockedDomains].
+     * Returns the matched canonical domain if blocked, or null if allowed.
+     */
+    fun getMatchingRule(queryDomain: String, blockedDomains: Set<String>): String? {
+        if (blockedDomains.isEmpty()) return null
+        val q = normalizeQueryDomain(queryDomain)
+        if (q.isEmpty()) return null
+
+        for (rawBlocked in blockedDomains) {
+            val b = normalizeBlockedDomain(rawBlocked)
+            // Safety check: must be a valid domain with at least 2 labels (e.g. "youtube.com")
+            // Prevents broad TLD matching if "com" or invalid entry is passed
+            if (!isValidDomain(b)) continue
+            if (q == b || q.endsWith(".$b")) {
+                return b
+            }
+        }
+        return null
+    }
+
+    /**
+     * Evaluates whether [queryDomain] matches any entry in [blockedDomains].
      *
      * Domain boundary guarantee:
      * - If blocked is "youtube.com":
@@ -71,22 +92,10 @@ object DomainMatcher {
      *   - "music.youtube.com" -> MATCH (ends with .youtube.com)
      *   - "notyoutube.com" -> NO MATCH
      *   - "youtube.com.example.com" -> NO MATCH
+     *   - "youtube.com.foo" -> NO MATCH
      *   - "google.com" -> NO MATCH
      */
     fun isDomainBlocked(queryDomain: String, blockedDomains: Set<String>): Boolean {
-        if (blockedDomains.isEmpty()) return false
-        val q = normalizeQueryDomain(queryDomain)
-        if (q.isEmpty()) return false
-
-        for (rawBlocked in blockedDomains) {
-            val b = normalizeBlockedDomain(rawBlocked)
-            // Safety check: must be a valid domain with at least 2 labels (e.g. "youtube.com")
-            // Prevents broad TLD matching if "com" or invalid entry is passed
-            if (!isValidDomain(b)) continue
-            if (q == b || q.endsWith(".$b")) {
-                return true
-            }
-        }
-        return false
+        return getMatchingRule(queryDomain, blockedDomains) != null
     }
 }
