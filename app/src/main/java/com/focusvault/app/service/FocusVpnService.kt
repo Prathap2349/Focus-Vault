@@ -108,6 +108,10 @@ class FocusVpnService : VpnService() {
         "208.67.222.222", "208.67.220.220" // OpenDNS
     )
 
+    /** Ordered list of upstream DNS servers to try. We try the network's own DNS first,
+     *  then Google and Cloudflare as fallbacks so forwarding never silently fails. */
+    private val FALLBACK_DNS_SERVERS = listOf("8.8.8.8", "8.8.4.4", "1.1.1.1")
+
     private fun getActiveDnsServer(context: Context): String {
         try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
@@ -116,21 +120,39 @@ class FocusVpnService : VpnService() {
                 val linkProperties = cm.getLinkProperties(activeNetwork)
                 val dnsServers = linkProperties?.dnsServers
                 if (!dnsServers.isNullOrEmpty()) {
-                    // Filter out 10.0.0.2 (our own tunnel) and any DoH IP we route into the tunnel
-                    // to completely guarantee we never cause an infinite routing loop if protect() fails.
-                    val ipv4Dns = dnsServers.firstOrNull { 
-                        it is java.net.Inet4Address && it.hostAddress != "10.0.0.2" && !KNOWN_DOH_RESOLVER_IPS.contains(it.hostAddress)
+                    // Filter out 10.0.0.2 (our own tunnel) to avoid an infinite loop
+                    val ipv4Dns = dnsServers.firstOrNull {
+                        it is java.net.Inet4Address && it.hostAddress != "10.0.0.2"
                     }
-                    val fallbackDns = dnsServers.firstOrNull { 
-                        it.hostAddress != "10.0.0.2" && !KNOWN_DOH_RESOLVER_IPS.contains(it.hostAddress)
+                    val anyDns = dnsServers.firstOrNull {
+                        it.hostAddress != "10.0.0.2"
                     }
-                    return ipv4Dns?.hostAddress ?: fallbackDns?.hostAddress ?: UPSTREAM_DNS
+                    val result = ipv4Dns?.hostAddress ?: anyDns?.hostAddress
+                    if (!result.isNullOrEmpty()) return result
                 }
             }
         } catch (e: Exception) {
             // fallback
         }
         return UPSTREAM_DNS
+    }
+
+    /** Try resolving via the given DNS server; returns the reply or null on failure. */
+    private fun tryResolve(dnsPayload: ByteArray, serverIp: String): java.net.DatagramPacket? {
+        return try {
+            val socket = DatagramSocket()
+            protect(socket)
+            val fwd = java.net.DatagramPacket(dnsPayload, dnsPayload.size, InetSocketAddress(serverIp, 53))
+            socket.send(fwd)
+            val replyBuf = ByteArray(4096)
+            val reply = java.net.DatagramPacket(replyBuf, replyBuf.size)
+            socket.soTimeout = 3000
+            socket.receive(reply)
+            socket.close()
+            reply
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun establishVpn() {
@@ -141,12 +163,11 @@ class FocusVpnService : VpnService() {
             .addRoute("10.0.0.0", 8) // narrow route; we only actually care about DNS
             .setMtu(1500)
 
-        // We previously routed traffic to known DoH/DoT bootstrap IPs here.
-        // However, this caused all Private DNS traffic (e.g. DoT on port 853) to be routed
-        // into the tunnel, where it was silently dropped by extractDnsQuery (which only handles
-        // plain UDP/port 53). Dropping Private DNS breaks system-wide internet resolution.
-        // By removing these /32 routes, DoT/DoH traffic explicitly passes through natively.
-        // KNOWN_DOH_RESOLVER_IPS.forEach { ip -> builder.addRoute(ip, 32) }
+        // Disable Private DNS for our VPN interface so all DNS comes as plain UDP/53
+        // instead of DoT/853, which our parser can't handle.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            builder.setMetered(false)
+        }
 
         vpnInterface = builder.establish()
     }
@@ -167,7 +188,40 @@ class FocusVpnService : VpnService() {
 
                 val rawPacket = buffer.copyOf(length)
                 val packet = ByteBuffer.wrap(rawPacket, 0, length)
-                val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet) ?: continue
+                val udpDnsQuery = DnsPacketParser.extractDnsQuery(packet)
+
+                // If the packet is not a standard UDP/port-53 DNS query, we can't parse or filter it.
+                // This happens when the OS sends DNS-over-TLS (port 853) or TCP DNS.
+                // Instead of silently dropping it (which kills ALL DNS), forward the raw
+                // DNS payload to our upstream on port 53 so the domain still resolves.
+                if (udpDnsQuery == null) {
+                    // Try to extract raw DNS payload for non-standard packets (e.g. port 853)
+                    val fallbackQuery = DnsPacketParser.extractDnsQueryAnyPort(ByteBuffer.wrap(rawPacket, 0, length))
+                    if (fallbackQuery != null) {
+                        val payload = fallbackQuery.rawDnsPayload
+                        val raw = rawPacket.copyOf(length)
+                        val len = length
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val activeDns = getActiveDnsServer(applicationContext)
+                                val serversToTry = listOf(activeDns) + FALLBACK_DNS_SERVERS.filter { it != activeDns }
+                                for (server in serversToTry) {
+                                    val replyPacket = tryResolve(payload, server)
+                                    if (replyPacket != null) {
+                                        val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
+                                            originalRequestPacket = raw,
+                                            originalLength = len,
+                                            dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
+                                        )
+                                        outputMutex.withLock { output.write(fullReply) }
+                                        break
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                    continue
+                }
 
                 val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this)) PrefsManager.getBlockedDomains(this) else emptySet()
                 val permanentBlocked = if (!PrefsManager.isPermanentBlockPaused(this)) PrefsManager.getPermanentBlockedDomains(this) else emptySet()
@@ -194,34 +248,26 @@ class FocusVpnService : VpnService() {
                         PrefsManager.recordQueriedDomain(this, queryDomain)
                     }
 
-                    // Forward to upstream resolver asynchronously so the TUN read loop is never blocked
+                    // Forward to upstream resolver asynchronously with fallbacks
                     val dnsPayload = udpDnsQuery.rawDnsPayload
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val upstreamSocket = DatagramSocket()
-                            protect(upstreamSocket) // exclude this socket from the VPN to avoid a loop
                             val activeDns = getActiveDnsServer(applicationContext)
-                            val forwardPacket = java.net.DatagramPacket(
-                                dnsPayload, dnsPayload.size, InetSocketAddress(activeDns, 53)
-                            )
-                            upstreamSocket.send(forwardPacket)
-
-                            val replyBuf = ByteArray(4096)
-                            val replyPacket = java.net.DatagramPacket(replyBuf, replyBuf.size)
-                            upstreamSocket.soTimeout = 3000
-                            upstreamSocket.receive(replyPacket)
-                            upstreamSocket.close()
-
-                            val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
-                                originalRequestPacket = rawPacket,
-                                originalLength = length,
-                                dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
-                            )
-                            outputMutex.withLock {
-                                output.write(fullReply)
+                            val serversToTry = listOf(activeDns) + FALLBACK_DNS_SERVERS.filter { it != activeDns }
+                            for (server in serversToTry) {
+                                val replyPacket = tryResolve(dnsPayload, server)
+                                if (replyPacket != null) {
+                                    val fullReply = DnsPacketParser.wrapDnsReplyIntoIpPacket(
+                                        originalRequestPacket = rawPacket,
+                                        originalLength = length,
+                                        dnsAnswer = replyPacket.data.copyOf(replyPacket.length)
+                                    )
+                                    outputMutex.withLock { output.write(fullReply) }
+                                    break
+                                }
                             }
                         } catch (e: Exception) {
-                            // Upstream failure: drop silently, browser/app will just retry or time out
+                            // All upstream servers failed: browser/app will retry
                         }
                     }
                 }

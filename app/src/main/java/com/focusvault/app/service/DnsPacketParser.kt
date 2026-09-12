@@ -88,6 +88,79 @@ object DnsPacketParser {
         }
     }
 
+    /**
+     * Like [extractDnsQuery] but accepts UDP packets on ANY destination port,
+     * not just port 53. Used for handling DNS-over-TLS (port 853) or other
+     * non-standard DNS traffic that enters the tunnel. We extract the raw DNS
+     * payload so it can be re-forwarded on plain port 53 to our upstream.
+     */
+    fun extractDnsQueryAnyPort(packet: ByteBuffer): DnsQuery? {
+        try {
+            packet.order(ByteOrder.BIG_ENDIAN)
+            if (packet.remaining() < 20) return null
+            val versionAndIhl = packet.get(0).toInt()
+            val version = (versionAndIhl shr 4) and 0xF
+            if (version != 4) return null // only IPv4 handled
+            val ihl = (versionAndIhl and 0xF) * 4
+            val protocol = packet.get(9).toInt() and 0xFF
+            if (protocol != 17) return null // only UDP
+
+            val sourceIp = ByteArray(4)
+            val destIp = ByteArray(4)
+            packet.position(12)
+            packet.get(sourceIp)
+            packet.get(destIp)
+
+            packet.position(ihl)
+            val srcPort = packet.short.toInt() and 0xFFFF
+            val dstPort = packet.short.toInt() and 0xFFFF
+            packet.short // length
+            packet.short // checksum
+            // NOTE: No port 53 check here — accept any port
+
+            val dnsStart = ihl + 8
+            if (packet.limit() <= dnsStart + 12) return null
+
+            val dnsId = ((packet.get(dnsStart).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 1).toInt() and 0xFF)
+            val qdCount = ((packet.get(dnsStart + 4).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 5).toInt() and 0xFF)
+            if (qdCount < 1) return null
+
+            // Try to parse the domain name
+            var pos = dnsStart + 12
+            val nameBuilder = StringBuilder()
+            var jumps = 0
+            while (pos < packet.limit()) {
+                val len = packet.get(pos).toInt() and 0xFF
+                if (len == 0) break
+                if ((len and 0xC0) == 0xC0) {
+                    if (jumps++ > 16) return null
+                    val offsetHigh = len and 0x3F
+                    val offsetLow = packet.get(pos + 1).toInt() and 0xFF
+                    pos = dnsStart + (offsetHigh shl 8 or offsetLow)
+                    continue
+                }
+                pos += 1
+                if (pos + len > packet.limit()) return null
+                for (i in 0 until len) {
+                    nameBuilder.append(packet.get(pos + i).toInt().toChar())
+                }
+                pos += len
+                nameBuilder.append('.')
+            }
+            val queryName = nameBuilder.toString().removeSuffix(".").lowercase()
+            if (queryName.isEmpty()) return null
+
+            val dnsPayloadLength = packet.limit() - dnsStart
+            val dnsPayload = ByteArray(dnsPayloadLength)
+            packet.position(dnsStart)
+            packet.get(dnsPayload)
+
+            return DnsQuery(queryName, dnsPayload, sourceIp, destIp, srcPort, dstPort, dnsId)
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     /** Builds a synthetic NXDOMAIN DNS response wrapped back in IP+UDP, swapping src/dst. */
     fun buildNxDomainResponse(originalPacket: ByteArray, length: Int): ByteArray {
         val buf = ByteBuffer.wrap(originalPacket, 0, length).duplicate()
