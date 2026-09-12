@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ===== Dark Theme Semantic Colors (Premium Dark + Electric Violet) ===== -->
-    <!-- Screen Background: Deep near-black background -->
-    <color name="bg_light">#080B12</color>
+    <!-- Screen Background: Deep dark navy base background -->
+    <color name="bg_light">#0B1020</color>
 
     <!-- Surface Elevation Hierarchy -->
-    <color name="bg_card">#111827</color>
-    <color name="card_surface">#111827</color>
+    <color name="bg_card">#11192B</color>
+    <color name="card_surface">#11192B</color>
     <color name="card_surface_secondary">#151B2B</color>
-    <color name="card_surface_elevated">#1A2233</color>
-    <color name="card_border">#1E293B</color>
-    <color name="divider">#1E293B</color>
+    <color name="card_surface_elevated">#17213A</color>
+    <color name="card_border">#33456F</color>
+    <color name="divider">#33456F</color>
 
     <!-- Text in Dark Mode -->
     <color name="text_primary">#F8FAFC</color>
@@ -18,5 +18,5 @@
     <color name="text_muted">#64748B</color>
 
     <!-- Full-Screen Overlay -->
-    <color name="overlay_dark">#F0080B12</color>
+    <color name="overlay_dark">#F00B1020</color>
 </resources>

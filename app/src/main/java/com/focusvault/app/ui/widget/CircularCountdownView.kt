@@ -41,24 +41,16 @@ class CircularCountdownView @JvmOverloads constructor(
     private var breathingScale: Float = 1f
     private val breathingGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
 
-
     private var orbitalAngle: Float = 0f
     var isOrbitalActive: Boolean = false
         set(value) {
             field = value
-            if (value && !AnimationHelper.isReduceMotion(context)) {
-                startOrbitalAnimation()
-                startSheenAnimation()
-                startBreathingAnimation()
-            } else {
-                stopOrbitalAnimation()
-                stopBreathingAnimation()
-            }
+            invalidate()
         }
 
     private var ringStartColor: Int = Color.parseColor("#8B5CF6") // Electric Violet
     private var ringEndColor: Int = Color.parseColor("#7C3AED")
-    private var trackColor: Int = Color.argb(40, 139, 92, 246)
+    private var trackColor: Int = Color.argb(40, 51, 69, 111) // #33456F subtle track
 
     private val strokeWidthPx = context.resources.displayMetrics.density * 9f
 
@@ -200,8 +192,6 @@ class CircularCountdownView @JvmOverloads constructor(
         ringStartColor = start
         ringEndColor = end
         trackColor = track
-        particleGlowPaint.color = Color.argb(120, Color.red(start), Color.green(start), Color.blue(start))
-        breathingGlowPaint.color = Color.argb(15, Color.red(start), Color.green(start), Color.blue(start))
         rebuild()
     }
 
@@ -216,40 +206,31 @@ class CircularCountdownView @JvmOverloads constructor(
 
         when {
             isCompleted -> setColors(
-                Color.parseColor("#22C55E"), // Success Green
-                Color.parseColor("#14B8A6"), // Teal
-                Color.argb(30, 34, 197, 94)
+                Color.parseColor("#34D399"), // Success Green
+                Color.parseColor("#10B981"),
+                Color.argb(30, 52, 211, 153)
             )
             isPaused -> setColors(
-                Color.parseColor("#F59E0B"), // Warning Amber
-                Color.parseColor("#D97706"),
-                Color.argb(30, 245, 158, 11)
+                Color.parseColor("#FBBF24"), // Warning / Paused Amber
+                Color.parseColor("#F59E0B"),
+                Color.argb(30, 251, 191, 36)
             )
             isStrict -> setColors(
-                Color.parseColor("#EF4444"), // Strict Red
-                Color.parseColor("#DC2626"),
-                Color.argb(30, 239, 68, 68)
+                Color.parseColor("#FB7185"), // Strict Rose Red
+                Color.parseColor("#F43F5E"),
+                Color.argb(30, 251, 113, 133)
             )
             isActive -> {
-                // Dynamic Color Shifting: As session completes (final 15%), blend into emerald/teal
-                if (remainingRatio < 0.15f) {
-                    setColors(
-                        Color.parseColor("#22C55E"), // Success Green
-                        Color.parseColor("#22D3EE"), // Cyan
-                        Color.argb(35, 34, 197, 94)
-                    )
-                } else {
-                    setColors(
-                        Color.parseColor("#8B5CF6"), // Electric Violet
-                        Color.parseColor("#7C3AED"),
-                        Color.argb(35, 139, 92, 246)
-                    )
-                }
+                setColors(
+                    Color.parseColor("#8B5CF6"), // Electric Violet
+                    Color.parseColor("#7C3AED"),
+                    Color.argb(35, 139, 92, 246)
+                )
             }
             else -> setColors(
                 Color.parseColor("#8B5CF6"),
                 Color.parseColor("#7C3AED"),
-                Color.argb(60, 139, 92, 246) // Visible empty track
+                Color.argb(40, 51, 69, 111) // #33456F subtle border track
             )
         }
     }
@@ -279,6 +260,7 @@ class CircularCountdownView @JvmOverloads constructor(
         )
         breathingGlowPaint.strokeWidth = strokeWidthPx * 1.5f
         breathingGlowPaint.maskFilter = android.graphics.BlurMaskFilter(strokeWidthPx, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        particleGlowPaint.color = Color.argb(120, Color.red(ringStartColor), Color.green(ringStartColor), Color.blue(ringStartColor))
         invalidate()
     }
 
@@ -296,35 +278,21 @@ class CircularCountdownView @JvmOverloads constructor(
         }
 
         
-        // Draw Breathing Glow
-        if (isOrbitalActive) {
-            canvas.save()
-            canvas.scale(breathingScale, breathingScale, cx, cy)
-            canvas.drawArc(arcRect, 0f, 360f, false, breathingGlowPaint)
-            canvas.restore()
-        }
-
         canvas.drawArc(arcRect, 0f, 360f, false, trackPaint)
-        if (!AnimationHelper.isReduceMotion(context) && isOrbitalActive) {
-            canvas.save()
-            canvas.rotate(sheenAngle, cx, cy)
-            canvas.drawArc(arcRect, 0f, 360f, false, trackSheenPaint)
-            canvas.restore()
-        }
         if (progress > 0f) {
             canvas.drawArc(arcRect, -90f, 360f * progress, false, progressPaint)
-        }
 
-        // Draw Ambient Orbital Light Particle
-        if (isOrbitalActive && progress > 0.02f) {
-            val angleRad = Math.toRadians((orbitalAngle - 90.0).toDouble())
-            val px = (cx + radius * cos(angleRad)).toFloat()
-            val py = (cy + radius * sin(angleRad)).toFloat()
+            // Draw calm, refined focus bead at the tip of the progress arc
+            if (progress > 0.01f) {
+                val tipAngleRad = Math.toRadians((-90.0 + 360.0 * progress))
+                val px = (cx + radius * cos(tipAngleRad)).toFloat()
+                val py = (cy + radius * sin(tipAngleRad)).toFloat()
 
-            // Outer soft glow bead
-            canvas.drawCircle(px, py, strokeWidthPx * 0.75f, particleGlowPaint)
-            // Inner crisp core
-            canvas.drawCircle(px, py, strokeWidthPx * 0.35f, particleCorePaint)
+                // Outer soft glow bead
+                canvas.drawCircle(px, py, strokeWidthPx * 0.65f, particleGlowPaint)
+                // Inner crisp core
+                canvas.drawCircle(px, py, strokeWidthPx * 0.32f, particleCorePaint)
+            }
         }
 
         canvas.restore()

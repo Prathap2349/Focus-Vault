@@ -50,6 +50,13 @@ object StreakManager {
         )
     }
 
+    /** Returns today's recorded focus minutes. */
+    suspend fun getTodayFocusMinutes(context: Context): Int {
+        val dao = AppDatabase.getInstance(context).streakDao()
+        val today = PrefsManager.currentDateString()
+        return dao.getDay(today)?.totalFocusMinutes ?: 0
+    }
+
     /** Counts backward from today, day by day, stopping at the first missing day - except
      * today itself is allowed to be missing (you haven't necessarily finished a session yet
      * today, but that shouldn't zero out yesterday's progress until the day actually ends). */

@@ -190,8 +190,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnStartFocus.setOnClickListener {
-            HapticHelper.heavyClick(it)
-            showFocusModeSelectionSheet()
+            AnimationHelper.animateButtonPress(it) {
+                HapticHelper.heavyClick(it)
+                showFocusModeSelectionSheet()
+            }
         }
 
         binding.btnQuickCustom.setOnClickListener {
@@ -787,6 +789,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!isActive) {
             com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, R.color.card_border)
             binding.btnStartFocus.visibility = android.view.View.VISIBLE
             binding.containerActiveActions.visibility = android.view.View.GONE
             binding.btnEmergencyUnlock.visibility = android.view.View.GONE
@@ -814,6 +817,7 @@ class MainActivity : AppCompatActivity() {
 
         if (isPaused) {
             com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, R.color.warning_amber)
             val pauseLabel = PrefsManager.getEmergencyPauseLabel(this)
             binding.tvHeroStateBadge.text = "⏸️ PAUSED · ${pauseLabel.uppercase()}"
             binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
@@ -841,7 +845,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Active Session
-        com.focusvault.app.util.AnimationHelper.startBreathingAura(binding.frameFocusRingContainer)
+        binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, if (isStrict) R.color.strict_red else R.color.brand_primary)
         when (mode) {
             SessionMode.STRICT -> {
                 binding.tvHeroStateBadge.text = "🔒 STRICT FOCUS"
@@ -854,7 +858,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvHeroSubtitle.text = "PIN required to unlock early"
             }
             SessionMode.NORMAL -> {
-                binding.tvHeroStateBadge.text = "🎯 FOCUS ACTIVE"
+                binding.tvHeroStateBadge.text = "🛡️ FOCUS ACTIVE"
                 binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.brand_primary))
                 binding.tvHeroSubtitle.text = "Distractions blocked"
             }
@@ -892,6 +896,10 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onFinish() {
                 com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+                binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this@MainActivity, R.color.success_green)
+                binding.tvHeroStateBadge.text = "✓ SESSION COMPLETE"
+                binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.success_green))
+                binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = false, isCompleted = true)
                 com.focusvault.app.util.AnimationHelper.animateCelebrationBloom(binding.frameFocusRingContainer)
                 com.focusvault.app.util.HapticHelper.successHaptic(binding.root)
                 refreshSessionUi()

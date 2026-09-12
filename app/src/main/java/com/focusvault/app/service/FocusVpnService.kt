@@ -64,7 +64,7 @@ class FocusVpnService : VpnService() {
 
     companion object {
         private const val TAG = "FocusVPN"
-        const val CHANNEL_ID = "focus_vpn_channel"
+        const val CHANNEL_ID = "focus_protection_channel"
         const val NOTIF_ID = 1002
         const val REVOKED_CHANNEL_ID = "focus_vpn_revoked_channel"
         const val REVOKED_NOTIF_ID = 1004
@@ -472,7 +472,7 @@ class FocusVpnService : VpnService() {
     private fun startForegroundNotification() {
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "Focus Website Blocking", NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(CHANNEL_ID, "Website Protection", NotificationManager.IMPORTANCE_LOW)
             nm.createNotificationChannel(channel)
         }
         val openAppIntent = PendingIntent.getActivity(
@@ -480,10 +480,13 @@ class FocusVpnService : VpnService() {
             PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Focus Vault is blocking distracting sites")
+            .setContentTitle("Focus Vault")
+            .setContentText("Distraction protection is active")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOnlyAlertOnce(true)
             .build()
         var startedSuccessfully = false
         try {

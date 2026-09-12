@@ -100,7 +100,7 @@ object AnimationHelper {
 
     /**
      * Spring physics touch feedback attached to interactive chips/cards.
-     * Scales to 0.94x on ACTION_DOWN and bounces back to 1.0x on ACTION_UP / ACTION_CANCEL.
+     * Scales to 0.96x on ACTION_DOWN and smoothly restores to 1.0x on ACTION_UP / ACTION_CANCEL over 150-180ms.
      */
     fun attachSpringPressFeedback(view: View) {
         view.setOnTouchListener { v, event ->
@@ -110,9 +110,9 @@ object AnimationHelper {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     v.animate()
-                        .scaleX(0.94f)
-                        .scaleY(0.94f)
-                        .setDuration(90)
+                        .scaleX(0.96f)
+                        .scaleY(0.96f)
+                        .setDuration(70)
                         .setInterpolator(DecelerateInterpolator())
                         .start()
                 }
@@ -120,8 +120,8 @@ object AnimationHelper {
                     v.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
-                        .setDuration(180)
-                        .setInterpolator(OvershootInterpolator(1.4f))
+                        .setDuration(130)
+                        .setInterpolator(OvershootInterpolator(1.2f))
                         .start()
                 }
             }
@@ -260,23 +260,28 @@ object AnimationHelper {
     private val activeAnimators = java.util.WeakHashMap<View, ValueAnimator>()
 
     /**
-     * Signature Focus Aura: Extremely subtle, slow breathing scale (1.0 -> 1.018 -> 1.0 over 2.6s)
-     * Lifecycle-safe and bypassable via Reduced Motion.
+     * Calm State Entrance: A single subtle scale transition (1.0 -> 1.018 -> 1.0 over 350ms)
+     * Lifecycle-safe, finishes and leaves view stable.
      */
     fun startBreathingAura(view: View) {
         if (isReduceMotion(view.context)) return
         stopBreathingAura(view)
 
         val animator = ValueAnimator.ofFloat(1.0f, 1.018f, 1.0f).apply {
-            duration = 2600L
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.RESTART
+            duration = 350L
+            repeatCount = 0
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { va ->
                 val scale = va.animatedValue as Float
                 view.scaleX = scale
                 view.scaleY = scale
             }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    view.scaleX = 1.0f
+                    view.scaleY = 1.0f
+                }
+            })
         }
         activeAnimators[view] = animator
         animator.start()

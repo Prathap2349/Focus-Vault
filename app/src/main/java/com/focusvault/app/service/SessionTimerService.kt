@@ -17,6 +17,7 @@ import com.focusvault.app.data.SessionState
 import com.focusvault.app.manager.SessionStateManager
 import com.focusvault.app.ui.MainActivity
 import com.focusvault.app.util.PrefsManager
+import com.focusvault.app.util.StreakManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,6 +30,7 @@ class SessionTimerService : Service() {
     private val serviceJob = Job()
     private val scope = CoroutineScope(Dispatchers.Main + serviceJob)
     private var tickerJob: Job? = null
+    private var endingSoonAlertSent = false
 
     companion object {
         const val CHANNEL_ID = "focus_session_channel"
@@ -70,6 +72,15 @@ class SessionTimerService : Service() {
             } catch (e: Exception) { }
         }
 
+        fun pause(context: Context) {
+            val intent = Intent(context, SessionTimerService::class.java).apply {
+                action = ACTION_PAUSE
+            }
+            try {
+                context.startService(intent)
+            } catch (e: Exception) { }
+        }
+
         fun resume(context: Context) {
             val intent = Intent(context, SessionTimerService::class.java).apply {
                 action = ACTION_RESUME
@@ -96,6 +107,13 @@ class SessionTimerService : Service() {
                     SessionMode.valueOf(intent.getStringExtra(EXTRA_MODE) ?: SessionMode.NORMAL.name)
                 }.getOrDefault(SessionMode.NORMAL)
                 beginSession(duration, mode)
+            }
+            ACTION_PAUSE -> {
+                if (PrefsManager.getSessionMode(this) != SessionMode.STRICT) {
+                    scope.launch {
+                        SessionStateManager.pauseSession(applicationContext, 5 * 60 * 1000L, "Pause")
+                    }
+                }
             }
             ACTION_STOP_EARLY -> {
                 if (PrefsManager.getSessionMode(this) != SessionMode.STRICT) {
@@ -150,6 +168,7 @@ class SessionTimerService : Service() {
     }
 
     private fun beginSession(durationMillis: Long, mode: SessionMode) {
+        endingSoonAlertSent = false
         val endTime = PrefsManager.getSessionEndTime(this)
         val targetEnd = if (endTime > System.currentTimeMillis()) endTime else System.currentTimeMillis() + durationMillis
 
@@ -184,6 +203,10 @@ class SessionTimerService : Service() {
                     break
                 }
 
+                if (remaining in 1..120_000L && !endingSoonAlertSent && !isPaused) {
+                    endingSoonAlertSent = true
+                }
+
                 updateNotification(remaining, mode, isPaused)
 
                 // Push periodic widget update once per minute
@@ -204,22 +227,21 @@ class SessionTimerService : Service() {
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
 
-        val modeLabel = when (mode) {
-            SessionMode.STRICT -> "Strict Mode"
-            SessionMode.LOCK -> "Lock Mode"
-            SessionMode.NORMAL -> "Focus Mode"
-        }
+        val title = "Focus Vault"
+        val totalDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
+        val initialMinutes = ((totalDuration + 30000L) / 60000L).coerceAtLeast(1)
 
-        val title = if (isPaused) "⏸️ $modeLabel Paused" else "🎯 $modeLabel Active"
-        val content = if (isPaused) {
-            "Blocking temporarily paused (${PrefsManager.getEmergencyPauseLabel(this)})"
-        } else {
-            formatRemaining(millisRemaining)
+        val content = when {
+            isPaused -> "⏸ Focus session paused\n${formatRemaining(millisRemaining)}"
+            millisRemaining in 1..120_000L -> "⏳ Focus session ending soon\n2 minutes remaining"
+            millisRemaining >= totalDuration - 2000L -> "🎯 Focus session started\n$initialMinutes minutes of distraction-free time."
+            else -> "🎯 Focus session active\n${formatRemaining(millisRemaining)}"
         }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(content))
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setOngoing(true)
             .setContentIntent(openAppIntent)
@@ -233,14 +255,20 @@ class SessionTimerService : Service() {
                 Intent(this, SessionTimerService::class.java).apply { action = ACTION_RESUME },
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            builder.addAction(android.R.drawable.ic_media_play, "Resume Now", resumeIntent)
-        } else if (mode == SessionMode.NORMAL) {
-            val stopIntent = PendingIntent.getService(
+            val endIntent = PendingIntent.getService(
                 this, 2,
                 Intent(this, SessionTimerService::class.java).apply { action = ACTION_STOP_EARLY },
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Early", stopIntent)
+            builder.addAction(android.R.drawable.ic_media_play, "RESUME", resumeIntent)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "END", endIntent)
+        } else if (mode != SessionMode.STRICT) {
+            val pauseIntent = PendingIntent.getService(
+                this, 3,
+                Intent(this, SessionTimerService::class.java).apply { action = ACTION_PAUSE },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            builder.addAction(android.R.drawable.ic_media_pause, "PAUSE", pauseIntent)
         }
 
         return builder.build()
@@ -252,23 +280,26 @@ class SessionTimerService : Service() {
 
     private fun showCompletionNotification(mode: SessionMode) {
         createChannelIfNeeded()
-        val modeLabel = when (mode) {
-            SessionMode.STRICT -> "Strict Mode"
-            SessionMode.LOCK -> "Lock Mode"
-            SessionMode.NORMAL -> "Focus Mode"
-        }
         val openAppIntent = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(this, COMPLETION_CHANNEL_ID)
-            .setContentTitle("🎉 $modeLabel session complete")
-            .setContentText("Great job staying focused! Your apps and websites are unlocked.")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
-            .setAutoCancel(true)
-            .setContentIntent(openAppIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-        safeNotify(COMPLETION_NOTIF_ID, notification)
+        scope.launch(Dispatchers.IO) {
+            val todayMinutes = StreakManager.getTodayFocusMinutes(applicationContext)
+            val sessionMinutes = ((PrefsManager.getSessionEndTime(applicationContext) - PrefsManager.getSessionStartTime(applicationContext)) / 60000L).toInt().coerceAtLeast(1)
+            val displayMinutes = if (todayMinutes > 0) todayMinutes else sessionMinutes
+            val content = "✓ Focus session complete\n$displayMinutes minutes focused today."
+
+            val notification = NotificationCompat.Builder(applicationContext, COMPLETION_CHANNEL_ID)
+                .setContentTitle("Focus Vault")
+                .setContentText(content)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(content))
+                .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+                .setAutoCancel(true)
+                .setContentIntent(openAppIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .build()
+            safeNotify(COMPLETION_NOTIF_ID, notification)
+        }
     }
 
     private fun safeNotify(id: Int, notification: Notification) {
@@ -282,11 +313,26 @@ class SessionTimerService : Service() {
     private fun createChannelIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NotificationManager::class.java)
+            // 1. Focus Sessions
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Focus Session", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(CHANNEL_ID, "Focus Sessions", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "Ongoing timer and controls during focus sessions"
+                    setShowBadge(false)
+                }
             )
+            // 2. Session Completion
             nm.createNotificationChannel(
-                NotificationChannel(COMPLETION_CHANNEL_ID, "Focus Session Complete", NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(COMPLETION_CHANNEL_ID, "Session Completion", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Alerts when a focus session finishes successfully"
+                    enableVibration(true)
+                }
+            )
+            // 3. Website Protection
+            nm.createNotificationChannel(
+                NotificationChannel(FocusVpnService.CHANNEL_ID, "Website Protection", NotificationManager.IMPORTANCE_LOW).apply {
+                    description = "Status of background distraction blocking"
+                    setShowBadge(false)
+                }
             )
         }
     }
