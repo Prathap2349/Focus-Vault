@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     style="@style/DashboardCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -52,6 +53,17 @@
             android:visibility="gone"
             tools:text="💡 Your 90-min Deep Work sessions usually end around 45 min — tap to update preset." />
     </LinearLayout>
+
+    
+    <ImageButton
+        android:id="@+id/btnDeletePreset"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_trash"
+        app:tint="@color/text_secondary"
+        android:contentDescription="Delete Preset" />
 
     <Button
         android:id="@+id/btnStartPreset"

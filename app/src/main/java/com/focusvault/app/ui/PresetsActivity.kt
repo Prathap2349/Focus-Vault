@@ -98,20 +98,18 @@ class PresetsActivity : AppCompatActivity() {
                         }
                     }
 
-                    if (!preset.isBuiltIn) {
-                        row.root.setOnLongClickListener {
-                            DialogHelper.showCustomDialog(
-                                context = this@PresetsActivity,
-                                title = "Delete Preset 🗑️",
-                                message = "Are you sure you want to delete custom preset '${preset.name}'?",
-                                positiveText = "Delete",
-                                positiveAction = {
-                                    lifecycleScope.launch { db.focusPresetDao().delete(preset) }
-                                },
-                                negativeText = "Cancel"
-                            )
-                            true
-                        }
+                    
+                    row.btnDeletePreset.setOnClickListener {
+                        DialogHelper.showCustomDialog(
+                            context = this@PresetsActivity,
+                            title = "Delete Preset 🗑️",
+                            message = "Are you sure you want to delete the preset '${preset.name}'?",
+                            positiveText = "Delete",
+                            positiveAction = {
+                                lifecycleScope.launch { db.focusPresetDao().delete(preset) }
+                            },
+                            negativeText = "Cancel"
+                        )
                     }
 
                     binding.containerPresets.addView(row.root)
