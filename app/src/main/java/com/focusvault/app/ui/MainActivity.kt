@@ -457,9 +457,9 @@ class MainActivity : AppCompatActivity() {
             binding.progressGoalBar.progress = (goalProgress * 100).toInt()
             val remaining = stats.goalMinutes - stats.todayMinutes
             binding.tvGoalRemaining.text = if (remaining <= 0)
-                "Daily goal achieved! 🎉 · Tap to edit"
+                "Goal achieved! 🎉"
             else
-                "${formatMinutes(remaining)} remaining to reach goal · Tap to edit"
+                "${formatMinutes(remaining)} remaining"
 
             // Streak Badge
             binding.tvStreakBadge.text = if (stats.streak > 0) "🔥 ${stats.streak}d streak" else "🌱 Start streak"

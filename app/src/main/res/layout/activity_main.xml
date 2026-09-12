@@ -294,9 +294,9 @@
                     android:orientation="vertical"
                     android:gravity="center_vertical"
                     android:padding="16dp">
-                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Distractions Resisted" android:textColor="@color/text_secondary" android:textSize="14sp"/>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Distractions" android:textColor="@color/text_secondary" android:textSize="14sp" android:maxLines="1" app:autoSizeTextType="uniform"/>
                     <TextView android:id="@+id/tvDistractionsCount" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="0" android:textColor="@color/brand_primary" android:textSize="32sp" android:textStyle="bold"/>
-                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="today" android:textColor="@color/text_secondary" android:textSize="12sp"/>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="blocked today" android:textColor="@color/text_secondary" android:textSize="12sp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
