@@ -394,6 +394,114 @@ class WebsiteBlockingEngineRegressionTest {
     }
 
     // =========================================================================
+    // 18. Explicit User Acceptance Test Suite (Tests 1 - 6)
+    // =========================================================================
+    @Test
+    fun testUserAcceptanceTest1_BlockYoutubeAllowsUnrelated() {
+        val blocked = setOf("youtube.com")
+        assertTrue(DomainMatcher.isDomainBlocked("youtube.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("github.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("wikipedia.org", blocked))
+    }
+
+    @Test
+    fun testUserAcceptanceTest2_BlockYoutubeBlocksWwwYoutube() {
+        val blocked = setOf("youtube.com")
+        assertTrue(DomainMatcher.isDomainBlocked("www.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("m.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("music.youtube.com", blocked))
+    }
+
+    @Test
+    fun testUserAcceptanceTest3_BlockYoutubeGoogleStillWorks() {
+        val blocked = setOf("youtube.com")
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("www.google.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("mail.google.com", blocked))
+    }
+
+    @Test
+    fun testUserAcceptanceTest4_BlockMultipleSitesOnlyThoseBlocked() {
+        val blocked = setOf("youtube.com", "instagram.com")
+        // Both blocked targets and their subdomains
+        assertTrue(DomainMatcher.isDomainBlocked("youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("www.youtube.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("instagram.com", blocked))
+        assertTrue(DomainMatcher.isDomainBlocked("graph.instagram.com", blocked))
+
+        // All other domains are allowed
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("github.com", blocked))
+        assertFalse(DomainMatcher.isDomainBlocked("reddit.com", blocked))
+    }
+
+    @Test
+    fun testUserAcceptanceTest5_RemoveYoutubeWorksAgain() {
+        var blocked = setOf("youtube.com", "instagram.com")
+        assertTrue(DomainMatcher.isDomainBlocked("youtube.com", blocked))
+
+        // Remove youtube.com
+        blocked = blocked - "youtube.com"
+        assertFalse("youtube.com must work after removal", DomainMatcher.isDomainBlocked("youtube.com", blocked))
+        assertFalse("www.youtube.com must work after removal", DomainMatcher.isDomainBlocked("www.youtube.com", blocked))
+        // instagram.com remains blocked
+        assertTrue("instagram.com remains blocked", DomainMatcher.isDomainBlocked("instagram.com", blocked))
+    }
+
+    @Test
+    fun testUserAcceptanceTest6_DisableBlockerAllSitesWorkImmediately() {
+        val emptyBlocked = emptySet<String>()
+        assertFalse(DomainMatcher.isDomainBlocked("youtube.com", emptyBlocked))
+        assertFalse(DomainMatcher.isDomainBlocked("www.youtube.com", emptyBlocked))
+        assertFalse(DomainMatcher.isDomainBlocked("instagram.com", emptyBlocked))
+        assertFalse(DomainMatcher.isDomainBlocked("google.com", emptyBlocked))
+    }
+
+    // =========================================================================
+    // 19. Domain Validation Tests (prevent broad TLD or malformed entry matching)
+    // =========================================================================
+    @Test
+    fun testDomainValidation() {
+        // Valid domains
+        assertTrue(DomainMatcher.isValidDomain("youtube.com"))
+        assertTrue(DomainMatcher.isValidDomain("sub.domain.co.uk"))
+        assertTrue(DomainMatcher.isValidDomain("google.co.in"))
+        assertTrue(DomainMatcher.isValidDomain("test-site.org"))
+
+        // Invalid domains (must NOT be allowed into blocked list)
+        assertFalse("Single-label TLD must be invalid", DomainMatcher.isValidDomain("com"))
+        assertFalse("Single-label org must be invalid", DomainMatcher.isValidDomain("org"))
+        assertFalse("Empty string must be invalid", DomainMatcher.isValidDomain(""))
+        assertFalse("Whitespace must be invalid", DomainMatcher.isValidDomain("   "))
+        assertFalse("Leading dot must be invalid", DomainMatcher.isValidDomain(".com"))
+        assertFalse("Trailing dot must be invalid", DomainMatcher.isValidDomain("youtube.com."))
+        assertFalse("Empty label must be invalid", DomainMatcher.isValidDomain("youtube..com"))
+        assertFalse("Leading hyphen must be invalid", DomainMatcher.isValidDomain("-youtube.com"))
+        assertFalse("Single-letter TLD must be invalid", DomainMatcher.isValidDomain("youtube.c"))
+        assertFalse("Numeric TLD must be invalid", DomainMatcher.isValidDomain("youtube.123"))
+    }
+
+    @Test
+    fun testQuestionSectionLengthCalculation() {
+        val packet = createMockPacket(protocol = 17, dstPort = 53, queryName = "google.com", dnsId = 0x9999)
+        val query = DnsPacketParser.extractDnsQuery(ByteBuffer.wrap(packet))
+        assertNotNull(query)
+        // IP header: 20 bytes, UDP header: 8 bytes -> DNS payload starts at 28
+        // DNS header is 12 bytes
+        // QNAME "google.com": 1 (length) + 6 ("google") + 1 (length) + 3 ("com") + 1 (0 terminator) = 12 bytes
+        // QTYPE (2) + QCLASS (2) = 4 bytes
+        // Expected questionSectionLength = 12 (header) + 12 (qname) + 4 (qtype+qclass) = 28 bytes
+        assertEquals(28, query!!.questionSectionLength)
+
+        // Verify NXDOMAIN response matches question section length
+        val nxDomain = DnsPacketParser.buildNxDomainResponse(packet, packet.size, query.questionSectionLength)
+        assertNotNull(nxDomain)
+        // Total response size = 20 (IP) + 8 (UDP) + 28 (DNS header + question section) = 56 bytes
+        assertEquals(56, nxDomain.size)
+    }
+
+    // =========================================================================
     // Helper: Creates a raw mock IPv4 UDP/TCP DNS packet
     // =========================================================================
     private fun createMockPacket(

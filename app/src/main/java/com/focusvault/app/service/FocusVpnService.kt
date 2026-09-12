@@ -76,7 +76,7 @@ class FocusVpnService : VpnService() {
         private const val TUNNEL_MTU = 1500
 
         /** Public DNS fallbacks used only if the physical carrier/Wi-Fi DNS fails */
-        private val PUBLIC_FALLBACK_DNS = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4", "9.9.9.9")
+        private val PUBLIC_FALLBACK_DNS = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4", "1.0.0.1")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -189,7 +189,7 @@ class FocusVpnService : VpnService() {
                 val lp = cm.getLinkProperties(network) ?: continue
                 for (dns in lp.dnsServers) {
                     val ip = dns.hostAddress
-                    if (!ip.isNullOrEmpty() && ip != TUNNEL_IP && !ip.startsWith("127.") && seenIps.add(ip)) {
+                    if (!ip.isNullOrEmpty() && ip != TUNNEL_IP && !ip.startsWith("127.") && !ip.startsWith("fe80:") && seenIps.add(ip)) {
                         endpoints.add(DnsEndpoint(ip, network))
                     }
                 }
@@ -218,33 +218,26 @@ class FocusVpnService : VpnService() {
         return endpoints
     }
 
-    private fun forwardDnsQuery(dnsPayload: ByteArray, endpoint: DnsEndpoint): DatagramPacket? {
+    private fun forwardDnsQuery(dnsPayload: ByteArray, endpoint: DnsEndpoint, expectedId: Int): DatagramPacket? {
         var socket: DatagramSocket? = null
         try {
             socket = DatagramSocket()
+
+            // Protect socket from VPN routing
+            protect(socket)
 
             // Bind to physical network if known
             if (endpoint.network != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
                 try {
                     endpoint.network.bindSocket(socket)
-                } catch (e: Exception) {
-                    Log.d(TAG, "Could not bind to network: ${e.message}")
-                }
-            }
-
-            // Protect socket from VPN routing
-            val isProtected = protect(socket)
-            if (!isProtected) {
-                Log.e(TAG, "❌ protect() returned false for ${endpoint.address} — aborting to avoid loop")
-                socket.close()
-                return null
+                } catch (_: Exception) {}
             }
 
             val forwardPacket = DatagramPacket(
                 dnsPayload, dnsPayload.size,
                 InetSocketAddress(endpoint.address, 53)
             )
-            socket.soTimeout = 1500 // 1.5s timeout per server
+            socket.soTimeout = 900 // fast 900ms timeout per socket
             socket.send(forwardPacket)
 
             val replyBuffer = ByteArray(4096)
@@ -252,25 +245,63 @@ class FocusVpnService : VpnService() {
             socket.receive(replyPacket)
             socket.close()
 
+            if (replyPacket.length < 12) return null
+            // Verify DNS transaction ID matches original request
+            val replyId = ((replyBuffer[0].toInt() and 0xFF) shl 8) or (replyBuffer[1].toInt() and 0xFF)
+            if (replyId != expectedId) return null
+            // Verify QR bit is 1 (response)
+            val flags = ((replyBuffer[2].toInt() and 0xFF) shl 8) or (replyBuffer[3].toInt() and 0xFF)
+            if ((flags and 0x8000) == 0) return null
+
             lastWorkingDnsAddress = endpoint.address
             return replyPacket
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             try { socket?.close() } catch (_: Exception) {}
             return null
         }
     }
 
-    private fun resolveDns(dnsPayload: ByteArray): DatagramPacket? {
+    private suspend fun resolveDns(dnsPayload: ByteArray): DatagramPacket? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        if (dnsPayload.size < 12) return@withContext null
+        val expectedId = ((dnsPayload[0].toInt() and 0xFF) shl 8) or (dnsPayload[1].toInt() and 0xFF)
         val endpoints = discoverUpstreamDnsServers()
-        for (endpoint in endpoints) {
-            val reply = forwardDnsQuery(dnsPayload, endpoint)
-            if (reply != null && reply.length > 12) {
-                Log.d(TAG, "UPSTREAM SUCCESS: ${endpoint.address}")
-                return reply
+        if (endpoints.isEmpty()) return@withContext null
+
+        // Race top candidates concurrently (cached working server, primary physical DNS, and public fallback)
+        val candidates = endpoints.take(3)
+        val resultChannel = kotlinx.coroutines.channels.Channel<DatagramPacket>(candidates.size)
+
+        val jobs = candidates.map { endpoint ->
+            launch {
+                val reply = forwardDnsQuery(dnsPayload, endpoint, expectedId)
+                if (reply != null) {
+                    resultChannel.trySend(reply)
+                }
             }
         }
-        Log.w(TAG, "UPSTREAM TIMEOUT: all servers failed")
-        return null
+
+        var winningReply: DatagramPacket? = null
+        try {
+            kotlinx.coroutines.withTimeoutOrNull(1100L) {
+                winningReply = resultChannel.receiveCatching().getOrNull()
+            }
+        } catch (_: Exception) {
+        } finally {
+            jobs.forEach { it.cancel() }
+            resultChannel.close()
+        }
+
+        // If top candidates didn't answer, fallback sequentially to remaining endpoints
+        if (winningReply == null && endpoints.size > 3) {
+            for (fallbackEndpoint in endpoints.drop(3)) {
+                val reply = forwardDnsQuery(dnsPayload, fallbackEndpoint, expectedId)
+                if (reply != null) {
+                    return@withContext reply
+                }
+            }
+        }
+
+        winningReply
     }
 
     private suspend fun runTunnelLoop() {
@@ -326,7 +357,7 @@ class FocusVpnService : VpnService() {
                 if (isBlocked) {
                     Log.i(TAG, "🛑 BLOCKED: $queryDomain")
                     com.focusvault.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
-                    val nxResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length)
+                    val nxResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length, udpDnsQuery.questionSectionLength)
                     outputMutex.withLock { output.write(nxResponse) }
                 } else {
                     Log.d(TAG, "✅ ALLOWED: $queryDomain")
@@ -337,6 +368,7 @@ class FocusVpnService : VpnService() {
                     val dnsPayload = udpDnsQuery.rawDnsPayload
                     val rawCopy = rawPacket.copyOf(length)
                     val lenCopy = length
+                    val qLen = udpDnsQuery.questionSectionLength
 
                     scope.launch(Dispatchers.IO) {
                         val reply = resolveDns(dnsPayload)
@@ -352,9 +384,8 @@ class FocusVpnService : VpnService() {
                                 Log.e(TAG, "Failed writing reply for $queryDomain", e)
                             }
                         } else {
-                            // If all upstreams fail, send SERVFAIL so requesting app fails fast & retries
                             try {
-                                val servFail = DnsPacketParser.buildServFailResponse(rawCopy, lenCopy)
+                                val servFail = DnsPacketParser.buildServFailResponse(rawCopy, lenCopy, qLen)
                                 outputMutex.withLock { output.write(servFail) }
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed writing SERVFAIL for $queryDomain", e)

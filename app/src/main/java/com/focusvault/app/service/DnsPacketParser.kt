@@ -19,7 +19,8 @@ object DnsPacketParser {
         val destIp: ByteArray,
         val sourcePort: Int,
         val destPort: Int,
-        val dnsId: Int
+        val dnsId: Int,
+        val questionSectionLength: Int
     )
 
     /**
@@ -65,6 +66,8 @@ object DnsPacketParser {
             if (packet.limit() < dnsStart + 12) return null // DNS header is 12 bytes
 
             val dnsId = ((packet.get(dnsStart).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 1).toInt() and 0xFF)
+            val flags = ((packet.get(dnsStart + 2).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 3).toInt() and 0xFF)
+            if ((flags and 0x8000) != 0) return null // Must be a Query (QR == 0)
             val qdCount = ((packet.get(dnsStart + 4).toInt() and 0xFF) shl 8) or (packet.get(dnsStart + 5).toInt() and 0xFF)
             if (qdCount < 1) return null
 
@@ -93,49 +96,70 @@ object DnsPacketParser {
             val queryName = nameBuilder.toString().removeSuffix(".").lowercase()
             if (queryName.isEmpty()) return null
 
+            pos += 1 // Skip terminating 0x00
+            if (pos + 4 > packet.limit()) return null
+            val questionSectionLength = (pos + 4) - dnsStart
+
             val dnsPayloadLength = packet.limit() - dnsStart
             if (dnsPayloadLength <= 0) return null
             val dnsPayload = ByteArray(dnsPayloadLength)
             packet.position(dnsStart)
             packet.get(dnsPayload)
 
-            return DnsQuery(queryName, dnsPayload, sourceIp, destIp, srcPort, dstPort, dnsId)
+            return DnsQuery(queryName, dnsPayload, sourceIp, destIp, srcPort, dstPort, dnsId, questionSectionLength)
         } catch (e: Exception) {
             return null
         }
     }
 
     /** Builds a synthetic NXDOMAIN DNS response (RCODE=3) wrapped back in IP+UDP, swapping src/dst. */
-    fun buildNxDomainResponse(originalPacket: ByteArray, length: Int): ByteArray {
+    fun buildNxDomainResponse(originalPacket: ByteArray, length: Int, questionLength: Int? = null): ByteArray {
         val ihl = (originalPacket[0].toInt() and 0xF) * 4
         val dnsStart = ihl + 8
-        val dnsLength = length - dnsStart
+        val dnsLength = if (questionLength != null && questionLength >= 16 && dnsStart + questionLength <= length) {
+            questionLength
+        } else {
+            length - dnsStart
+        }
         val dnsPayload = ByteArray(dnsLength)
         System.arraycopy(originalPacket, dnsStart, dnsPayload, 0, dnsLength)
 
         // DNS flags: QR=1 (response), Opcode=0, AA=0, TC=0, RD=1, RA=1, RCODE=3 (NXDOMAIN)
-        dnsPayload[2] = 0x81.toByte()
+        val origRd = (originalPacket[dnsStart + 2].toInt() and 0x01)
+        dnsPayload[2] = (0x80 or origRd).toByte()
         dnsPayload[3] = 0x83.toByte()
+        // QDCOUNT = 1
+        dnsPayload[4] = 0; dnsPayload[5] = 1
         // ANCOUNT = 0 (no answers)
-        dnsPayload[6] = 0
-        dnsPayload[7] = 0
+        dnsPayload[6] = 0; dnsPayload[7] = 0
+        // NSCOUNT = 0
+        dnsPayload[8] = 0; dnsPayload[9] = 0
+        // ARCOUNT = 0
+        dnsPayload[10] = 0; dnsPayload[11] = 0
 
         return wrapAsIpUdpPacket(originalPacket, dnsPayload, dnsStart, swap = true)
     }
 
     /** Builds a synthetic SERVFAIL DNS response (RCODE=2) wrapped in IP+UDP. */
-    fun buildServFailResponse(originalPacket: ByteArray, length: Int): ByteArray {
+    fun buildServFailResponse(originalPacket: ByteArray, length: Int, questionLength: Int? = null): ByteArray {
         val ihl = (originalPacket[0].toInt() and 0xF) * 4
         val dnsStart = ihl + 8
-        val dnsLength = length - dnsStart
+        val dnsLength = if (questionLength != null && questionLength >= 16 && dnsStart + questionLength <= length) {
+            questionLength
+        } else {
+            length - dnsStart
+        }
         val dnsPayload = ByteArray(dnsLength)
         System.arraycopy(originalPacket, dnsStart, dnsPayload, 0, dnsLength)
 
         // DNS flags: QR=1 (response), Opcode=0, AA=0, TC=0, RD=1, RA=1, RCODE=2 (SERVFAIL)
-        dnsPayload[2] = 0x81.toByte()
+        val origRd = (originalPacket[dnsStart + 2].toInt() and 0x01)
+        dnsPayload[2] = (0x80 or origRd).toByte()
         dnsPayload[3] = 0x82.toByte()
-        dnsPayload[6] = 0
-        dnsPayload[7] = 0
+        dnsPayload[4] = 0; dnsPayload[5] = 1
+        dnsPayload[6] = 0; dnsPayload[7] = 0
+        dnsPayload[8] = 0; dnsPayload[9] = 0
+        dnsPayload[10] = 0; dnsPayload[11] = 0
 
         return wrapAsIpUdpPacket(originalPacket, dnsPayload, dnsStart, swap = true)
     }

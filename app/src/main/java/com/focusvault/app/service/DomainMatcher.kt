@@ -7,8 +7,26 @@ package com.focusvault.app.service
  * - Domain must match exactly, or as a sub-domain (query == blocked || query.endsWith(".$blocked")).
  * - Strict domain boundaries: 'notyoutube.com' and 'youtube.com.example.com' must NOT match 'youtube.com'.
  * - Safe URL normalization: strips http(s)://, paths, query strings, fragments, ports, www., and wildcards.
+ * - Strict validation: Corrupted or single-label entries (e.g. "com", "") are rejected and never match all domains.
  */
 object DomainMatcher {
+
+    private val DOMAIN_REGEX = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
+
+    /**
+     * Validates whether a domain string is structurally valid (has >= 2 labels, valid chars, etc.)
+     */
+    fun isValidDomain(domain: String): Boolean {
+        val raw = domain.trim().lowercase()
+        if (raw.startsWith(".") || raw.endsWith(".") || raw.contains("..")) return false
+        if (raw.length < 3 || !raw.contains('.')) return false
+        val labels = raw.split('.')
+        if (labels.size < 2) return false
+        // TLD cannot be purely numeric and must be at least 2 chars
+        val tld = labels.last()
+        if (tld.length < 2 || tld.all { it.isDigit() }) return false
+        return raw.matches(DOMAIN_REGEX)
+    }
 
     /**
      * Normalizes a user-input domain or URL into a canonical domain string.
@@ -62,7 +80,9 @@ object DomainMatcher {
 
         for (rawBlocked in blockedDomains) {
             val b = normalizeBlockedDomain(rawBlocked)
-            if (b.isEmpty()) continue
+            // Safety check: must be a valid domain with at least 2 labels (e.g. "youtube.com")
+            // Prevents broad TLD matching if "com" or invalid entry is passed
+            if (!isValidDomain(b)) continue
             if (q == b || q.endsWith(".$b")) {
                 return true
             }

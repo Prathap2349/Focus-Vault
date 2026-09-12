@@ -29,12 +29,16 @@ class SiteListAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         if (viewType == TYPE_HEADER) {
             val tv = TextView(parent.context).apply {
-                layoutParams = ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    setMargins(32, 32, 32, 16)
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(48, 28, 48, 12)
                 }
-                textSize = 14f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(android.graphics.Color.GRAY)
+                textSize = 12f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setTextColor(androidx.core.content.ContextCompat.getColor(parent.context, com.focusvault.app.R.color.text_secondary))
+                letterSpacing = 0.08f
             }
             return HeaderViewHolder(tv)
         }
@@ -44,17 +48,42 @@ class SiteListAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is HeaderViewHolder) {
-            holder.textView.text = items[position] as String
+            holder.textView.text = (items[position] as String).uppercase()
         } else if (holder is SiteViewHolder) {
             val site = items[position] as BlockedSite
             holder.binding.tvDomain.text = site.domain
+            val isPaused = com.focusvault.app.util.PrefsManager.isIndividualSitePaused(holder.itemView.context, site.domain)
             
-            if (site.isPermanent) {
+            if (isPaused) {
                 holder.binding.tvPermanentBadge.visibility = android.view.View.VISIBLE
-                holder.binding.tvSiteSubtitle.text = "24/7 Round-the-Clock DNS Block"
+                holder.binding.tvPermanentBadge.text = "PAUSED"
+                holder.binding.tvPermanentBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.warning_amber_chip_bg)
+                )
+                holder.binding.tvPermanentBadge.setTextColor(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.warning_amber)
+                )
+                holder.binding.tvSiteSubtitle.text = "Temporarily paused • 10m remaining"
+            } else if (site.isPermanent) {
+                holder.binding.tvPermanentBadge.visibility = android.view.View.VISIBLE
+                holder.binding.tvPermanentBadge.text = "24/7 PERMANENT"
+                holder.binding.tvPermanentBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.strict_red_chip_bg)
+                )
+                holder.binding.tvPermanentBadge.setTextColor(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.strict_red)
+                )
+                holder.binding.tvSiteSubtitle.text = "24/7 Security Rule Active"
             } else {
-                holder.binding.tvPermanentBadge.visibility = android.view.View.GONE
-                holder.binding.tvSiteSubtitle.text = "Session Local DNS Blocked"
+                holder.binding.tvPermanentBadge.visibility = android.view.View.VISIBLE
+                holder.binding.tvPermanentBadge.text = "SESSION ONLY"
+                holder.binding.tvPermanentBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.brand_primary_subtle)
+                )
+                holder.binding.tvPermanentBadge.setTextColor(
+                    androidx.core.content.ContextCompat.getColor(holder.itemView.context, com.focusvault.app.R.color.brand_primary)
+                )
+                holder.binding.tvSiteSubtitle.text = "Active during Focus Sessions"
             }
 
             val isVaultLock = site.isPermanent && com.focusvault.app.util.PrefsManager.isPermanentVaultLockEnabled(holder.itemView.context)
