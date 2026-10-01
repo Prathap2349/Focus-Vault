@@ -1,7 +1,14 @@
 package com.focusvault.app.service
 
 import android.accessibilityservice.AccessibilityService
+import android.view.accessibility.AccessibilityWindowInfo
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import com.focusvault.app.manager.ProtectionEngine
 import com.focusvault.app.manager.SessionStateManager
@@ -13,19 +20,33 @@ import com.focusvault.app.util.PrefsManager
  * 
  * CORE BLOCKING RULES:
  * 1. The current foreground package is the SINGLE SOURCE OF TRUTH for blocking decisions.
- * 2. Non-activity window events (IME, toast, dialog popups) are ignored to prevent false-positive re-triggers.
- * 3. Moving to any non-blocked app, launcher, Home, Recent Apps, or system screen clears `lastBlockedPackage = null`.
- * 4. Dismissal cooldown (ProtectionEngine) suppresses rapid overlay loop when returning to Home.
- * 5. performGlobalAction(GLOBAL_ACTION_HOME) is dispatched immediately when a blocked app is detected to cleanly background it.
+ * 2. Narrow window filtering ignores only true non-activity components (IME, Toast, Dialog, Popups),
+ *    preserving frame and layout events that fire when resuming an activity from Recents.
+ * 3. Dismissal cooldown (700ms) prevents overlay loops during transitions back to Home, but is
+ *    bypassed if the app is verified as genuinely foreground.
+ * 4. Cooldown expiration is strictly time-based.
+ * 5. performGlobalAction(GLOBAL_ACTION_HOME) is dispatched immediately, followed by posting
+ *    the overlay ~120ms later on the main looper to prevent it from being hidden behind the launcher.
  * 6. Distraction count increments exactly once per genuine episode.
  */
 class AppBlockAccessibilityService : AccessibilityService() {
 
     private var currentForegroundPackage: String? = null
-    private var lastBlockedPackage: String? = null
+    var lastBlockedPackage: String? = null
     private var lastOverlayLaunchTime: Long = 0L
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingOverlayRunnable: Runnable? = null
+
     companion object {
+        @Volatile
+        private var serviceInstance: AppBlockAccessibilityService? = null
+
+        fun resetLastBlockedPackage() {
+            serviceInstance?.lastBlockedPackage = null
+            serviceInstance?.cancelPendingOverlayLaunch()
+        }
+
         // Essential system packages that must never be blocked even by accident (telephony / calls)
         private val ESSENTIAL_CALL_PACKAGES = setOf(
             "com.android.phone",
@@ -43,19 +64,31 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        serviceInstance = this
         ProtectionEngine.isAccessibilityBound.set(true)
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        if (serviceInstance === this) serviceInstance = null
+        cancelPendingOverlayLaunch()
         ProtectionEngine.isAccessibilityBound.set(false)
         ProtectionEngine.notifyFailureIfSessionActive(this, "App blocking service disconnected")
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        if (serviceInstance === this) serviceInstance = null
+        cancelPendingOverlayLaunch()
         ProtectionEngine.isAccessibilityBound.set(false)
         ProtectionEngine.notifyFailureIfSessionActive(this, "App blocking service was stopped")
         super.onDestroy()
+    }
+
+    private fun cancelPendingOverlayLaunch() {
+        pendingOverlayRunnable?.let {
+            mainHandler.removeCallbacks(it)
+            pendingOverlayRunnable = null
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -65,7 +98,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val packageName = event.packageName?.toString() ?: return
         val className = event.className?.toString() ?: ""
 
-        // Filter out non-activity window events (IME keyboard popups, toasts, standalone dialog wrappers)
+        // Narrow filter: ignore only transient overlays that are never full Activity transitions
         if (isNonActivityWindow(className)) {
             return
         }
@@ -78,21 +111,23 @@ class AppBlockAccessibilityService : AccessibilityService() {
         }
 
         // 2. Ignore our own application package (BlockOverlayActivity, MainActivity, etc.)
-        // Do NOT update currentForegroundPackage or reset lastBlockedPackage when our own app is foregrounded.
         if (packageName == applicationContext.packageName) {
             return
         }
 
-        // 3. Post-dismiss cooldown check: If the user just dismissed the overlay to go Home,
-        // ignore transitional events from the dismissed package during the cooldown window.
+        // 3. Post-dismiss cooldown check:
+        // If cooldown is active, only suppress if the app is NOT genuinely active in foreground
         if (ProtectionEngine.isDismissCooldownActive(packageName)) {
-            return
+            if (!isAppGenuinelyForeground(packageName)) {
+                return
+            }
         }
 
         currentForegroundPackage = packageName
 
         // 4. Check if session is active or emergency pause active
         if (!PrefsManager.isSessionCurrentlyActive(this) || PrefsManager.isEmergencyPauseActive(this)) {
+            cancelPendingOverlayLaunch()
             lastBlockedPackage = null
             return
         }
@@ -121,21 +156,77 @@ class AppBlockAccessibilityService : AccessibilityService() {
             // Cleanly background the blocked app at the OS accessibility level first
             performGlobalAction(GLOBAL_ACTION_HOME)
 
-            // Then present the block overlay
-            showBlockOverlay(packageName)
+            // Post showBlockOverlay() ~120ms later on main looper so Home action executes first
+            // and the overlay is brought to front rather than pushed behind launcher
+            cancelPendingOverlayLaunch()
+            val launchRunnable = Runnable {
+                if (PrefsManager.isSessionCurrentlyActive(this) && !PrefsManager.isEmergencyPauseActive(this)) {
+                    showBlockOverlay(packageName)
+                }
+            }
+            pendingOverlayRunnable = launchRunnable
+            mainHandler.postDelayed(launchRunnable, 120L)
         } else {
             // Foreground package is allowed (Home launcher, System UI, allowed app) -> clear state!
+            // Note: Cooldown ends by time only; do not call clearDismissal().
             lastBlockedPackage = null
-            ProtectionEngine.clearDismissal()
         }
     }
 
+    /**
+     * Narrow check: only ignores IME, Toast, PopupWindow, and AlertDialog wrappers.
+     * Does NOT ignore android.widget.* or android.view.* containers (e.g. FrameLayout).
+     */
     private fun isNonActivityWindow(className: String): Boolean {
         if (className.isEmpty()) return false
-        if (className.startsWith("android.widget.") && !className.contains("Activity")) return true
-        if (className.startsWith("android.view.")) return true
-        if (className.startsWith("android.inputmethodservice.") || className.contains("InputMethod")) return true
-        if (className == "android.app.Dialog" || className == "android.widget.Toast" || className == "android.widget.PopupWindow") return true
+        val lower = className.lowercase()
+        if (lower.contains("inputmethod") || className.startsWith("android.inputmethodservice.")) return true
+        if (className == "android.widget.Toast" || className.startsWith("android.widget.Toast$")) return true
+        if (className == "android.widget.PopupWindow" || className.startsWith("android.widget.PopupWindow$") ||
+            className == "android.widget.ListPopupWindow" || className.startsWith("android.widget.ListPopupWindow$")) return true
+        if (className == "android.app.Dialog" || className == "androidx.appcompat.app.AlertDialog" ||
+            className == "android.app.AlertDialog") return true
+        return false
+    }
+
+    /**
+     * Verifies if the blocked app is genuinely the active foreground window
+     * via interactive accessibility windows or UsageStatsManager.
+     */
+    private fun isAppGenuinelyForeground(packageName: String): Boolean {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                val activeWindow = windows.firstOrNull { it.isActive && it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                if (activeWindow?.root?.packageName?.toString() == packageName) {
+                    return true
+                }
+            }
+            if (rootInActiveWindow?.packageName?.toString() == packageName) {
+                return true
+            }
+        } catch (e: Exception) { }
+
+        try {
+            val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            if (usm != null) {
+                val now = System.currentTimeMillis()
+                val events = usm.queryEvents(now - 1000L, now)
+                val event = UsageEvents.Event()
+                var lastEventPkg: String? = null
+                while (events.hasNextEvent()) {
+                    events.getNextEvent(event)
+                    if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND ||
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && event.eventType == UsageEvents.Event.ACTIVITY_RESUMED)
+                    ) {
+                        lastEventPkg = event.packageName
+                    }
+                }
+                if (lastEventPkg == packageName) {
+                    return true
+                }
+            }
+        } catch (e: Exception) { }
+
         return false
     }
 
@@ -147,5 +238,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         startActivity(intent)
     }
 
-    override fun onInterrupt() { /* no-op */ }
+    override fun onInterrupt() {
+        cancelPendingOverlayLaunch()
+    }
 }

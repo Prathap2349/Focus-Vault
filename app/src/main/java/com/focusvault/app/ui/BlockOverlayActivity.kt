@@ -118,6 +118,7 @@ class BlockOverlayActivity : AppCompatActivity() {
 
     private fun dismissToHome() {
         currentBlockedPackage?.let { ProtectionEngine.recordDismissal(it) }
+        com.focusvault.app.service.AppBlockAccessibilityService.resetLastBlockedPackage()
         val homeIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

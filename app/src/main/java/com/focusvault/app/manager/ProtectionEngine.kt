@@ -61,7 +61,7 @@ object ProtectionEngine {
 
     private val lastDismissedPackage = java.util.concurrent.atomic.AtomicReference<String?>(null)
     private val lastDismissedTimestamp = java.util.concurrent.atomic.AtomicLong(0L)
-    const val DISMISS_COOLDOWN_MS = 2000L
+    const val DISMISS_COOLDOWN_MS = 700L
 
     fun recordDismissal(packageName: String) {
         lastDismissedPackage.set(packageName)

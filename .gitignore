@@ -12,3 +12,9 @@ app/build/
 build/
 *.apk
 *.aab
+*.keystore
+*.jks
+release.keystore
+app/release.keystore
+FocusVault-release.apk
+FocusVault.apk
