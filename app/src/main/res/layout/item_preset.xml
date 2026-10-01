@@ -5,7 +5,7 @@
     style="@style/DashboardCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="12dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:padding="16dp">
@@ -15,7 +15,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="14dp"
-        android:textSize="26sp"
+        android:textSize="28sp"
         tools:text="📚" />
 
     <LinearLayout
@@ -51,26 +51,25 @@
             android:textSize="12sp"
             android:textStyle="bold"
             android:visibility="gone"
-            tools:text="💡 Your 90-min Deep Work sessions usually end around 45 min — tap to update preset." />
+            tools:text="💡 Recommended: 45 min based on recent focus history" />
     </LinearLayout>
-
-    
-    <ImageButton
-        android:id="@+id/btnDeletePreset"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginEnd="8dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_trash"
-        app:tint="@color/text_secondary"
-        android:contentDescription="Delete Preset" />
 
     <Button
         android:id="@+id/btnStartPreset"
         style="@style/PrimaryButtonCompact"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-        android:text="Start"
-        android:textSize="12sp" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="Start" />
+
+    <ImageButton
+        android:id="@+id/btnDeletePreset"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_trash"
+        app:tint="@color/text_muted"
+        android:contentDescription="Delete Preset" />
 
 </LinearLayout>

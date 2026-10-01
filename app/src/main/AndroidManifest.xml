@@ -55,7 +55,8 @@
             android:name=".ui.BlockOverlayActivity"
             android:exported="false"
             android:theme="@style/Theme.StayFocused.FullScreen"
-            android:launchMode="singleInstance"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
             android:excludeFromRecents="true" />
 
         <!-- Strict mode confirmation before a session locks in -->

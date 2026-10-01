@@ -5,12 +5,12 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.focusvault.app.R
 import com.focusvault.app.databinding.ActivityBlockOverlayBinding
+import com.focusvault.app.manager.ProtectionEngine
 import com.focusvault.app.manager.SessionStateManager
 import com.focusvault.app.util.EdgeToEdge
 import com.focusvault.app.util.PrefsManager
@@ -27,7 +27,6 @@ class BlockOverlayActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityBlockOverlayBinding
     private var ticker: CountDownTimer? = null
-    private var sessionTotalMillis: Long = 1L
     private var currentBlockedPackage: String? = null
     
     private val quoteHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -89,112 +88,87 @@ class BlockOverlayActivity : AppCompatActivity() {
 
         binding.btnGoHome.setOnClickListener {
             com.focusvault.app.util.HapticHelper.mediumClick(it)
-            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_HOME)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(homeIntent)
-            finish()
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.slide_out_right)
+            dismissToHome()
         }
 
         binding.btnEmergencyUnlockOverlay.setOnClickListener {
             com.focusvault.app.util.HapticHelper.heavyClick(it)
-            val isLock = PrefsManager.isLockModeActive(this)
-            val proceed = {
-                if (PrefsManager.canUseEmergencyUnlockToday(this)) {
-                    DialogHelper.showCustomDialog(
-                        context = this,
-                        title = "Use Emergency Unlock? 🚨",
-                        message = "This ends your current session early. You get 1 emergency unlock per day.",
-                        positiveText = "Use Unlock",
-                        positiveAction = {
-                            PrefsManager.consumeEmergencyUnlock(this)
-                            lifecycleScope.launch {
-                                SessionStateManager.stopSessionEarly(applicationContext, "Emergency unlock from overlay")
-                                finish()
-                            }
-                        },
-                        negativeText = "Cancel"
-                    )
-                } else {
-                    Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
-                }
-            }
-            if (isLock) {
-                LockPinDialog.promptAndVerify(this) { proceed() }
-            } else {
-                proceed()
-            }
+            handleEmergencyUnlock()
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Route directly to home screen instead of letting underlying blocked app through
-                binding.btnGoHome.performClick()
+                dismissToHome()
             }
         })
 
         binding.tvQuote.setOnClickListener { advanceQuote() }
         binding.tvQuoteHint.setOnClickListener { advanceQuote() }
 
-        refreshUi()
-
-        if (!com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
-            val isStrict = PrefsManager.isStrictModeActive(this)
-            val views = listOfNotNull(
-                binding.tvAppName,
-                binding.tvModeSubtitle,
-                if (isStrict) binding.cardStrictModeNotice else null,
-                binding.frameCountdownRing,
-                binding.tvQuote,
-                binding.tvQuoteHint,
-                binding.btnGoHome,
-                if (!isStrict) binding.btnEmergencyUnlockOverlay else null
-            )
-            views.forEach { it.alpha = 0f; it.translationY = 24f; it.visibility = android.view.View.VISIBLE }
-            com.focusvault.app.util.AnimationHelper.animateStaggeredCascade(views, baseDelayMs = 150, stepDelayMs = 50)
-        }
+        setupOverlayForIntent(intent, isInitialCreation = true)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        binding.tvQuote.setOnClickListener { advanceQuote() }
-        binding.tvQuoteHint.setOnClickListener { advanceQuote() }
+        val newPackage = intent.getStringExtra(EXTRA_BLOCKED_PACKAGE)
+        val isSamePackage = (newPackage != null && newPackage == currentBlockedPackage)
+        setupOverlayForIntent(intent, isInitialCreation = !isSamePackage)
+    }
 
-        refreshUi()
+    private fun dismissToHome() {
+        currentBlockedPackage?.let { ProtectionEngine.recordDismissal(it) }
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        startActivity(homeIntent)
+        finishAndRemoveTask()
+    }
 
-        if (!com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
-            val isStrict = PrefsManager.isStrictModeActive(this)
-            val views = listOfNotNull(
-                binding.tvAppName,
-                binding.tvModeSubtitle,
-                if (isStrict) binding.cardStrictModeNotice else null,
-                binding.frameCountdownRing,
-                binding.tvQuote,
-                binding.tvQuoteHint,
-                binding.btnGoHome,
-                if (!isStrict) binding.btnEmergencyUnlockOverlay else null
-            )
-            views.forEach { it.alpha = 0f; it.translationY = 24f; it.visibility = android.view.View.VISIBLE }
-            com.focusvault.app.util.AnimationHelper.animateStaggeredCascade(views, baseDelayMs = 150, stepDelayMs = 50)
+    private fun handleEmergencyUnlock() {
+        val isLock = PrefsManager.isLockModeActive(this)
+        val proceed = {
+            if (PrefsManager.canUseEmergencyUnlockToday(this)) {
+                DialogHelper.showCustomDialog(
+                    context = this,
+                    title = "Use Emergency Unlock? 🚨",
+                    message = "This ends your current session early. You get 1 emergency unlock per day.",
+                    positiveText = "Use Unlock",
+                    positiveAction = {
+                        PrefsManager.consumeEmergencyUnlock(this)
+                        lifecycleScope.launch {
+                            SessionStateManager.stopSessionEarly(applicationContext, "Emergency unlock from overlay")
+                            finishAndRemoveTask()
+                        }
+                    },
+                    negativeText = "Cancel"
+                )
+            } else {
+                Toast.makeText(this, "No emergency unlocks left today", Toast.LENGTH_SHORT).show()
+            }
+        }
+        if (isLock) {
+            LockPinDialog.promptAndVerify(this) { proceed() }
+        } else {
+            proceed()
         }
     }
 
-    private fun refreshUi() {
+    private fun setupOverlayForIntent(currentIntent: Intent, isInitialCreation: Boolean) {
         if (!PrefsManager.isSessionCurrentlyActive(this)) {
-            finish()
+            finishAndRemoveTask()
             return
         }
+
+        val rawPackage = currentIntent.getStringExtra(EXTRA_BLOCKED_PACKAGE)
+        currentBlockedPackage = rawPackage
 
         val isStrict = PrefsManager.isStrictModeActive(this)
         val isLock = PrefsManager.isLockModeActive(this)
         val endTime = PrefsManager.getSessionEndTime(this)
 
         // Resolve friendly application name
-        val rawPackage = intent.getStringExtra(EXTRA_BLOCKED_PACKAGE)
-        currentBlockedPackage = rawPackage
         val appLabel = if (!rawPackage.isNullOrEmpty()) {
             try {
                 val appInfo = packageManager.getApplicationInfo(rawPackage, 0)
@@ -261,6 +235,21 @@ class BlockOverlayActivity : AppCompatActivity() {
         binding.ringCountdown.isOrbitalActive = true
 
         startCountdown()
+
+        if (isInitialCreation && !com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+            val views = listOfNotNull(
+                binding.tvAppName,
+                binding.tvModeSubtitle,
+                if (isStrict) binding.cardStrictModeNotice else null,
+                binding.frameCountdownRing,
+                binding.tvQuote,
+                binding.tvQuoteHint,
+                binding.btnGoHome,
+                if (!isStrict) binding.btnEmergencyUnlockOverlay else null
+            )
+            views.forEach { it.alpha = 0f; it.translationY = 24f; it.visibility = android.view.View.VISIBLE }
+            com.focusvault.app.util.AnimationHelper.animateStaggeredCascade(views, baseDelayMs = 150, stepDelayMs = 50)
+        }
     }
 
     private fun startCountdown() {
@@ -269,7 +258,7 @@ class BlockOverlayActivity : AppCompatActivity() {
 
         val totalSessionDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
         val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
-        if (remaining <= 0) { finish(); return }
+        if (remaining <= 0) { finishAndRemoveTask(); return }
 
         val isStrict = PrefsManager.isStrictModeActive(this)
         val initialRatio = (remaining.toFloat() / totalSessionDuration.toFloat()).coerceIn(0f, 1f)
@@ -285,7 +274,7 @@ class BlockOverlayActivity : AppCompatActivity() {
             }
             override fun onFinish() {
                 com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameCountdownRing)
-                finish()
+                finishAndRemoveTask()
             }
         }.start()
     }

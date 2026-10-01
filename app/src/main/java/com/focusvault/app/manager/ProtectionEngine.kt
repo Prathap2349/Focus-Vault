@@ -59,6 +59,27 @@ object ProtectionEngine {
     val isTimerServiceRunning = AtomicBoolean(false)
     val lastTimerHeartbeat = java.util.concurrent.atomic.AtomicLong(0L)
 
+    private val lastDismissedPackage = java.util.concurrent.atomic.AtomicReference<String?>(null)
+    private val lastDismissedTimestamp = java.util.concurrent.atomic.AtomicLong(0L)
+    const val DISMISS_COOLDOWN_MS = 2000L
+
+    fun recordDismissal(packageName: String) {
+        lastDismissedPackage.set(packageName)
+        lastDismissedTimestamp.set(System.currentTimeMillis())
+    }
+
+    fun isDismissCooldownActive(packageName: String, now: Long = System.currentTimeMillis()): Boolean {
+        val pkg = lastDismissedPackage.get() ?: return false
+        if (pkg != packageName) return false
+        val elapsed = now - lastDismissedTimestamp.get()
+        return elapsed in 0 until DISMISS_COOLDOWN_MS
+    }
+
+    fun clearDismissal() {
+        lastDismissedPackage.set(null)
+        lastDismissedTimestamp.set(0L)
+    }
+
     private val _reportFlow = MutableStateFlow<ProtectionReport?>(null)
     val reportFlow: StateFlow<ProtectionReport?> = _reportFlow.asStateFlow()
 
