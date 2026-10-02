@@ -1,650 +1,1384 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/scrollMain"
+    android:id="@+id/layoutRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_light"
-    android:clipToPadding="false"
-    android:fillViewport="true">
+    android:background="@color/bg_light">
 
-    <LinearLayout
+    <!-- ===== Main Multi-Destination Container ===== -->
+    <FrameLayout
+        android:id="@+id/containerContent"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="32dp">
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottomNavigation">
 
-        <!-- ===== Header ===== -->
-        <LinearLayout
+        <!-- ============================================================ -->
+        <!-- DESTINATION 1: HOME DASHBOARD                                -->
+        <!-- ============================================================ -->
+        <ScrollView
+            android:id="@+id/scrollHome"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvGreeting"
-                    style="@style/TextStyle.Title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Focus Vault" />
-
-                <TextView
-                    android:id="@+id/tvGreetingSub"
-                    style="@style/TextStyle.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Protect your attention." />
-            </LinearLayout>
-
-            <!-- Protection Status Pill -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardHeaderShield"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/card_surface_secondary"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/card_border"
-                app:strokeWidth="1dp"
-                android:layout_marginEnd="8dp">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:minHeight="48dp"
-                    android:paddingHorizontal="12dp"
-                    android:paddingVertical="6dp">
-
-                    <TextView
-                        android:id="@+id/tvHeaderShieldIcon"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🛡️"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/tvHeaderShieldText"
-                        style="@style/TextStyle.Caption"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="Active"
-                        android:textColor="@color/success_green" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <ImageButton
-                android:id="@+id/btnSettings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Settings"
-                android:src="@drawable/ic_settings"
-                app:tint="@color/text_primary" />
-        </LinearLayout>
-
-        <!-- Warnings / Health Action Banners -->
-        <TextView
-            android:id="@+id/tvPermissionWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_badge_warning"
-            android:padding="14dp"
-            android:minHeight="48dp"
-            android:gravity="center_vertical"
-            android:text="⚠️ Accessibility permission required. Tap to fix."
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:textSize="13sp"
-            android:visibility="gone"
-            android:layout_marginBottom="12dp" />
-
-        <TextView
-            android:id="@+id/tvNotificationWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_badge_warning"
-            android:padding="14dp"
-            android:minHeight="48dp"
-            android:gravity="center_vertical"
-            android:text="🔔 Notification access recommended. Tap to fix."
-            android:textColor="#856404"
-            android:textStyle="bold"
-            android:textSize="13sp"
-            android:visibility="gone"
-            android:layout_marginBottom="12dp" />
-
-        <!-- ===== PRIMARY HERO TIMER CARD ===== -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardHeroFocus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/card_surface"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1dp"
-            android:layout_marginBottom="16dp">
+            android:layout_height="match_parent"
+            android:background="@color/bg_light"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="visible">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
                 android:orientation="vertical"
-                android:paddingHorizontal="24dp"
-                android:paddingTop="24dp"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="16dp"
                 android:paddingBottom="24dp">
 
-                <FrameLayout
-                    android:id="@+id/frameFocusRingContainer"
-                    android:layout_width="220dp"
-                    android:layout_height="220dp"
-                    android:layout_gravity="center">
-
-                    <com.focusvault.app.ui.widget.CircularCountdownView
-                        android:id="@+id/ringGoalProgress"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
+                <!-- Header Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingBottom="12dp">
 
                     <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/tvHeroStateBadge"
-                            style="@style/TextStyle.Caption"
+                            android:id="@+id/tvGreeting"
+                            style="@style/TextStyle.Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="@drawable/widget_badge_health"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="4dp"
-                            android:text="READY TO FOCUS"
-                            android:textColor="@color/brand_primary" />
+                            android:text="Focus Vault" />
 
                         <TextView
-                            android:id="@+id/tvTimerHeroDigits"
-                            style="@style/TextStyle.Display"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:singleLine="true"
-                            android:layout_marginTop="6dp"
-                            android:text="25:00" />
-
-                        <TextView
-                            android:id="@+id/tvHeroSubtitle"
+                            android:id="@+id/tvGreetingSub"
                             style="@style/TextStyle.Body"
-                            android:layout_width="160dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="Tap to adjust"
-                            android:textSize="12sp"
-                            android:maxLines="2"
-                            android:gravity="center" />
+                            android:layout_marginTop="2dp"
+                            android:text="Protect your attention." />
                     </LinearLayout>
-                </FrameLayout>
 
-                <FrameLayout
-                    android:id="@+id/containerHeroActions"
+                    <!-- Real-Time Protection Status Pill -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardHeaderShield"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/card_surface_secondary"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/card_border"
+                        app:strokeWidth="1dp"
+                        android:layout_marginEnd="8dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:minHeight="44dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp">
+
+                            <ImageView
+                                android:id="@+id/ivHeaderShieldIcon"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_shield_check"
+                                app:tint="@color/success_green" />
+
+                            <!-- Legacy TextView ID preserved for compatibility -->
+                            <TextView
+                                android:id="@+id/tvHeaderShieldIcon"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:visibility="gone" />
+
+                            <TextView
+                                android:id="@+id/tvHeaderShieldText"
+                                style="@style/TextStyle.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Protected"
+                                android:textColor="@color/success_green" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <ImageButton
+                        android:id="@+id/btnSettings"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Settings"
+                        android:src="@drawable/ic_settings"
+                        app:tint="@color/text_primary" />
+                </LinearLayout>
+
+                <!-- System Warnings / Health Action Banners -->
+                <TextView
+                    android:id="@+id/tvPermissionWarning"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp">
+                    android:background="@drawable/bg_badge_warning"
+                    android:padding="14dp"
+                    android:minHeight="48dp"
+                    android:gravity="center_vertical"
+                    android:text="⚠️ Accessibility permission required. Tap to fix."
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="12dp" />
 
-                    <Button
-                        android:id="@+id/btnStartFocus"
-                        style="@style/PrimaryButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:text="START FOCUS"
-                        android:textSize="16sp" />
+                <TextView
+                    android:id="@+id/tvNotificationWarning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_warning"
+                    android:padding="14dp"
+                    android:minHeight="48dp"
+                    android:gravity="center_vertical"
+                    android:text="🔔 Notification access recommended. Tap to fix."
+                    android:textColor="#856404"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- ===== PRIMARY HERO TIMER CARD ===== -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardHeroFocus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp"
+                    android:layout_marginBottom="16dp">
 
                     <LinearLayout
-                        android:id="@+id/containerActiveActions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="24dp"
+                        android:paddingTop="24dp"
+                        android:paddingBottom="24dp">
+
+                        <FrameLayout
+                            android:id="@+id/frameFocusRingContainer"
+                            android:layout_width="220dp"
+                            android:layout_height="220dp"
+                            android:layout_gravity="center">
+
+                            <com.focusvault.app.ui.widget.CircularCountdownView
+                                android:id="@+id/ringGoalProgress"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvHeroStateBadge"
+                                    style="@style/TextStyle.Caption"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/widget_badge_health"
+                                    android:paddingHorizontal="12dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="READY TO FOCUS"
+                                    android:textColor="@color/brand_primary" />
+
+                                <TextView
+                                    android:id="@+id/tvTimerHeroDigits"
+                                    style="@style/TextStyle.Display"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:singleLine="true"
+                                    android:layout_marginTop="6dp"
+                                    android:text="25:00" />
+
+                                <TextView
+                                    android:id="@+id/tvHeroSubtitle"
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="160dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="4dp"
+                                    android:text="Tap to adjust"
+                                    android:textSize="12sp"
+                                    android:maxLines="2"
+                                    android:gravity="center" />
+                            </LinearLayout>
+                        </FrameLayout>
+
+                        <FrameLayout
+                            android:id="@+id/containerHeroActions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp">
+
+                            <Button
+                                android:id="@+id/btnStartFocus"
+                                style="@style/PrimaryButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:text="START FOCUS"
+                                android:textSize="16sp" />
+
+                            <LinearLayout
+                                android:id="@+id/containerActiveActions"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+
+                                <Button
+                                    android:id="@+id/btnResumeNow"
+                                    style="@style/PrimaryButton"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="52dp"
+                                    android:text="RESUME FOCUS"
+                                    android:textSize="15sp"
+                                    android:visibility="gone"
+                                    android:layout_marginBottom="8dp" />
+
+                                <Button
+                                    android:id="@+id/btnEmergencyMode"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="52dp"
+                                    style="@style/Widget.MaterialComponents.Button"
+                                    app:backgroundTint="@color/warning_amber"
+                                    app:cornerRadius="18dp"
+                                    android:text="EMERGENCY PAUSE"
+                                    android:textColor="@color/white"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold"
+                                    android:layout_marginBottom="8dp" />
+
+                                <Button
+                                    android:id="@+id/btnStopEarly"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="52dp"
+                                    style="@style/CompactOutlinedButton"
+                                    app:cornerRadius="18dp"
+                                    app:strokeColor="@color/card_border"
+                                    app:strokeWidth="1dp"
+                                    android:text="STOP EARLY"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <Button
+                                android:id="@+id/btnEmergencyUnlock"
+                                android:layout_width="match_parent"
+                                android:layout_height="52dp"
+                                style="@style/Widget.MaterialComponents.Button"
+                                app:backgroundTint="@color/strict_red"
+                                app:cornerRadius="18dp"
+                                android:text="EMERGENCY UNLOCK (1 left)"
+                                android:textColor="@color/white"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:visibility="gone" />
+                        </FrameLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- ===== FOCUS MODE SELECTOR CARDS (FOCUS / LOCK / STRICT) ===== -->
+                <TextView
+                    style="@style/TextStyle.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="FOCUS MODE"
+                    android:paddingBottom="8dp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutModeSelector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- Focus (Normal) Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardModeFocus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        app:cardBackgroundColor="@color/card_surface"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/brand_primary"
+                        app:strokeWidth="2dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="12dp"
+                            android:paddingHorizontal="4dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_mode_focus"
+                                app:tint="@color/brand_primary" />
+
+                            <TextView
+                                style="@style/TextStyle.Subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="Focus"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                style="@style/TextStyle.Body"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Normal"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Lock Mode Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardModeLock"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="4dp"
+                        app:cardBackgroundColor="@color/card_surface"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/card_border"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="12dp"
+                            android:paddingHorizontal="4dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_mode_lock"
+                                app:tint="@color/lock_blue" />
+
+                            <TextView
+                                style="@style/TextStyle.Subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="Lock"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                style="@style/TextStyle.Body"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PIN Protected"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Strict Mode Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardModeStrict"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        app:cardBackgroundColor="@color/card_surface"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/card_border"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:paddingVertical="12dp"
+                            android:paddingHorizontal="4dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_mode_strict"
+                                app:tint="@color/strict_red" />
+
+                            <TextView
+                                style="@style/TextStyle.Subtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="Strict"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                style="@style/TextStyle.Body"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="No Early Exit"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- ===== QUICK DURATION CHIPS ===== -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:clipToPadding="false"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnQuickCustom"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Custom"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick25"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="25m"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick45"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="45m"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick60"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="60m"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick90"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="90m"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick120"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="120m" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- ===== DAILY SUMMARY CARDS ===== -->
+                <LinearLayout
+                    android:id="@+id/layoutStatsSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- Daily Goal Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardGoal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.2"
+                        android:layout_marginEnd="6dp"
+                        app:cardBackgroundColor="@color/card_surface"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/card_border"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="14dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    style="@style/TextStyle.Caption"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="DAILY GOAL" />
+
+                                <ImageView
+                                    android:layout_width="14dp"
+                                    android:layout_height="14dp"
+                                    android:src="@drawable/ic_flame"
+                                    android:layout_marginEnd="3dp"
+                                    app:tint="@color/warning_amber" />
+
+                                <TextView
+                                    android:id="@+id/tvStreakBadge"
+                                    style="@style/TextStyle.Caption"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="0"
+                                    android:textColor="@color/warning_amber" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvGoalToday"
+                                style="@style/TextStyle.Subtitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:text="0m / 120m" />
+
+                            <ProgressBar
+                                android:id="@+id/progressGoalBar"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="6dp"
+                                android:layout_marginTop="6dp"
+                                android:progressDrawable="@android:drawable/progress_horizontal"
+                                android:max="100"
+                                android:progress="0" />
+
+                            <TextView
+                                android:id="@+id/tvGoalRemaining"
+                                style="@style/TextStyle.Body"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="120m left"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Distractions Resisted Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardDistractions"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="0.8"
+                        android:layout_marginStart="6dp"
+                        app:cardBackgroundColor="@color/card_surface"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/card_border"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center_vertical"
+                            android:padding="14dp">
+
+                            <TextView
+                                style="@style/TextStyle.Caption"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="DISTRACTIONS"
+                                android:maxLines="1" />
+
+                            <TextView
+                                android:id="@+id/tvDistractionsCount"
+                                style="@style/TextStyle.Title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="0"
+                                android:textColor="@color/brand_primary"
+                                android:textSize="26sp" />
+
+                            <TextView
+                                style="@style/TextStyle.Body"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="blocked today"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- ===== COMPACT PROTECTION CENTER CARD ===== -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardProtectionCenter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="gone">
+                        android:padding="16dp">
 
-                        <Button
-                            android:id="@+id/btnResumeNow"
-                            style="@style/PrimaryButton"
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            android:text="RESUME FOCUS"
-                            android:textSize="15sp"
-                            android:visibility="gone"
-                            android:layout_marginBottom="8dp" />
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <Button
-                            android:id="@+id/btnEmergencyMode"
-                            android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            style="@style/Widget.MaterialComponents.Button"
-                            app:backgroundTint="@color/warning_amber"
-                            app:cornerRadius="18dp"
-                            android:text="EMERGENCY PAUSE"
-                            android:textColor="@color/white"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="8dp" />
+                            <TextView
+                                style="@style/TextStyle.Caption"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="PROTECTION CENTER" />
 
-                        <Button
-                            android:id="@+id/btnStopEarly"
+                            <TextView
+                                android:id="@+id/tvProtectionCenterStatus"
+                                style="@style/TextStyle.Caption"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="100% ACTIVE"
+                                android:textColor="@color/success_green" />
+                        </LinearLayout>
+
+                        <!-- Protection Signals Checklist -->
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            style="@style/CompactOutlinedButton"
-                            app:cornerRadius="18dp"
-                            app:strokeColor="@color/card_border"
-                            app:strokeWidth="1dp"
-                            android:text="STOP EARLY"
-                            android:textColor="@color/text_primary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="10dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingVertical="3dp">
+                                <ImageView
+                                    android:id="@+id/ivSignalA11y"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/ic_check_circle"
+                                    app:tint="@color/success_green" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="App Blocking (Accessibility)"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingVertical="3dp">
+                                <ImageView
+                                    android:id="@+id/ivSignalAdmin"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/ic_check_circle"
+                                    app:tint="@color/success_green" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="Device Admin (Uninstall Protection)"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingVertical="3dp">
+                                <ImageView
+                                    android:id="@+id/ivSignalVpn"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/ic_check_circle"
+                                    app:tint="@color/success_green" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="Website Blocking (DNS Filter)"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <Button
-                        android:id="@+id/btnEmergencyUnlock"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        style="@style/Widget.MaterialComponents.Button"
-                        app:backgroundTint="@color/strict_red"
-                        app:cornerRadius="18dp"
-                        android:text="EMERGENCY UNLOCK (1 left)"
-                        android:textColor="@color/white"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        android:visibility="gone" />
-                </FrameLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ===== SLIM UNIFIED SUMMARY STATS ROW ===== -->
-        <LinearLayout
-            android:id="@+id/layoutStatsSummary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <!-- Daily Goal Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardGoal"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.2"
-                android:layout_marginEnd="8dp"
-                app:cardBackgroundColor="@color/card_surface"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/card_border"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
+                <!-- Hidden fallback view for ViewBinding backward-compatibility -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardProtectionStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
+                    android:visibility="gone">
+                    <TextView android:id="@+id/tvProtectionStatusIcon" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tvProtectionStatusTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tvProtectionStatusSub" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- ===== QUICK ACCESS BENTO GRID ===== -->
+                <TextView
+                    style="@style/TextStyle.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="BLOCKLISTS &amp; SCHEDULES"
+                    android:paddingBottom="8dp" />
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="2"
+                    android:rowCount="2"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnManageApps"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:padding="14dp"
+                        android:minHeight="68dp"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="4dp"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Blocked Apps"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvBlockedAppsCount"
+                            style="@style/TextStyle.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0 configured"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnManageSites"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:padding="14dp"
+                        android:minHeight="68dp"
+                        android:orientation="vertical"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Blocked Sites"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvBlockedSitesCount"
+                            style="@style/TextStyle.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0 configured"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnManageSchedules"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:padding="14dp"
+                        android:minHeight="68dp"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="4dp">
+
+                        <TextView
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Schedules"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tvSchedulesCount"
+                            style="@style/TextStyle.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0 active"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnManagePresets"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:padding="14dp"
+                        android:minHeight="68dp"
+                        android:orientation="vertical"
+                        android:layout_marginStart="4dp">
+
+                        <TextView
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Presets"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            style="@style/TextStyle.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Quick modes"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </GridLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ============================================================ -->
+        <!-- DESTINATION 2: INSIGHTS SCREEN                               -->
+        <!-- ============================================================ -->
+        <ScrollView
+            android:id="@+id/scrollInsights"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_light"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="24dp">
+
+                <TextView
+                    style="@style/TextStyle.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Insights &amp; Analytics" />
+
+                <TextView
+                    style="@style/TextStyle.Body"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Your focus patterns and productivity trends" />
+
+                <!-- Weekly Focus Chart Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp"
+                    android:layout_marginTop="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="vertical"
+                        android:padding="18dp">
 
                         <TextView
                             style="@style/TextStyle.Caption"
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="DAILY GOAL" />
+                            android:text="WEEKLY FOCUS TIME (MINUTES)" />
 
-                        <TextView
-                            android:id="@+id/tvStreakBadge"
-                            style="@style/TextStyle.Caption"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🔥 0"
-                            android:textColor="@color/warning_amber" />
+                        <com.focusvault.app.ui.widget.WeeklyBarChartView
+                            android:id="@+id/chartWeekly"
+                            android:layout_width="match_parent"
+                            android:layout_height="140dp"
+                            android:layout_marginTop="12dp" />
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <TextView
-                        android:id="@+id/tvGoalToday"
-                        style="@style/TextStyle.Subtitle"
+                <!-- Recent Sessions Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp"
+                    android:layout_marginTop="16dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="0m / 120m" />
+                        android:orientation="vertical"
+                        android:padding="18dp">
 
-                    <ProgressBar
-                        android:id="@+id/progressGoalBar"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="6dp"
-                        android:layout_marginTop="6dp"
-                        android:progressDrawable="@android:drawable/progress_horizontal"
-                        android:max="100"
-                        android:progress="0" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingBottom="8dp">
 
-                    <TextView
-                        android:id="@+id/tvGoalRemaining"
-                        style="@style/TextStyle.Body"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="120m left"
-                        android:textSize="11sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            <TextView
+                                style="@style/TextStyle.Subtitle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Recent Sessions" />
 
-            <!-- Distractions Resisted Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardDistractions"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="0.8"
-                android:layout_marginStart="8dp"
-                app:cardBackgroundColor="@color/card_surface"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/card_border"
-                app:strokeWidth="1dp">
+                            <TextView
+                                android:id="@+id/btnClearHistory"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CLEAR"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:padding="8dp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvEmptySessions"
+                            style="@style/TextStyle.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="No focus sessions recorded yet.\nStart your first session on Home!"
+                            android:gravity="center"
+                            android:padding="24dp" />
+
+                        <LinearLayout
+                            android:id="@+id/containerRecentSessions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ============================================================ -->
+        <!-- DESTINATION 3: PRESETS SCREEN                                -->
+        <!-- ============================================================ -->
+        <ScrollView
+            android:id="@+id/scrollPresets"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/bg_light"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
+                    android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:padding="14dp">
+                    android:orientation="horizontal">
 
-                    <TextView
-                        style="@style/TextStyle.Caption"
-                        android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="DISTRACTIONS"
-                        android:maxLines="1" />
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/tvDistractionsCount"
-                        style="@style/TextStyle.Title"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="0"
-                        android:textColor="@color/brand_primary"
-                        android:textSize="26sp" />
+                        <TextView
+                            style="@style/TextStyle.Title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Focus Presets" />
 
-                    <TextView
-                        style="@style/TextStyle.Body"
-                        android:layout_width="match_parent"
+                        <TextView
+                            style="@style/TextStyle.Body"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Preconfigured timer templates" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnAddCustomPresetMain"
+                        style="@style/CompactOutlinedButton"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="blocked today"
-                        android:textSize="11sp" />
+                        android:text="+ Add" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
 
-        <!-- Protection Status Card (Hidden fallback view kept for ID compatibility) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardProtectionStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone">
-            <TextView android:id="@+id/tvProtectionStatusIcon" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvProtectionStatusTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-            <TextView android:id="@+id/tvProtectionStatusSub" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        </com.google.android.material.card.MaterialCardView>
+                <LinearLayout
+                    android:id="@+id/containerPresetsMain"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="16dp" />
 
-        <!-- Quick Focus Preset Chips -->
-        <HorizontalScrollView
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ============================================================ -->
+        <!-- DESTINATION 4: SETTINGS SCREEN                               -->
+        <!-- ============================================================ -->
+        <ScrollView
+            android:id="@+id/scrollSettings"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:scrollbars="none"
+            android:layout_height="match_parent"
+            android:background="@color/bg_light"
             android:clipToPadding="false"
-            android:layout_marginBottom="16dp">
+            android:fillViewport="true"
+            android:visibility="gone">
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnQuickCustom"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Custom"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btnQuick25"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="25m"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btnQuick45"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="45m"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btnQuick60"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="60m"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btnQuick90"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="90m"
-                    android:layout_marginEnd="8dp" />
-
-                <Button
-                    android:id="@+id/btnQuick120"
-                    style="@style/CompactOutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="120m" />
-            </LinearLayout>
-        </HorizontalScrollView>
-
-        <!-- ===== CONFIGURATION & BLOCKLISTS BENTO GRID ===== -->
-        <TextView
-            style="@style/TextStyle.Caption"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="PROTECTION &amp; CONTROLS"
-            android:paddingBottom="10dp" />
-
-        <GridLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:rowCount="2"
-            android:layout_marginBottom="20dp">
-
-            <LinearLayout
-                android:id="@+id/btnManageApps"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:background="@drawable/widget_stat_box"
-                android:padding="16dp"
-                android:minHeight="72dp"
                 android:orientation="vertical"
-                android:layout_marginEnd="6dp"
-                android:layout_marginBottom="12dp">
+                android:paddingHorizontal="20dp"
+                android:paddingTop="20dp"
+                android:paddingBottom="24dp">
 
                 <TextView
-                    style="@style/TextStyle.Subtitle"
+                    style="@style/TextStyle.Title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📱 Apps" />
-
-                <TextView
-                    android:id="@+id/tvBlockedAppsCount"
-                    style="@style/TextStyle.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0 blocked" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btnManageSites"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:background="@drawable/widget_stat_box"
-                android:padding="16dp"
-                android:minHeight="72dp"
-                android:orientation="vertical"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    style="@style/TextStyle.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🌐 Websites" />
-
-                <TextView
-                    android:id="@+id/tvBlockedSitesCount"
-                    style="@style/TextStyle.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0 blocked" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btnManageSchedules"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:background="@drawable/widget_stat_box"
-                android:padding="16dp"
-                android:minHeight="72dp"
-                android:orientation="vertical"
-                android:layout_marginEnd="6dp">
-
-                <TextView
-                    style="@style/TextStyle.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⏰ Schedules" />
-
-                <TextView
-                    android:id="@+id/tvSchedulesCount"
-                    style="@style/TextStyle.Body"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="0 active" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/btnManagePresets"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:background="@drawable/widget_stat_box"
-                android:padding="16dp"
-                android:minHeight="72dp"
-                android:orientation="vertical"
-                android:layout_marginStart="6dp">
-
-                <TextView
-                    style="@style/TextStyle.Subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📋 Presets" />
+                    android:text="Settings" />
 
                 <TextView
                     style="@style/TextStyle.Body"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Manage filters" />
+                    android:layout_marginTop="2dp"
+                    android:text="Protection, security &amp; personalization" />
+
+                <!-- Protection Section Card -->
+                <TextView
+                    style="@style/TextStyle.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="PROTECTION &amp; SECURITY"
+                    android:layout_marginTop="20dp"
+                    android:paddingBottom="8dp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/btnSettingsDiagnostics"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:minHeight="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_shield_check"
+                                app:tint="@color/brand_primary" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    style="@style/TextStyle.Subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Protection Diagnostics"
+                                    android:textSize="14sp" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="View all permissions and engine status"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider" />
+
+                        <LinearLayout
+                            android:id="@+id/btnSettingsAdmin"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:minHeight="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_lock"
+                                app:tint="@color/lock_blue" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    style="@style/TextStyle.Subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Device Admin"
+                                    android:textSize="14sp" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Uninstall protection for Strict &amp; Lock modes"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider" />
+
+                        <LinearLayout
+                            android:id="@+id/btnSettingsPin"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:minHeight="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_key"
+                                app:tint="@color/warning_amber" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    style="@style/TextStyle.Subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="App Lock PIN"
+                                    android:textSize="14sp" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Set or change Lock Mode security PIN"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Appearance Section Card -->
+                <TextView
+                    style="@style/TextStyle.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="APPEARANCE &amp; PREFERENCES"
+                    android:layout_marginTop="20dp"
+                    android:paddingBottom="8dp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/card_surface"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/card_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/btnSettingsTheme"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:minHeight="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_palette"
+                                app:tint="@color/brand_primary" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    style="@style/TextStyle.Subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Theme &amp; Style"
+                                    android:textSize="14sp" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="System, Dark, Light &amp; AMOLED options"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider" />
+
+                        <LinearLayout
+                            android:id="@+id/btnSettingsBackup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:minHeight="56dp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="12dp">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_backup"
+                                app:tint="@color/secondary_teal" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+                                <TextView
+                                    style="@style/TextStyle.Subtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Backup &amp; Restore"
+                                    android:textSize="14sp" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Export or import configuration"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
             </LinearLayout>
-        </GridLayout>
+        </ScrollView>
 
-        <!-- ===== INSIGHTS & WEEKLY PROGRESS ===== -->
-        <TextView
-            style="@style/TextStyle.Caption"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="INSIGHTS &amp; PROGRESS"
-            android:paddingBottom="10dp" />
+    </FrameLayout>
 
-        <com.focusvault.app.ui.widget.WeeklyBarChartView
-            android:id="@+id/chartWeekly"
-            android:layout_width="match_parent"
-            android:layout_height="130dp"
-            android:layout_marginBottom="24dp" />
+    <!-- ===== BOTTOM NAVIGATION BAR ===== -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        style="@style/Widget.StayFocused.BottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_alignParentBottom="true"
+        app:menu="@menu/menu_bottom_nav" />
 
-        <!-- ===== RECENT HISTORY ===== -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                style="@style/TextStyle.Subtitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Recent Sessions" />
-
-            <TextView
-                android:id="@+id/btnClearHistory"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CLEAR"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:padding="8dp" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvEmptySessions"
-            style="@style/TextStyle.Body"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No focus sessions recorded yet.\nStart your first session above!"
-            android:gravity="center"
-            android:padding="24dp" />
-
-        <LinearLayout
-            android:id="@+id/containerRecentSessions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-
-    </LinearLayout>
-</ScrollView>
+</RelativeLayout>

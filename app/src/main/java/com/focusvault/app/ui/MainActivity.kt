@@ -9,7 +9,12 @@ import android.os.CountDownTimer
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -18,23 +23,28 @@ import androidx.core.graphics.ColorUtils
 import androidx.lifecycle.lifecycleScope
 import com.focusvault.app.R
 import com.focusvault.app.data.AppDatabase
+import com.focusvault.app.data.FocusPreset
 import com.focusvault.app.data.SessionHistoryEntry
 import com.focusvault.app.data.SessionMode
 import com.focusvault.app.data.SessionState
 import com.focusvault.app.databinding.ActivityMainBinding
+import com.focusvault.app.databinding.ItemPresetBinding
 import com.focusvault.app.databinding.ItemRecentSessionBinding
-import com.focusvault.app.service.AppBlockAccessibilityService
-import com.focusvault.app.service.FocusVpnService
-import com.focusvault.app.service.SessionTimerService
 import com.focusvault.app.manager.ProtectionEngine
 import com.focusvault.app.manager.ProtectionStatus
 import com.focusvault.app.manager.SessionStateManager
+import com.focusvault.app.service.AppBlockAccessibilityService
+import com.focusvault.app.service.FocusVpnService
+import com.focusvault.app.service.SessionTimerService
+import com.focusvault.app.service.StayFocusedDeviceAdminReceiver
 import com.focusvault.app.util.AnimationHelper
 import com.focusvault.app.util.AppLockGate
 import com.focusvault.app.util.EdgeToEdge
 import com.focusvault.app.util.FocusStatsManager
 import com.focusvault.app.util.HapticHelper
 import com.focusvault.app.util.PrefsManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -64,7 +74,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var countdownTicker: CountDownTimer? = null
-    private var chosenMode: SessionMode? = null
+    private var chosenMode: SessionMode = SessionMode.NORMAL
+    private var presetsJob: Job? = null
 
     private val vpnPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -147,6 +158,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        setupBottomNavigation()
+        setupModeSelectorCards()
+        setupSettingsTab()
+        setupPresetsTab()
+
         binding.btnClearHistory.setOnClickListener {
             HapticHelper.lightClick(it)
             confirmClearAllHistory()
@@ -154,9 +170,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnSettings.setOnClickListener {
             HapticHelper.lightClick(it)
-            startActivity(Intent(this, SettingsActivity::class.java))
+            binding.bottomNavigation.selectedItemId = R.id.nav_settings
         }
         binding.cardHeaderShield.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
+        }
+        binding.cardProtectionCenter.setOnClickListener {
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
         }
@@ -165,22 +185,18 @@ class MainActivity : AppCompatActivity() {
             guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
         }
         binding.btnManageApps.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, AppSelectionActivity::class.java)) }
         }
         binding.btnManageSites.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, WebsiteBlockActivity::class.java)) }
         }
         binding.btnManagePresets.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
-            guardSettingsAccess { startActivity(Intent(this, PresetsActivity::class.java)) }
+            binding.bottomNavigation.selectedItemId = R.id.nav_presets
         }
         binding.btnManageSchedules.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.mediumClick(it)
             HapticHelper.lightClick(it)
             guardSettingsAccess { startActivity(Intent(this, SchedulesActivity::class.java)) }
         }
@@ -196,34 +212,34 @@ class MainActivity : AppCompatActivity() {
         binding.btnStartFocus.setOnClickListener {
             AnimationHelper.animateButtonPress(it) {
                 HapticHelper.heavyClick(it)
-                showFocusModeSelectionSheet()
+                val duration = PrefsManager.getLastChosenDurationMillis(this)
+                startFocusSession(chosenMode, duration)
             }
         }
 
         binding.btnQuickCustom.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
             HapticHelper.lightClick(it)
             showCustomDurationPicker()
         }
 
         binding.btnQuick25.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
+            HapticHelper.lightClick(it)
             selectPresetDuration(25 * 60_000L)
         }
         binding.btnQuick45.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
+            HapticHelper.lightClick(it)
             selectPresetDuration(45 * 60_000L)
         }
         binding.btnQuick60.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
+            HapticHelper.lightClick(it)
             selectPresetDuration(60 * 60_000L)
         }
         binding.btnQuick90.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
+            HapticHelper.lightClick(it)
             selectPresetDuration(90 * 60_000L)
         }
         binding.btnQuick120.setOnClickListener {
-            com.focusvault.app.util.HapticHelper.lightClick(it)
+            HapticHelper.lightClick(it)
             selectPresetDuration(120 * 60_000L)
         }
         binding.tvPermissionWarning.setOnClickListener { openAccessibilitySettings() }
@@ -301,12 +317,324 @@ class MainActivity : AppCompatActivity() {
             binding.btnEmergencyMode,
             binding.btnEmergencyUnlock,
             binding.cardGoal,
-            binding.cardProtectionStatus
+            binding.cardDistractions,
+            binding.cardProtectionCenter,
+            binding.cardHeaderShield,
+            binding.cardModeFocus,
+            binding.cardModeLock,
+            binding.cardModeStrict,
+            binding.btnSettingsDiagnostics,
+            binding.btnSettingsAdmin,
+            binding.btnSettingsPin,
+            binding.btnSettingsTheme,
+            binding.btnSettingsBackup,
+            binding.btnAddCustomPresetMain
         ).forEach { view ->
             AnimationHelper.attachSpringPressFeedback(view)
         }
 
         requestNotificationPermissionIfNeeded()
+    }
+
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            HapticHelper.lightClick(binding.bottomNavigation)
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    binding.scrollHome.visibility = View.VISIBLE
+                    binding.scrollInsights.visibility = View.GONE
+                    binding.scrollPresets.visibility = View.GONE
+                    binding.scrollSettings.visibility = View.GONE
+                    refreshSessionUi()
+                    refreshCounts()
+                    refreshProtectionBanner()
+                    true
+                }
+                R.id.nav_insights -> {
+                    binding.scrollHome.visibility = View.GONE
+                    binding.scrollInsights.visibility = View.VISIBLE
+                    binding.scrollPresets.visibility = View.GONE
+                    binding.scrollSettings.visibility = View.GONE
+                    refreshDashboardStats()
+                    true
+                }
+                R.id.nav_presets -> {
+                    binding.scrollHome.visibility = View.GONE
+                    binding.scrollInsights.visibility = View.GONE
+                    binding.scrollPresets.visibility = View.VISIBLE
+                    binding.scrollSettings.visibility = View.GONE
+                    loadPresetsMain()
+                    true
+                }
+                R.id.nav_settings -> {
+                    binding.scrollHome.visibility = View.GONE
+                    binding.scrollInsights.visibility = View.GONE
+                    binding.scrollPresets.visibility = View.GONE
+                    binding.scrollSettings.visibility = View.VISIBLE
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun setupModeSelectorCards() {
+        updateModeCardSelection(SessionMode.NORMAL)
+
+        binding.cardModeFocus.setOnClickListener {
+            if (PrefsManager.isSessionCurrentlyActive(this)) return@setOnClickListener
+            HapticHelper.lightClick(it)
+            chosenMode = SessionMode.NORMAL
+            updateModeCardSelection(SessionMode.NORMAL)
+        }
+
+        binding.cardModeLock.setOnClickListener {
+            if (PrefsManager.isSessionCurrentlyActive(this)) return@setOnClickListener
+            HapticHelper.lightClick(it)
+            chosenMode = SessionMode.LOCK
+            updateModeCardSelection(SessionMode.LOCK)
+        }
+
+        binding.cardModeStrict.setOnClickListener {
+            if (PrefsManager.isSessionCurrentlyActive(this)) return@setOnClickListener
+            HapticHelper.lightClick(it)
+            chosenMode = SessionMode.STRICT
+            updateModeCardSelection(SessionMode.STRICT)
+        }
+    }
+
+    private fun updateModeCardSelection(mode: SessionMode) {
+        val primaryColor = ContextCompat.getColor(this, R.color.brand_primary)
+        val lockColor = ContextCompat.getColor(this, R.color.lock_blue)
+        val strictColor = ContextCompat.getColor(this, R.color.strict_red)
+        val borderColor = ContextCompat.getColor(this, R.color.card_border)
+        val strokeWidthActive = (2 * resources.displayMetrics.density).toInt()
+        val strokeWidthInactive = (1 * resources.displayMetrics.density).toInt()
+
+        when (mode) {
+            SessionMode.NORMAL -> {
+                binding.cardModeFocus.strokeColor = primaryColor
+                binding.cardModeFocus.strokeWidth = strokeWidthActive
+                binding.cardModeLock.strokeColor = borderColor
+                binding.cardModeLock.strokeWidth = strokeWidthInactive
+                binding.cardModeStrict.strokeColor = borderColor
+                binding.cardModeStrict.strokeWidth = strokeWidthInactive
+            }
+            SessionMode.LOCK -> {
+                binding.cardModeFocus.strokeColor = borderColor
+                binding.cardModeFocus.strokeWidth = strokeWidthInactive
+                binding.cardModeLock.strokeColor = lockColor
+                binding.cardModeLock.strokeWidth = strokeWidthActive
+                binding.cardModeStrict.strokeColor = borderColor
+                binding.cardModeStrict.strokeWidth = strokeWidthInactive
+            }
+            SessionMode.STRICT -> {
+                binding.cardModeFocus.strokeColor = borderColor
+                binding.cardModeFocus.strokeWidth = strokeWidthInactive
+                binding.cardModeLock.strokeColor = borderColor
+                binding.cardModeLock.strokeWidth = strokeWidthInactive
+                binding.cardModeStrict.strokeColor = strictColor
+                binding.cardModeStrict.strokeWidth = strokeWidthActive
+            }
+        }
+    }
+
+    private fun setupSettingsTab() {
+        binding.btnSettingsDiagnostics.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess { startActivity(Intent(this, DiagnosticsActivity::class.java)) }
+        }
+
+        binding.btnSettingsAdmin.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess { startActivity(Intent(this, SettingsActivity::class.java)) }
+        }
+
+        binding.btnSettingsPin.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess {
+                LockPinDialog.promptSetOrChangePin(this) {}
+            }
+        }
+
+        binding.btnSettingsTheme.setOnClickListener {
+            HapticHelper.lightClick(it)
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        binding.btnSettingsBackup.setOnClickListener {
+            HapticHelper.lightClick(it)
+            guardSettingsAccess {
+                BackupRestoreDialog.show(this) {
+                    refreshCounts()
+                    refreshDashboardStats()
+                    refreshProtectionBanner()
+                }
+            }
+        }
+    }
+
+    private fun setupPresetsTab() {
+        binding.btnAddCustomPresetMain.setOnClickListener {
+            HapticHelper.lightClick(it)
+            showCreatePresetDialogMain()
+        }
+    }
+
+    private fun loadPresetsMain() {
+        presetsJob?.cancel()
+        val db = AppDatabase.getInstance(applicationContext)
+        presetsJob = lifecycleScope.launch {
+            db.focusPresetDao().observePresets().collectLatest { presets ->
+                binding.containerPresetsMain.removeAllViews()
+                val inflater = LayoutInflater.from(this@MainActivity)
+
+                presets.forEach { preset ->
+                    val row = ItemPresetBinding.inflate(inflater, binding.containerPresetsMain, false)
+                    row.tvPresetIcon.text = preset.icon
+                    row.tvPresetName.text = preset.name
+                    row.tvPresetDetails.text = "${preset.durationMinutes} min · ${preset.mode.name.lowercase().replaceFirstChar { it.uppercase() }} Mode"
+
+                    val suggestion = FocusStatsManager.getAdaptivePresetSuggestion(this@MainActivity, preset.name, preset.durationMinutes)
+                    if (suggestion != null) {
+                        row.tvPresetSuggestion.visibility = View.VISIBLE
+                        row.tvPresetSuggestion.text = "💡 ${suggestion.suggestionMessage}"
+                        row.tvPresetSuggestion.setOnClickListener {
+                            lifecycleScope.launch {
+                                val updated = preset.copy(durationMinutes = suggestion.actualAvgMinutes)
+                                db.focusPresetDao().upsert(updated)
+                                Toast.makeText(this@MainActivity, "Updated '${preset.name}' preset to ${suggestion.actualAvgMinutes} min!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        row.tvPresetSuggestion.visibility = View.GONE
+                    }
+
+                    row.btnStartPreset.setOnClickListener {
+                        if (PrefsManager.isSessionCurrentlyActive(this@MainActivity)) {
+                            Toast.makeText(this@MainActivity, "A focus session is already active!", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+
+                        val durationMillis = preset.durationMinutes * 60_000L
+                        when (preset.mode) {
+                            SessionMode.STRICT -> {
+                                val intent = Intent(this@MainActivity, StrictModeConfirmActivity::class.java).apply {
+                                    putExtra(SessionSetupActivity.EXTRA_DURATION_MILLIS, durationMillis)
+                                }
+                                startActivity(intent)
+                            }
+                            SessionMode.LOCK -> {
+                                val intent = Intent(this@MainActivity, LockModeConfirmActivity::class.java).apply {
+                                    putExtra(SessionSetupActivity.EXTRA_DURATION_MILLIS, durationMillis)
+                                }
+                                startActivity(intent)
+                            }
+                            SessionMode.NORMAL -> {
+                                SessionStarter.startSession(this@MainActivity, durationMillis, SessionMode.NORMAL, preset.name)
+                                binding.bottomNavigation.selectedItemId = R.id.nav_home
+                            }
+                        }
+                    }
+
+                    if (preset.isBuiltIn) {
+                        row.btnDeletePreset.visibility = View.GONE
+                    } else {
+                        row.btnDeletePreset.visibility = View.VISIBLE
+                        row.btnDeletePreset.setOnClickListener {
+                            DialogHelper.showCustomDialog(
+                                context = this@MainActivity,
+                                title = "Delete Preset 🗑️",
+                                message = "Are you sure you want to delete the preset '${preset.name}'?",
+                                positiveText = "Delete",
+                                positiveAction = {
+                                    lifecycleScope.launch {
+                                        db.focusPresetDao().delete(preset)
+                                    }
+                                },
+                                negativeText = "Cancel"
+                            )
+                        }
+                    }
+
+                    binding.containerPresetsMain.addView(row.root)
+                }
+            }
+        }
+    }
+
+    private fun showCreatePresetDialogMain() {
+        val density = resources.displayMetrics.density
+        val nameInput = DialogHelper.createPillEditText(this, "Preset Name (e.g. Deep Reading)")
+        val durationInput = DialogHelper.createPillEditText(
+            this,
+            "Duration in minutes (e.g. 45)",
+            "45",
+            android.text.InputType.TYPE_CLASS_NUMBER
+        )
+        val modeSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                listOf("🟢 Focus Mode (Lite)", "🔐 Lock Mode (PIN Guarded)", "🔒 Strict Mode (Hardcore)")
+            )
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+        }
+
+        fun createLabel(text: String) = TextView(this).apply {
+            this.text = text
+            textSize = 12f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            setPadding((4 * density).toInt(), (8 * density).toInt(), 0, (4 * density).toInt())
+        }
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, (4 * density).toInt(), 0, (8 * density).toInt())
+            addView(createLabel("PRESET TITLE"))
+            addView(nameInput)
+            addView(createLabel("TARGET DURATION (MINUTES)"))
+            addView(durationInput)
+            addView(createLabel("PROTECTION MODE"))
+            addView(modeSpinner)
+        }
+
+        DialogHelper.showCustomDialog(
+            context = this,
+            title = "Create Focus Preset 🎯",
+            customView = container,
+            positiveText = "Save Preset",
+            positiveAction = {
+                val name = nameInput.text.toString().trim()
+                val duration = durationInput.text.toString().toIntOrNull() ?: 0
+                val selectedMode = when (modeSpinner.selectedItemPosition) {
+                    1 -> SessionMode.LOCK
+                    2 -> SessionMode.STRICT
+                    else -> SessionMode.NORMAL
+                }
+
+                if (name.isEmpty() || duration <= 0) {
+                    Toast.makeText(this, "Please enter a valid name and duration", Toast.LENGTH_SHORT).show()
+                    return@showCustomDialog
+                }
+
+                lifecycleScope.launch {
+                    val db = AppDatabase.getInstance(applicationContext)
+                    db.focusPresetDao().upsert(
+                        FocusPreset(
+                            name = name,
+                            durationMinutes = duration,
+                            mode = selectedMode,
+                            icon = "🎯",
+                            isBuiltIn = false
+                        )
+                    )
+                    Toast.makeText(this@MainActivity, "Preset '$name' created!", Toast.LENGTH_SHORT).show()
+                }
+            },
+            negativeText = "Cancel"
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -418,40 +746,84 @@ class MainActivity : AppCompatActivity() {
                 binding.tvHeaderShieldIcon.text = "🛡️"
                 binding.tvHeaderShieldText.text = "Protected"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.success_green))
+                binding.ivHeaderShieldIcon.setImageResource(R.drawable.ic_shield_check)
+                binding.ivHeaderShieldIcon.setColorFilter(ContextCompat.getColor(this, R.color.success_green))
                 applyShieldBackground(R.color.success_green_chip_bg, false)
                 binding.tvProtectionStatusIcon.text = "🛡️"
                 binding.tvProtectionStatusTitle.text = "System Protection Active"
                 binding.tvProtectionStatusSub.text = "All protection services running · Checked ${report.getFormattedLastChecked()}"
+                binding.tvProtectionCenterStatus.text = "100% ACTIVE"
+                binding.tvProtectionCenterStatus.setTextColor(ContextCompat.getColor(this, R.color.success_green))
             }
             ProtectionStatus.PROTECTION_DEGRADED -> {
                 binding.tvHeaderShieldIcon.text = "⚠️"
                 binding.tvHeaderShieldText.text = "Attention"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
+                binding.ivHeaderShieldIcon.setImageResource(R.drawable.ic_shield_alert)
+                binding.ivHeaderShieldIcon.setColorFilter(ContextCompat.getColor(this, R.color.warning_amber))
                 applyShieldBackground(R.color.warning_amber_chip_bg, false)
                 binding.tvProtectionStatusIcon.text = "⚠️"
                 binding.tvProtectionStatusTitle.text = "Protection Partially Active"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
+                binding.tvProtectionCenterStatus.text = "PARTIALLY ACTIVE"
+                binding.tvProtectionCenterStatus.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
             }
             ProtectionStatus.PROTECTION_FAILED -> {
                 binding.tvHeaderShieldIcon.text = "✕"
                 binding.tvHeaderShieldText.text = "Action Needed"
                 binding.tvHeaderShieldText.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
+                binding.ivHeaderShieldIcon.setImageResource(R.drawable.ic_shield_alert)
+                binding.ivHeaderShieldIcon.setColorFilter(ContextCompat.getColor(this, R.color.strict_red))
                 applyShieldBackground(R.color.strict_red_chip_bg, true)
                 binding.tvProtectionStatusIcon.text = "🔴"
                 binding.tvProtectionStatusTitle.text = "Protection Requires Action"
                 binding.tvProtectionStatusSub.text = "${report.headlineMessage} · Checked ${report.getFormattedLastChecked()}"
+                binding.tvProtectionCenterStatus.text = "ACTION REQUIRED"
+                binding.tvProtectionCenterStatus.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
             }
+        }
+
+        // Update protection signals checklist
+        val a11yActive = isAccessibilityServiceEnabled()
+        val adminActive = StayFocusedDeviceAdminReceiver.isDeviceAdminActive(this)
+        val vpnConsent = VpnService.prepare(this) == null
+
+        val successColor = ContextCompat.getColor(this, R.color.success_green)
+        val mutedColor = ContextCompat.getColor(this, R.color.text_muted)
+        val warningColor = ContextCompat.getColor(this, R.color.warning_amber)
+
+        if (a11yActive) {
+            binding.ivSignalA11y.setImageResource(R.drawable.ic_check_circle)
+            binding.ivSignalA11y.setColorFilter(successColor)
+        } else {
+            binding.ivSignalA11y.setImageResource(R.drawable.ic_close_circle)
+            binding.ivSignalA11y.setColorFilter(warningColor)
+        }
+
+        if (adminActive) {
+            binding.ivSignalAdmin.setImageResource(R.drawable.ic_check_circle)
+            binding.ivSignalAdmin.setColorFilter(successColor)
+        } else {
+            binding.ivSignalAdmin.setImageResource(R.drawable.ic_close_circle)
+            binding.ivSignalAdmin.setColorFilter(mutedColor)
+        }
+
+        if (vpnConsent) {
+            binding.ivSignalVpn.setImageResource(R.drawable.ic_check_circle)
+            binding.ivSignalVpn.setColorFilter(successColor)
+        } else {
+            binding.ivSignalVpn.setImageResource(R.drawable.ic_close_circle)
+            binding.ivSignalVpn.setColorFilter(mutedColor)
         }
     }
 
     /** Time-of-day greeting for the dashboard header. */
-    
     private var shieldPulseAnimator: android.animation.ValueAnimator? = null
 
     private fun applyShieldBackground(colorRes: Int, shouldPulse: Boolean) {
-        binding.cardHeaderShield.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, colorRes))
+        binding.cardHeaderShield.setCardBackgroundColor(ContextCompat.getColor(this, colorRes))
         shieldPulseAnimator?.cancel()
-        if (shouldPulse && !com.focusvault.app.util.AnimationHelper.isReduceMotion(this)) {
+        if (shouldPulse && !AnimationHelper.isReduceMotion(this)) {
             shieldPulseAnimator = android.animation.ValueAnimator.ofFloat(1f, 0.6f).apply {
                 duration = 800L
                 repeatMode = android.animation.ValueAnimator.REVERSE
@@ -469,11 +841,11 @@ class MainActivity : AppCompatActivity() {
     private fun refreshGreeting() {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         binding.tvGreeting.text = when {
-            hour < 5 -> "Still up? 🌙"
-            hour < 12 -> "Good morning 👋"
-            hour < 17 -> "Good afternoon ☀️"
-            hour < 21 -> "Good evening 🌆"
-            else -> "Winding down? 🌙"
+            hour < 5 -> "Still up?"
+            hour < 12 -> "Good morning"
+            hour < 17 -> "Good afternoon"
+            hour < 21 -> "Good evening"
+            else -> "Winding down?"
         }
     }
 
@@ -498,21 +870,20 @@ class MainActivity : AppCompatActivity() {
             val remaining = stats.goalMinutes - stats.todayMinutes
             
             binding.tvGoalRemaining.text = if (remaining <= 0) {
-                if (stats.todayMinutes > 0 && !com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).getBoolean("goal_celebrated_today", false)) {
-                    com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", true).apply()
-                    com.focusvault.app.util.HapticHelper.successHaptic(binding.cardGoal)
+                if (stats.todayMinutes > 0 && !PrefsManager.prefs(this@MainActivity).getBoolean("goal_celebrated_today", false)) {
+                    PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", true).apply()
+                    HapticHelper.successHaptic(binding.cardGoal)
                     binding.cardGoal.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200)
                         .withEndAction { binding.cardGoal.animate().scaleX(1f).scaleY(1f).setDuration(200).start() }.start()
                 }
                 "Goal achieved! 🎉"
             } else {
-                com.focusvault.app.util.PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", false).apply()
+                PrefsManager.prefs(this@MainActivity).edit().putBoolean("goal_celebrated_today", false).apply()
                 "${formatMinutes(remaining)} remaining"
             }
 
-
             // Streak Badge
-            binding.tvStreakBadge.text = if (stats.streak > 0) "🔥 ${stats.streak}d streak" else "🌱 Start streak"
+            binding.tvStreakBadge.text = if (stats.streak > 0) "${stats.streak}d" else "0"
 
             // Weekly bar chart
             val primary = ContextCompat.getColor(this@MainActivity, R.color.brand_primary)
@@ -538,9 +909,9 @@ class MainActivity : AppCompatActivity() {
     private fun renderRecentSessions(sessions: List<SessionHistoryEntry>) {
         binding.containerRecentSessions.removeAllViews()
         binding.tvEmptySessions.visibility =
-            if (sessions.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+            if (sessions.isEmpty()) View.VISIBLE else View.GONE
         binding.btnClearHistory.visibility =
-            if (sessions.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+            if (sessions.isEmpty()) View.GONE else View.VISIBLE
 
         val whenFormat = SimpleDateFormat("EEE, h:mm a", Locale.getDefault())
         sessions.take(10).forEach { session ->
@@ -625,7 +996,7 @@ class MainActivity : AppCompatActivity() {
     private fun showCustomDialog(
         title: String,
         message: String,
-        customView: android.view.View? = null,
+        customView: View? = null,
         positiveText: String? = null,
         positiveAction: (() -> Unit)? = null,
         negativeText: String? = null,
@@ -636,7 +1007,7 @@ class MainActivity : AppCompatActivity() {
         dialogBinding.tvDialogMessage.text = message
 
         if (customView != null) {
-            dialogBinding.containerCustomView.visibility = android.view.View.VISIBLE
+            dialogBinding.containerCustomView.visibility = View.VISIBLE
             dialogBinding.containerCustomView.removeAllViews()
             dialogBinding.containerCustomView.addView(customView)
         }
@@ -647,7 +1018,7 @@ class MainActivity : AppCompatActivity() {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         if (positiveText != null) {
-            dialogBinding.btnDialogPositive.visibility = android.view.View.VISIBLE
+            dialogBinding.btnDialogPositive.visibility = View.VISIBLE
             dialogBinding.btnDialogPositive.text = positiveText
             dialogBinding.btnDialogPositive.setOnClickListener {
                 dialog.dismiss()
@@ -656,7 +1027,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (negativeText != null) {
-            dialogBinding.btnDialogNegative.visibility = android.view.View.VISIBLE
+            dialogBinding.btnDialogNegative.visibility = View.VISIBLE
             dialogBinding.btnDialogNegative.text = negativeText
             dialogBinding.btnDialogNegative.setOnClickListener {
                 dialog.dismiss()
@@ -678,23 +1049,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatHoursShort(minutes: Int): String {
-        val hours = minutes / 60f
-        return if (minutes < 60) "${minutes}m" else String.format(Locale.US, "%.1fh", hours)
-    }
-
     private fun selectPresetDuration(durationMillis: Long) {
         if (PrefsManager.isSessionCurrentlyActive(this)) return
         HapticHelper.lightClick(binding.root)
         PrefsManager.setLastChosenDurationMillis(this, durationMillis)
         refreshSessionUi()
-        showFocusModeSelectionSheet()
     }
 
     private fun showCustomDurationPicker() {
         if (PrefsManager.isSessionCurrentlyActive(this)) return
         val currentDuration = PrefsManager.getLastChosenDurationMillis(this)
-        QuickTimerSetupSheet.newInstance(SessionMode.NORMAL, currentDuration)
+        QuickTimerSetupSheet.newInstance(chosenMode, currentDuration)
             .show(supportFragmentManager, QuickTimerSetupSheet.TAG)
     }
 
@@ -746,6 +1111,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSessionSetup(mode: SessionMode) {
         chosenMode = mode
+        updateModeCardSelection(mode)
         val duration = PrefsManager.getLastChosenDurationMillis(this)
         QuickTimerSetupSheet.newInstance(mode, duration).show(supportFragmentManager, QuickTimerSetupSheet.TAG)
     }
@@ -792,11 +1158,11 @@ class MainActivity : AppCompatActivity() {
         val isActive = PrefsManager.isSessionCurrentlyActive(this)
 
         if (!isActive) {
-            com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
             binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, R.color.card_border)
-            binding.btnStartFocus.visibility = android.view.View.VISIBLE
-            binding.containerActiveActions.visibility = android.view.View.GONE
-            binding.btnEmergencyUnlock.visibility = android.view.View.GONE
+            binding.btnStartFocus.visibility = View.VISIBLE
+            binding.containerActiveActions.visibility = View.GONE
+            binding.btnEmergencyUnlock.visibility = View.GONE
             binding.tvHeroStateBadge.text = "READY TO FOCUS"
             binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
             val idleDuration = PrefsManager.getLastChosenDurationMillis(this)
@@ -811,19 +1177,19 @@ class MainActivity : AppCompatActivity() {
         val isStrict = mode == SessionMode.STRICT
         val isPaused = PrefsManager.isEmergencyPauseActive(this)
 
-        binding.btnStartFocus.visibility = android.view.View.GONE
-        binding.containerActiveActions.visibility = android.view.View.VISIBLE
-        binding.btnResumeNow.visibility = if (isPaused) android.view.View.VISIBLE else android.view.View.GONE
-        binding.btnEmergencyMode.visibility = if (isStrict || isPaused) android.view.View.GONE else android.view.View.VISIBLE
-        binding.btnStopEarly.visibility = if (isStrict) android.view.View.GONE else android.view.View.VISIBLE
+        binding.btnStartFocus.visibility = View.GONE
+        binding.containerActiveActions.visibility = View.VISIBLE
+        binding.btnResumeNow.visibility = if (isPaused) View.VISIBLE else View.GONE
+        binding.btnEmergencyMode.visibility = if (isStrict || isPaused) View.GONE else View.VISIBLE
+        binding.btnStopEarly.visibility = if (isStrict) View.GONE else View.VISIBLE
         binding.btnEmergencyUnlock.visibility = if (!isStrict && !isPaused && PrefsManager.canUseEmergencyUnlockToday(this))
-            android.view.View.VISIBLE else android.view.View.GONE
+            View.VISIBLE else View.GONE
 
         if (isPaused) {
-            com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+            AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
             binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, R.color.warning_amber)
             val pauseLabel = PrefsManager.getEmergencyPauseLabel(this)
-            binding.tvHeroStateBadge.text = "⏸️ PAUSED · ${pauseLabel.uppercase()}"
+            binding.tvHeroStateBadge.text = "PAUSED · ${pauseLabel.uppercase()}"
             binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.warning_amber))
             binding.tvHeroSubtitle.text = "Protection temporarily paused"
             binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = true, isStrict = false)
@@ -852,17 +1218,17 @@ class MainActivity : AppCompatActivity() {
         binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this, if (isStrict) R.color.strict_red else R.color.brand_primary)
         when (mode) {
             SessionMode.STRICT -> {
-                binding.tvHeroStateBadge.text = "🔒 STRICT FOCUS"
+                binding.tvHeroStateBadge.text = "STRICT FOCUS"
                 binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.strict_red))
                 binding.tvHeroSubtitle.text = "Unlocks & pausing disabled"
             }
             SessionMode.LOCK -> {
-                binding.tvHeroStateBadge.text = "🔐 LOCK FOCUS"
+                binding.tvHeroStateBadge.text = "LOCK FOCUS"
                 binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.lock_blue))
                 binding.tvHeroSubtitle.text = "PIN required to unlock early"
             }
             SessionMode.NORMAL -> {
-                binding.tvHeroStateBadge.text = "🛡️ FOCUS ACTIVE"
+                binding.tvHeroStateBadge.text = "FOCUS ACTIVE"
                 binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this, R.color.brand_primary))
                 binding.tvHeroSubtitle.text = "Distractions blocked"
             }
@@ -899,13 +1265,13 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             override fun onFinish() {
-                com.focusvault.app.util.AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
+                AnimationHelper.stopBreathingAura(binding.frameFocusRingContainer)
                 binding.cardHeroFocus.strokeColor = ContextCompat.getColor(this@MainActivity, R.color.success_green)
-                binding.tvHeroStateBadge.text = "✓ SESSION COMPLETE"
+                binding.tvHeroStateBadge.text = "SESSION COMPLETE"
                 binding.tvHeroStateBadge.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.success_green))
                 binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = false, isCompleted = true)
-                com.focusvault.app.util.AnimationHelper.animateCelebrationBloom(binding.frameFocusRingContainer)
-                com.focusvault.app.util.HapticHelper.successHaptic(binding.root)
+                AnimationHelper.animateCelebrationBloom(binding.frameFocusRingContainer)
+                HapticHelper.successHaptic(binding.root)
                 refreshSessionUi()
                 refreshDashboardStats()
             }
@@ -917,7 +1283,7 @@ class MainActivity : AppCompatActivity() {
      * Normal Mode passes straight through. */
     private fun guardSettingsAccess(action: () -> Unit) {
         if (PrefsManager.isStrictModeActive(this)) {
-            Toast.makeText(this, "Blocked apps/sites can't be changed during Strict Mode", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Settings are locked during Strict Mode", Toast.LENGTH_SHORT).show()
             return
         }
         if (PrefsManager.isLockModeActive(this)) {
@@ -940,9 +1306,8 @@ class MainActivity : AppCompatActivity() {
         val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
-        binding.tvNotificationWarning.visibility = if (granted) android.view.View.GONE else android.view.View.VISIBLE
+        binding.tvNotificationWarning.visibility = if (granted) View.GONE else View.VISIBLE
     }
-
 
     private fun formatTime(millis: Long): String {
         val totalSeconds = millis / 1000
@@ -954,7 +1319,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkAccessibilityPermission() {
         binding.tvPermissionWarning.visibility =
-            if (isAccessibilityServiceEnabled()) android.view.View.GONE else android.view.View.VISIBLE
+            if (isAccessibilityServiceEnabled()) View.GONE else View.VISIBLE
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
