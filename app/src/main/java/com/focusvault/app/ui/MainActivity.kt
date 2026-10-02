@@ -53,22 +53,8 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        /** Set by the Small/Medium widget's generic Start button - if no session is active
-         * when the app opens, immediately opens the Focus Mode Selection sheet instead of
-         * silently assuming Normal mode, matching what tapping "Start Focus" in-app now does. */
         const val EXTRA_AUTO_OPEN_MODE_SHEET = "widget_auto_open_mode_sheet"
-
-        /** Set by the Small/Large widget's Start button - if no session is active when the
-         * app opens, immediately jumps to session setup for this mode instead of making the
-         * person tap Quick Start again themselves. */
         const val EXTRA_AUTO_QUICK_START_MODE = "widget_auto_quick_start_mode"
-
-        /** Set by the Medium/Large widget's Emergency button - if a session is active when
-         * the app opens, immediately opens the Emergency Mode picker (Real Emergency /
-         * Important Call / Travel Mode) - the same sheet [EmergencyModeSheet] shows from the
-         * in-app 🚨 Emergency Mode button, still gated by Strict Mode never allowing it. This
-         * is deliberately NOT the older, session-ending "Emergency unlock" button (still on
-         * the session card too) - it just pauses blocking for a bounded window. */
         const val EXTRA_AUTO_EMERGENCY = "widget_auto_emergency"
     }
 
@@ -76,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     private var countdownTicker: CountDownTimer? = null
     private var chosenMode: SessionMode = SessionMode.NORMAL
     private var presetsJob: Job? = null
+    private var selectedRangeDays: Int = 7
 
     private val vpnPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -99,7 +86,6 @@ class MainActivity : AppCompatActivity() {
         }
         checkNotificationPermission()
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,6 +113,7 @@ class MainActivity : AppCompatActivity() {
             if (durationMillis > 0) {
                 PrefsManager.setLastChosenDurationMillis(this, durationMillis)
                 refreshSessionUi()
+                highlightDurationChip(durationMillis)
                 com.focusvault.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
             }
         }
@@ -152,16 +139,16 @@ class MainActivity : AppCompatActivity() {
             SessionStateManager.sessionFlow.collect { session ->
                 refreshSessionUi()
                 refreshDashboardStats()
-                
-                // Update distraction count for the new UI card
                 binding.tvDistractionsCount.text = (session?.distractionsBlocked ?: 0).toString()
             }
         }
 
         setupBottomNavigation()
         setupModeSelectorCards()
+        setupDurationChips()
         setupSettingsTab()
         setupPresetsTab()
+        setupInsightsTab()
 
         binding.btnClearHistory.setOnClickListener {
             HapticHelper.lightClick(it)
@@ -217,31 +204,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnQuickCustom.setOnClickListener {
-            HapticHelper.lightClick(it)
-            showCustomDurationPicker()
-        }
-
-        binding.btnQuick25.setOnClickListener {
-            HapticHelper.lightClick(it)
-            selectPresetDuration(25 * 60_000L)
-        }
-        binding.btnQuick45.setOnClickListener {
-            HapticHelper.lightClick(it)
-            selectPresetDuration(45 * 60_000L)
-        }
-        binding.btnQuick60.setOnClickListener {
-            HapticHelper.lightClick(it)
-            selectPresetDuration(60 * 60_000L)
-        }
-        binding.btnQuick90.setOnClickListener {
-            HapticHelper.lightClick(it)
-            selectPresetDuration(90 * 60_000L)
-        }
-        binding.btnQuick120.setOnClickListener {
-            HapticHelper.lightClick(it)
-            selectPresetDuration(120 * 60_000L)
-        }
         binding.tvPermissionWarning.setOnClickListener { openAccessibilitySettings() }
         binding.tvNotificationWarning.setOnClickListener { requestNotificationPermissionIfNeeded() }
         binding.cardGoal.setOnClickListener {
@@ -298,11 +260,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Attach tactile spring touch physics to cards, chips, and action buttons
+        // Attach tactile spring touch physics
         listOf(
             binding.frameFocusRingContainer,
             binding.btnStartFocus,
             binding.btnQuickCustom,
+            binding.btnQuick10,
             binding.btnQuick25,
             binding.btnQuick45,
             binding.btnQuick60,
@@ -341,39 +304,45 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(binding.bottomNavigation)
             when (item.itemId) {
                 R.id.nav_home -> {
-                    binding.scrollHome.visibility = View.VISIBLE
-                    binding.scrollInsights.visibility = View.GONE
-                    binding.scrollPresets.visibility = View.GONE
-                    binding.scrollSettings.visibility = View.GONE
+                    switchTab(binding.scrollHome)
                     refreshSessionUi()
                     refreshCounts()
                     refreshProtectionBanner()
                     true
                 }
                 R.id.nav_insights -> {
-                    binding.scrollHome.visibility = View.GONE
-                    binding.scrollInsights.visibility = View.VISIBLE
-                    binding.scrollPresets.visibility = View.GONE
-                    binding.scrollSettings.visibility = View.GONE
+                    switchTab(binding.scrollInsights)
                     refreshDashboardStats()
                     true
                 }
                 R.id.nav_presets -> {
-                    binding.scrollHome.visibility = View.GONE
-                    binding.scrollInsights.visibility = View.GONE
-                    binding.scrollPresets.visibility = View.VISIBLE
-                    binding.scrollSettings.visibility = View.GONE
+                    switchTab(binding.scrollPresets)
                     loadPresetsMain()
                     true
                 }
                 R.id.nav_settings -> {
-                    binding.scrollHome.visibility = View.GONE
-                    binding.scrollInsights.visibility = View.GONE
-                    binding.scrollPresets.visibility = View.GONE
-                    binding.scrollSettings.visibility = View.VISIBLE
+                    switchTab(binding.scrollSettings)
                     true
                 }
                 else -> false
+            }
+        }
+    }
+
+    private fun switchTab(targetView: View) {
+        val allTabs = listOf(binding.scrollHome, binding.scrollInsights, binding.scrollPresets, binding.scrollSettings)
+        allTabs.forEach { tab ->
+            if (tab == targetView) {
+                if (tab.visibility != View.VISIBLE) {
+                    tab.alpha = 0f
+                    tab.visibility = View.VISIBLE
+                    tab.animate()
+                        .alpha(1f)
+                        .setDuration(180L)
+                        .start()
+                }
+            } else {
+                tab.visibility = View.GONE
             }
         }
     }
@@ -386,6 +355,7 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(it)
             chosenMode = SessionMode.NORMAL
             updateModeCardSelection(SessionMode.NORMAL)
+            animateCardSelection(binding.cardModeFocus)
         }
 
         binding.cardModeLock.setOnClickListener {
@@ -393,6 +363,7 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(it)
             chosenMode = SessionMode.LOCK
             updateModeCardSelection(SessionMode.LOCK)
+            animateCardSelection(binding.cardModeLock)
         }
 
         binding.cardModeStrict.setOnClickListener {
@@ -400,7 +371,23 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(it)
             chosenMode = SessionMode.STRICT
             updateModeCardSelection(SessionMode.STRICT)
+            animateCardSelection(binding.cardModeStrict)
         }
+    }
+
+    private fun animateCardSelection(card: View) {
+        card.animate()
+            .scaleX(1.04f)
+            .scaleY(1.04f)
+            .setDuration(120L)
+            .withEndAction {
+                card.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(120L)
+                    .start()
+            }
+            .start()
     }
 
     private fun updateModeCardSelection(mode: SessionMode) {
@@ -436,6 +423,94 @@ class MainActivity : AppCompatActivity() {
                 binding.cardModeStrict.strokeColor = strictColor
                 binding.cardModeStrict.strokeWidth = strokeWidthActive
             }
+        }
+    }
+
+    private fun setupDurationChips() {
+        val currentDuration = PrefsManager.getLastChosenDurationMillis(this)
+        highlightDurationChip(currentDuration)
+
+        binding.btnQuickCustom.setOnClickListener {
+            HapticHelper.lightClick(it)
+            showCustomDurationPicker()
+        }
+        binding.btnQuick10.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(10 * 60_000L)
+        }
+        binding.btnQuick25.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(25 * 60_000L)
+        }
+        binding.btnQuick45.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(45 * 60_000L)
+        }
+        binding.btnQuick60.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(60 * 60_000L)
+        }
+        binding.btnQuick90.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(90 * 60_000L)
+        }
+        binding.btnQuick120.setOnClickListener {
+            HapticHelper.lightClick(it)
+            selectPresetDuration(120 * 60_000L)
+        }
+    }
+
+    private fun highlightDurationChip(durationMillis: Long) {
+        val minutes = durationMillis / 60_000L
+        val primaryColor = ContextCompat.getColor(this, R.color.brand_primary)
+        val textPrimaryColor = ContextCompat.getColor(this, R.color.text_primary)
+        val borderColor = ContextCompat.getColor(this, R.color.card_border)
+
+        val chips = listOf(
+            binding.btnQuick10 to 10L,
+            binding.btnQuick25 to 25L,
+            binding.btnQuick45 to 45L,
+            binding.btnQuick60 to 60L,
+            binding.btnQuick90 to 90L,
+            binding.btnQuick120 to 120L
+        )
+
+        var matched = false
+        chips.forEach { (btn, chipMin) ->
+            if (chipMin == minutes) {
+                btn.setTextColor(primaryColor)
+                (btn as? com.google.android.material.button.MaterialButton)?.strokeColor = ContextCompat.getColorStateList(this, R.color.brand_primary)
+                matched = true
+            } else {
+                btn.setTextColor(textPrimaryColor)
+                (btn as? com.google.android.material.button.MaterialButton)?.strokeColor = ContextCompat.getColorStateList(this, R.color.card_border)
+            }
+        }
+
+        if (!matched) {
+            binding.btnQuickCustom.setTextColor(primaryColor)
+            (binding.btnQuickCustom as? com.google.android.material.button.MaterialButton)?.strokeColor = ContextCompat.getColorStateList(this, R.color.brand_primary)
+        } else {
+            binding.btnQuickCustom.setTextColor(textPrimaryColor)
+            (binding.btnQuickCustom as? com.google.android.material.button.MaterialButton)?.strokeColor = ContextCompat.getColorStateList(this, R.color.card_border)
+        }
+    }
+
+    private fun selectPresetDuration(durationMillis: Long) {
+        if (PrefsManager.isSessionCurrentlyActive(this)) return
+        PrefsManager.setLastChosenDurationMillis(this, durationMillis)
+        highlightDurationChip(durationMillis)
+        refreshSessionUi()
+    }
+
+    private fun setupInsightsTab() {
+        binding.chipGroupInsightsRange.setOnCheckedStateChangeListener { _, checkedIds ->
+            selectedRangeDays = when (checkedIds.firstOrNull()) {
+                R.id.chipRange30Days -> 30
+                R.id.chipRangeAllTime -> 365
+                else -> 7
+            }
+            refreshDashboardStats()
         }
     }
 
@@ -640,15 +715,9 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Covers the case where the app is already open (foreground) and a widget button is
-        // tapped, so no onPause/onResume cycle happens to trigger refreshAfterUnlock() below.
         handleWidgetIntentExtras()
     }
 
-    /** Same confirmation flow as tapping the in-app Emergency unlock button - still gated by
-     * the daily limit and by Strict Mode never allowing it. Pulled out into its own function
-     * so the Medium/Large widget's Emergency button can trigger the exact same real flow via
-     * [EXTRA_AUTO_EMERGENCY], instead of the widget needing (or being able) to bypass it. */
     private fun triggerEmergencyUnlockFlow() {
         val proceed = {
             if (PrefsManager.canUseEmergencyUnlockToday(this)) {
@@ -678,9 +747,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Reads (and immediately clears) the widget deep-link extras set by [EXTRA_AUTO_QUICK_START_MODE]
-     * and [EXTRA_AUTO_EMERGENCY]. Clearing them makes this safe to call more than once per
-     * launch (onNewIntent and onResume can both fire for the same tap) without double-acting. */
     private fun handleWidgetIntentExtras() {
         if (intent.getBooleanExtra(EXTRA_AUTO_OPEN_MODE_SHEET, false)) {
             intent.removeExtra(EXTRA_AUTO_OPEN_MODE_SHEET)
@@ -703,11 +769,6 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             SessionStateManager.recoverSessionIfNeeded(applicationContext)
         }
-        // If an App Lock PIN is set and the app has just come back to the foreground from
-        // being fully backgrounded (or this is a fresh process after a force-stop/reboot),
-        // require the PIN before showing anything else. AppLockGate.isUnlocked stays true
-        // across purely internal navigation (e.g. returning from Manage Apps), so this only
-        // fires when it should.
         if (PrefsManager.hasLockPin(this) && !AppLockGate.isUnlocked) {
             LockPinDialog.promptAppUnlock(this) {
                 AppLockGate.isUnlocked = true
@@ -787,6 +848,9 @@ class MainActivity : AppCompatActivity() {
         val a11yActive = isAccessibilityServiceEnabled()
         val adminActive = StayFocusedDeviceAdminReceiver.isDeviceAdminActive(this)
         val vpnConsent = VpnService.prepare(this) == null
+        val notifGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
 
         val successColor = ContextCompat.getColor(this, R.color.success_green)
         val mutedColor = ContextCompat.getColor(this, R.color.text_muted)
@@ -815,9 +879,16 @@ class MainActivity : AppCompatActivity() {
             binding.ivSignalVpn.setImageResource(R.drawable.ic_close_circle)
             binding.ivSignalVpn.setColorFilter(mutedColor)
         }
+
+        if (notifGranted) {
+            binding.ivSignalNotif.setImageResource(R.drawable.ic_check_circle)
+            binding.ivSignalNotif.setColorFilter(successColor)
+        } else {
+            binding.ivSignalNotif.setImageResource(R.drawable.ic_close_circle)
+            binding.ivSignalNotif.setColorFilter(mutedColor)
+        }
     }
 
-    /** Time-of-day greeting for the dashboard header. */
     private var shieldPulseAnimator: android.animation.ValueAnimator? = null
 
     private fun applyShieldBackground(colorRes: Int, shouldPulse: Boolean) {
@@ -841,16 +912,14 @@ class MainActivity : AppCompatActivity() {
     private fun refreshGreeting() {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         binding.tvGreeting.text = when {
-            hour < 5 -> "Still up?"
-            hour < 12 -> "Good morning"
-            hour < 17 -> "Good afternoon"
-            hour < 21 -> "Good evening"
-            else -> "Winding down?"
+            hour < 5 -> "Still up? 🌙"
+            hour < 12 -> "Good morning 👋"
+            hour < 17 -> "Good afternoon ☀️"
+            hour < 21 -> "Good evening 🌆"
+            else -> "Winding down? 🌙"
         }
     }
 
-    /** Loads today's/this-week's focus stats and updates every stat-driven view on the
-     * dashboard: the goal progress bar, streak chips, the weekly bar chart, and recent sessions. */
     private fun refreshDashboardStats() {
         lifecycleScope.launch {
             val stats = FocusStatsManager.getDashboardStats(applicationContext)
@@ -883,7 +952,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             // Streak Badge
-            binding.tvStreakBadge.text = if (stats.streak > 0) "${stats.streak}d" else "0"
+            binding.tvStreakBadge.text = if (stats.streak > 0) "${stats.streak}d" else "0d"
+
+            // Insights Top Metric Cards
+            binding.tvInsightFocusTime.text = "${stats.todayMinutes}m"
+            val totalDistractions = stats.recentSessions.sumOf { it.distractionsBlocked }
+            binding.tvInsightDistractions.text = "$totalDistractions"
+            binding.tvInsightStreak.text = "${stats.streak}d"
 
             // Weekly bar chart
             val primary = ContextCompat.getColor(this@MainActivity, R.color.brand_primary)
@@ -969,7 +1044,6 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    /** Lets the person set how many minutes/day they're aiming for - tapping the goal card. */
     private fun showGoalEditor() {
         val input = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
@@ -1049,13 +1123,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun selectPresetDuration(durationMillis: Long) {
-        if (PrefsManager.isSessionCurrentlyActive(this)) return
-        HapticHelper.lightClick(binding.root)
-        PrefsManager.setLastChosenDurationMillis(this, durationMillis)
-        refreshSessionUi()
-    }
-
     private fun showCustomDurationPicker() {
         if (PrefsManager.isSessionCurrentlyActive(this)) return
         val currentDuration = PrefsManager.getLastChosenDurationMillis(this)
@@ -1068,8 +1135,6 @@ class MainActivity : AppCompatActivity() {
         FocusModeSelectionSheet().show(supportFragmentManager, FocusModeSelectionSheet.TAG)
     }
 
-    /** Strict/Lock mode confirmation screens are full activities, but Lite (Normal) mode
-     * can start immediately once the timer is set. */
     private fun startFocusSession(mode: SessionMode, durationMillis: Long) {
         PrefsManager.setLastChosenDurationMillis(this, durationMillis)
         when (mode) {
@@ -1084,7 +1149,6 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
             SessionMode.NORMAL -> {
-                // Vault Lock-In Sequence
                 try {
                     binding.ringGoalProgress.playLockInAnimation()
                     AnimationHelper.animateVaultLockIn(binding.frameFocusRingContainer)
@@ -1100,8 +1164,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Strict Mode never gets a pause option - that's the whole point of Strict Mode - and
-     * there's no reason to reopen the picker while a pause is already running. */
     private fun showEmergencyModeSheet() {
         if (!PrefsManager.isSessionCurrentlyActive(this)) return
         if (PrefsManager.isStrictModeActive(this)) return
@@ -1122,6 +1184,7 @@ class MainActivity : AppCompatActivity() {
             val apps = db.blockedAppDao().getAllOnce().count { it.isActive }
             val sites = db.blockedSiteDao().getActiveDomainsOnce().size
             val schedules = db.scheduledSessionDao().getAllOnce().count { it.isEnabled }
+            val presets = db.focusPresetDao().getAllOnce().size
             
             val primaryColor = ContextCompat.getColor(this@MainActivity, R.color.brand_primary)
             val secondaryColor = ContextCompat.getColor(this@MainActivity, R.color.text_secondary)
@@ -1150,6 +1213,7 @@ class MainActivity : AppCompatActivity() {
                 binding.tvSchedulesCount.setTextColor(primaryColor)
             }
 
+            binding.tvPresetsCount.text = "$presets modes"
         }
     }
 
@@ -1278,9 +1342,6 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Guards the Manage Apps / Manage Sites screens - the two places someone could remove
-     * a block mid-session. Strict Mode refuses outright; Lock Mode asks for the PIN first;
-     * Normal Mode passes straight through. */
     private fun guardSettingsAccess(action: () -> Unit) {
         if (PrefsManager.isStrictModeActive(this)) {
             Toast.makeText(this, "Settings are locked during Strict Mode", Toast.LENGTH_SHORT).show()
@@ -1339,7 +1400,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
-    /** If a session survived a reboot, VPN consent may have been silently revoked by the OS - re-ask. */
     private fun checkVpnConsentIfSessionActive() {
         if (!PrefsManager.isSessionCurrentlyActive(this)) return
         if (PrefsManager.getBlockedDomains(this).isEmpty()) return

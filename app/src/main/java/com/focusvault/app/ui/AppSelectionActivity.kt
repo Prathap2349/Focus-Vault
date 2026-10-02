@@ -37,8 +37,14 @@ class AppSelectionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAppSelectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        com.focusvault.app.util.EdgeToEdge.apply(
+            this, binding.root,
+            useDarkIcons = !com.focusvault.app.util.EdgeToEdge.isNightModeActive(this)
+        )
+        binding.btnBack.setOnClickListener {
+            HapticHelper.lightClick(it)
+            finish()
+        }
 
         binding.recyclerApps.layoutManager = LinearLayoutManager(this)
 

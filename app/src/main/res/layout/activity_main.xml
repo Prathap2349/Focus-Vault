@@ -11,8 +11,7 @@
     <FrameLayout
         android:id="@+id/containerContent"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@+id/bottomNavigation">
+        android:layout_height="match_parent">
 
         <!-- ============================================================ -->
         <!-- DESTINATION 1: HOME DASHBOARD                                -->
@@ -24,6 +23,7 @@
             android:background="@color/bg_light"
             android:clipToPadding="false"
             android:fillViewport="true"
+            android:paddingBottom="110dp"
             android:visibility="visible">
 
             <LinearLayout
@@ -32,7 +32,7 @@
                 android:orientation="vertical"
                 android:paddingHorizontal="20dp"
                 android:paddingTop="16dp"
-                android:paddingBottom="24dp">
+                android:paddingBottom="16dp">
 
                 <!-- Header Row -->
                 <LinearLayout
@@ -80,7 +80,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:gravity="center_vertical"
-                            android:minHeight="44dp"
+                            android:minHeight="40dp"
                             android:paddingHorizontal="12dp"
                             android:paddingVertical="6dp">
 
@@ -91,7 +91,6 @@
                                 android:src="@drawable/ic_shield_check"
                                 app:tint="@color/success_green" />
 
-                            <!-- Legacy TextView ID preserved for compatibility -->
                             <TextView
                                 android:id="@+id/tvHeaderShieldIcon"
                                 android:layout_width="wrap_content"
@@ -111,8 +110,8 @@
 
                     <ImageButton
                         android:id="@+id/btnSettings"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Settings"
                         android:src="@drawable/ic_settings"
@@ -167,14 +166,14 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:orientation="vertical"
-                        android:paddingHorizontal="24dp"
-                        android:paddingTop="24dp"
-                        android:paddingBottom="24dp">
+                        android:paddingHorizontal="20dp"
+                        android:paddingTop="22dp"
+                        android:paddingBottom="22dp">
 
                         <FrameLayout
                             android:id="@+id/frameFocusRingContainer"
-                            android:layout_width="220dp"
-                            android:layout_height="220dp"
+                            android:layout_width="210dp"
+                            android:layout_height="210dp"
                             android:layout_gravity="center">
 
                             <com.focusvault.app.ui.widget.CircularCountdownView
@@ -205,17 +204,17 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:singleLine="true"
-                                    android:layout_marginTop="6dp"
-                                    android:text="25:00" />
+                                    android:layout_marginTop="4dp"
+                                    android:text="00:25:00" />
 
                                 <TextView
                                     android:id="@+id/tvHeroSubtitle"
                                     style="@style/TextStyle.Body"
                                     android:layout_width="160dp"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
-                                    android:text="Tap to adjust"
-                                    android:textSize="12sp"
+                                    android:layout_marginTop="2dp"
+                                    android:text="Tap timer to adjust · Tap Start to begin"
+                                    android:textSize="11sp"
                                     android:maxLines="2"
                                     android:gravity="center" />
                             </LinearLayout>
@@ -225,15 +224,15 @@
                             android:id="@+id/containerHeroActions"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="20dp">
+                            android:layout_marginTop="18dp">
 
                             <Button
                                 android:id="@+id/btnStartFocus"
                                 style="@style/PrimaryButton"
                                 android:layout_width="match_parent"
-                                android:layout_height="56dp"
+                                android:layout_height="52dp"
                                 android:text="START FOCUS"
-                                android:textSize="16sp" />
+                                android:textSize="15sp" />
 
                             <LinearLayout
                                 android:id="@+id/containerActiveActions"
@@ -246,7 +245,7 @@
                                     android:id="@+id/btnResumeNow"
                                     style="@style/PrimaryButton"
                                     android:layout_width="match_parent"
-                                    android:layout_height="52dp"
+                                    android:layout_height="50dp"
                                     android:text="RESUME FOCUS"
                                     android:textSize="15sp"
                                     android:visibility="gone"
@@ -255,7 +254,7 @@
                                 <Button
                                     android:id="@+id/btnEmergencyMode"
                                     android:layout_width="match_parent"
-                                    android:layout_height="52dp"
+                                    android:layout_height="50dp"
                                     style="@style/Widget.MaterialComponents.Button"
                                     app:backgroundTint="@color/warning_amber"
                                     app:cornerRadius="18dp"
@@ -268,7 +267,7 @@
                                 <Button
                                     android:id="@+id/btnStopEarly"
                                     android:layout_width="match_parent"
-                                    android:layout_height="52dp"
+                                    android:layout_height="50dp"
                                     style="@style/CompactOutlinedButton"
                                     app:cornerRadius="18dp"
                                     app:strokeColor="@color/card_border"
@@ -282,7 +281,7 @@
                             <Button
                                 android:id="@+id/btnEmergencyUnlock"
                                 android:layout_width="match_parent"
-                                android:layout_height="52dp"
+                                android:layout_height="50dp"
                                 style="@style/Widget.MaterialComponents.Button"
                                 app:backgroundTint="@color/strict_red"
                                 app:cornerRadius="18dp"
@@ -332,6 +331,7 @@
                             android:paddingHorizontal="4dp">
 
                             <ImageView
+                                android:id="@+id/ivIconFocusMode"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_mode_focus"
@@ -376,6 +376,7 @@
                             android:paddingHorizontal="4dp">
 
                             <ImageView
+                                android:id="@+id/ivIconLockMode"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_mode_lock"
@@ -420,6 +421,7 @@
                             android:paddingHorizontal="4dp">
 
                             <ImageView
+                                android:id="@+id/ivIconStrictMode"
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_mode_strict"
@@ -444,7 +446,15 @@
                 </LinearLayout>
 
                 <!-- ===== QUICK DURATION CHIPS ===== -->
+                <TextView
+                    style="@style/TextStyle.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="DURATION"
+                    android:paddingBottom="8dp" />
+
                 <HorizontalScrollView
+                    android:id="@+id/scrollDurationChips"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:scrollbars="none"
@@ -462,6 +472,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Custom"
+                            android:layout_marginEnd="8dp" />
+
+                        <Button
+                            android:id="@+id/btnQuick10"
+                            style="@style/CompactOutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="10m"
                             android:layout_marginEnd="8dp" />
 
                         <Button
@@ -557,7 +575,7 @@
                                     style="@style/TextStyle.Caption"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="0"
+                                    android:text="0d"
                                     android:textColor="@color/warning_amber" />
                             </LinearLayout>
 
@@ -585,7 +603,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
-                                android:text="120m left"
+                                android:text="120m remaining"
                                 android:textSize="11sp" />
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
@@ -638,7 +656,7 @@
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
-                <!-- ===== COMPACT PROTECTION CENTER CARD ===== -->
+                <!-- ===== COMPACT REAL-TIME PROTECTION CENTER CARD ===== -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardProtectionCenter"
                     android:layout_width="match_parent"
@@ -745,6 +763,27 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"
                                     android:text="Website Blocking (DNS Filter)"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingVertical="3dp">
+                                <ImageView
+                                    android:id="@+id/ivSignalNotif"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/ic_check_circle"
+                                    app:tint="@color/success_green" />
+                                <TextView
+                                    style="@style/TextStyle.Body"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="Session Notifications (Alerts)"
                                     android:textSize="12sp" />
                             </LinearLayout>
                         </LinearLayout>
@@ -882,6 +921,7 @@
                             android:textSize="14sp" />
 
                         <TextView
+                            android:id="@+id/tvPresetsCount"
                             style="@style/TextStyle.Body"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -904,6 +944,7 @@
             android:background="@color/bg_light"
             android:clipToPadding="false"
             android:fillViewport="true"
+            android:paddingBottom="110dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -926,6 +967,115 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Your focus patterns and productivity trends" />
+
+                <!-- Filter Chips Row (7 Days / 30 Days / All Time) -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupInsightsRange"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    android:layout_marginTop="14dp">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRange7Days"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="7 Days" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRange30Days"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="30 Days" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRangeAllTime"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All Time" />
+                </com.google.android.material.chip.ChipGroup>
+
+                <!-- High-level Metric Stat Boxes -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginEnd="4dp">
+                        <TextView
+                            style="@style/TextStyle.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="FOCUS TIME" />
+                        <TextView
+                            android:id="@+id/tvInsightFocusTime"
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/brand_primary"
+                            android:text="0m" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginHorizontal="2dp">
+                        <TextView
+                            style="@style/TextStyle.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="DISTRACTIONS" />
+                        <TextView
+                            android:id="@+id/tvInsightDistractions"
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/warning_amber"
+                            android:text="0" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/widget_stat_box"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:layout_marginStart="4dp">
+                        <TextView
+                            style="@style/TextStyle.Caption"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="STREAK" />
+                        <TextView
+                            android:id="@+id/tvInsightStreak"
+                            style="@style/TextStyle.Subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="@color/success_green"
+                            android:text="0d" />
+                    </LinearLayout>
+                </LinearLayout>
 
                 <!-- Weekly Focus Chart Card -->
                 <com.google.android.material.card.MaterialCardView
@@ -993,7 +1143,7 @@
                                 android:id="@+id/btnClearHistory"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="CLEAR"
+                                android:text="CLEAR ALL"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp"
                                 android:textStyle="bold"
@@ -1030,6 +1180,7 @@
             android:background="@color/bg_light"
             android:clipToPadding="false"
             android:fillViewport="true"
+            android:paddingBottom="110dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -1094,6 +1245,7 @@
             android:background="@color/bg_light"
             android:clipToPadding="false"
             android:fillViewport="true"
+            android:paddingBottom="110dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -1147,7 +1299,7 @@
                             android:background="?attr/selectableItemBackground"
                             android:clickable="true"
                             android:focusable="true"
-                            android:minHeight="56dp"
+                            android:minHeight="54dp"
                             android:gravity="center_vertical"
                             android:paddingHorizontal="16dp"
                             android:paddingVertical="12dp">
@@ -1189,7 +1341,7 @@
                             android:background="?attr/selectableItemBackground"
                             android:clickable="true"
                             android:focusable="true"
-                            android:minHeight="56dp"
+                            android:minHeight="54dp"
                             android:gravity="center_vertical"
                             android:paddingHorizontal="16dp"
                             android:paddingVertical="12dp">
@@ -1231,7 +1383,7 @@
                             android:background="?attr/selectableItemBackground"
                             android:clickable="true"
                             android:focusable="true"
-                            android:minHeight="56dp"
+                            android:minHeight="54dp"
                             android:gravity="center_vertical"
                             android:paddingHorizontal="16dp"
                             android:paddingVertical="12dp">
@@ -1293,7 +1445,7 @@
                             android:background="?attr/selectableItemBackground"
                             android:clickable="true"
                             android:focusable="true"
-                            android:minHeight="56dp"
+                            android:minHeight="54dp"
                             android:gravity="center_vertical"
                             android:paddingHorizontal="16dp"
                             android:paddingVertical="12dp">
@@ -1335,7 +1487,7 @@
                             android:background="?attr/selectableItemBackground"
                             android:clickable="true"
                             android:focusable="true"
-                            android:minHeight="56dp"
+                            android:minHeight="54dp"
                             android:gravity="center_vertical"
                             android:paddingHorizontal="16dp"
                             android:paddingVertical="12dp">
@@ -1372,13 +1524,28 @@
 
     </FrameLayout>
 
-    <!-- ===== BOTTOM NAVIGATION BAR ===== -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottomNavigation"
-        style="@style/Widget.StayFocused.BottomNav"
+    <!-- ===== FLOATING MODERN BOTTOM NAVIGATION BAR ===== -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardBottomNav"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        app:menu="@menu/menu_bottom_nav" />
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="12dp"
+        app:cardBackgroundColor="@color/card_surface"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="10dp"
+        app:strokeColor="@color/card_border"
+        app:strokeWidth="1dp">
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottomNavigation"
+            style="@style/Widget.StayFocused.BottomNav"
+            android:layout_width="match_parent"
+            android:layout_height="68dp"
+            android:background="@android:color/transparent"
+            app:elevation="0dp"
+            app:menu="@menu/menu_bottom_nav" />
+    </com.google.android.material.card.MaterialCardView>
 
 </RelativeLayout>

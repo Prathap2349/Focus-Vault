@@ -1,8 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ===== Dark Theme Semantic Colors (Premium Dark + Electric Violet) ===== -->
+    <!-- ===== Dark Theme Semantic Colors (Premium Obsidian + Electric Violet) ===== -->
+    <!-- Primary Brand / Focus Mode: Electric Violet -->
+    <color name="brand_primary">#8B5CF6</color>
+    <color name="brand_primary_dark">#7C3AED</color>
+    <color name="brand_primary_subtle">#268B5CF6</color>
+    <color name="brand_primary_highlight">#A78BFA</color>
+
+    <!-- Secondary Accent: Modern Digital Cyan -->
+    <color name="secondary_teal">#22D3EE</color>
+    <color name="secondary_teal_dark">#06B6D4</color>
+    <color name="secondary_teal_subtle">#2622D3EE</color>
+
+    <!-- Success: Calm Fresh Green -->
+    <color name="success_green">#34D399</color>
+    <color name="success_green_subtle">#2634D399</color>
+
+    <!-- Warning / Paused: Warm Amber -->
+    <color name="warning_amber">#FBBF24</color>
+    <color name="warning_amber_subtle">#26FBBF24</color>
+    <color name="accent_streak">#FBBF24</color>
+
+    <!-- Error / Strict Mode: Rose Red -->
+    <color name="strict_red">#FB7185</color>
+    <color name="strict_red_subtle">#26FB7185</color>
+
+    <!-- Lock Mode: Electric Violet / Blue -->
+    <color name="lock_blue">#3B82F6</color>
+    <color name="gold_xp">#FBBF24</color>
+
     <!-- Screen Background: Deep dark navy base background -->
     <color name="bg_light">#0B1020</color>
+    <color name="bg_dark">#0B1020</color>
 
     <!-- Surface Elevation Hierarchy -->
     <color name="bg_card">#11192B</color>
@@ -19,4 +48,13 @@
 
     <!-- Full-Screen Overlay -->
     <color name="overlay_dark">#F00B1020</color>
+
+    <color name="glow_normal">#338B5CF6</color>
+    <color name="glow_lock">#333B82F6</color>
+    <color name="glow_strict">#33FB7185</color>
+    <color name="overlay_noise">#06FFFFFF</color>
+    <color name="success_green_chip_bg">#2634D399</color>
+    <color name="warning_amber_chip_bg">#26FBBF24</color>
+    <color name="strict_red_chip_bg">#26FB7185</color>
+    <color name="premium_obsidian">#11192B</color>
 </resources>

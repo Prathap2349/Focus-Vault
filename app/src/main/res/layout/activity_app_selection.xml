@@ -2,56 +2,67 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layoutAppSelectionRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/bg_light">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary"
-        android:title="Select Apps to Block"
-        android:titleTextColor="@color/white" />
-
-    <!-- Search & Selected counter bar -->
+    <!-- ===== Modern App Header Bar ===== -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp"
-        android:background="@color/card_surface">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="12dp"
+        android:background="@color/bg_light">
 
+        <!-- Top Navigation Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="10dp">
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvSelectedCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_badge_blocked"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="5dp"
-                android:textColor="@color/brand_primary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                tools:text="0 apps blocked" />
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back"
+                android:src="@drawable/ic_back"
+                app:tint="@color/text_primary" />
 
-            <View
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/TextStyle.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Focus Vault" />
+
+                <TextView
+                    android:id="@+id/tvSelectedCount"
+                    style="@style/TextStyle.Body"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="0 apps blocked"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/btnQuickSelectCategory"
                 style="@style/CompactOutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:layout_marginEnd="6dp"
                 android:minHeight="0dp"
                 android:paddingHorizontal="10dp"
@@ -63,7 +74,7 @@
                 android:id="@+id/btnClearAll"
                 style="@style/CompactOutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:minHeight="0dp"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
@@ -72,14 +83,16 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
+        <!-- Search Bar -->
         <EditText
             android:id="@+id/etSearchApps"
             android:layout_width="match_parent"
             android:layout_height="44dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_search_pill"
-            android:drawableStart="@android:drawable/ic_menu_search"
+            android:drawableStart="@drawable/ic_search"
             android:drawablePadding="10dp"
-            android:hint="Search installed apps…"
+            android:hint="Search installed apps..."
             android:inputType="text"
             android:paddingHorizontal="16dp"
             android:textColor="@color/text_primary"
@@ -87,13 +100,13 @@
             android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Horizontal Category Filter -->
+    <!-- Horizontal Category Filter Chips -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:scrollbars="none"
-        android:paddingVertical="8dp"
-        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:paddingHorizontal="16dp"
         android:clipToPadding="false">
 
         <com.google.android.material.chip.ChipGroup
@@ -109,45 +122,46 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="📱 All" />
+                android:text="All" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipSocial"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💬 Social" />
+                android:text="Social" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipGames"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🎮 Games" />
+                android:text="Games" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipEntertainment"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🍿 Entertainment" />
+                android:text="Entertainment" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipShopping"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🛍️ Shopping" />
+                android:text="Shopping" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipProductivity"
                 style="@style/Widget.MaterialComponents.Chip.Choice"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="💼 Productivity" />
+                android:text="Productivity" />
         </com.google.android.material.chip.ChipGroup>
     </HorizontalScrollView>
 
+    <!-- Apps Recycler List -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -158,7 +172,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="16dp" />
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="24dp" />
+
+        <!-- Hidden Toolbar for backward ViewBinding compatibility if needed -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/layoutEmptyState"
@@ -174,7 +196,7 @@
             <ImageView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_search"
+                android:src="@drawable/ic_search"
                 app:tint="@color/text_secondary"
                 android:contentDescription="@null" />
 
