@@ -125,9 +125,14 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
             context, 0, openAppIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val adminActive = com.focusvault.app.service.StayFocusedDeviceAdminReceiver.isDeviceAdminActive(context)
+        val adminNotice = if ((mode == SessionMode.STRICT || mode == SessionMode.LOCK) && !adminActive) {
+            " (Device Admin setup required)"
+        } else ""
+
         val notification = NotificationCompat.Builder(context, SCHEDULE_CHANNEL_ID)
             .setContentTitle("⏰ Time for: $title")
-            .setContentText("$durationMinutes min ${mode.name.lowercase()} focus session scheduled now. Tap to begin.")
+            .setContentText("$durationMinutes min ${mode.name.lowercase()} focus session scheduled now$adminNotice. Tap to begin.")
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setAutoCancel(true)
             .setContentIntent(pi)

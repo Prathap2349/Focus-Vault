@@ -9,6 +9,7 @@ import com.focusvault.app.data.SessionMode
 import com.focusvault.app.data.SessionState
 import com.focusvault.app.service.FocusVpnService
 import com.focusvault.app.service.SessionTimerService
+import com.focusvault.app.service.StayFocusedDeviceAdminReceiver
 import com.focusvault.app.util.FocusStatsManager
 import com.focusvault.app.util.PrefsManager
 import com.focusvault.app.util.StreakManager
@@ -64,6 +65,112 @@ object SessionStateManager {
     }
 
     /**
+     * Centralized, idempotent finalization for all session termination outcomes.
+     * Keeps state transition and idempotency checks atomic inside the mutex,
+     * but executes all side-effects (service control, database I/O, stats, widgets)
+     * outside the lock to prevent deadlocks and re-entrancy issues.
+     */
+    private suspend fun finalizeSession(
+        context: Context,
+        finalState: SessionState,
+        completedNaturally: Boolean,
+        stopReason: String = "",
+        customEndTimeMillis: Long? = null
+    ): Boolean {
+        // Step 1: Atomic state validation and transition inside Mutex
+        val sessionToFinalize = mutex.withLock {
+            val current = _sessionFlow.value
+                ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+                ?: return false
+
+            // Idempotency: If not in a live state and not already COMPLETING, return false immediately
+            if (!current.state.isLive && current.state != SessionState.COMPLETING) {
+                return false
+            }
+
+            // Already in target final state
+            if (current.state == finalState) {
+                return false
+            }
+
+            // Atomically transition state to COMPLETING
+            val completingSession = current.copy(state = SessionState.COMPLETING)
+            _sessionFlow.value = completingSession
+            PrefsManager.setSession(context, current.mode, SessionState.COMPLETING, current.endTimeMillis)
+
+            current
+        }
+
+        // Step 2: Side effects executed safely outside the mutex
+        val now = System.currentTimeMillis()
+        val finalEndTime = customEndTimeMillis ?: now
+        val mode = sessionToFinalize.mode
+
+        // Stop timer foreground service
+        try {
+            context.stopService(Intent(context, SessionTimerService::class.java))
+        } catch (e: Exception) {
+            // Handled gracefully
+        }
+
+        // Stop session VPN if no permanent blocked domains are active
+        try {
+            if (PrefsManager.getPermanentBlockedDomains(context).isEmpty()) {
+                val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
+                    action = FocusVpnService.ACTION_STOP
+                }
+                context.startService(stopVpnIntent)
+                context.stopService(Intent(context, FocusVpnService::class.java))
+            }
+        } catch (e: Exception) {
+            // Handled gracefully
+        }
+
+        // Clean up fast cache and emergency pause
+        PrefsManager.clearEmergencyPause(context)
+        PrefsManager.forceEndSession(context)
+        PrefsManager.setSession(context, mode, finalState, 0L)
+
+        // Record history and dashboard statistics exactly once
+        FocusStatsManager.recordSessionEnd(
+            context,
+            mode = mode,
+            startTimeMillis = sessionToFinalize.startTimeMillis,
+            endTimeMillis = finalEndTime,
+            completedNaturally = completedNaturally,
+            title = sessionToFinalize.title,
+            distractionsBlocked = sessionToFinalize.distractionsBlocked,
+            stopReason = stopReason
+        )
+
+        // Record streak update only on natural completion
+        if (completedNaturally) {
+            StreakManager.recordCompletion(context)
+        }
+
+        // Finalize entity and persist to Room database
+        val finalSession = sessionToFinalize.copy(
+            state = finalState,
+            startTimeMillis = 0L,
+            endTimeMillis = 0L,
+            pauseStartTimeMillis = 0L
+        )
+
+        val db = AppDatabase.getInstance(context)
+        db.focusSessionDao().upsert(finalSession)
+
+        // Publish terminal state to StateFlow
+        mutex.withLock {
+            _sessionFlow.value = finalSession
+        }
+
+        // Notify home widgets
+        WidgetUpdater.requestUpdate(context)
+
+        return true
+    }
+
+    /**
      * Starts a new focus session.
      * Guaranteed idempotent: fails safely if another session is already live.
      */
@@ -72,36 +179,46 @@ object SessionStateManager {
         durationMillis: Long,
         mode: SessionMode,
         title: String = "Focus Session"
-    ): Boolean = mutex.withLock {
+    ): Boolean {
         if (durationMillis <= 0) return false
-        val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-        if (current != null && (current.state == SessionState.STARTING || (current.state.isLive && System.currentTimeMillis() < current.endTimeMillis))) {
-            return false // Prevent starting a second active session or concurrent race
+
+        // State-layer security boundary: Strict and Lock modes require active Device Admin
+        if (mode == SessionMode.STRICT || mode == SessionMode.LOCK) {
+            if (!StayFocusedDeviceAdminReceiver.isDeviceAdminActive(context)) {
+                return false
+            }
         }
 
-        val startTime = System.currentTimeMillis()
-        val endTime = startTime + durationMillis
+        val activeSession = mutex.withLock {
+            val current = _sessionFlow.value
+                ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+            val now = System.currentTimeMillis()
+            if (current != null && (current.state == SessionState.STARTING || (current.state.isLive && now < current.endTimeMillis))) {
+                return false // Prevent starting a second active session or concurrent race
+            }
 
-        val startingSession = FocusSession(
-            id = 1,
-            mode = mode,
-            state = SessionState.STARTING,
-            startTimeMillis = startTime,
-            endTimeMillis = endTime,
-            pausedDurationMillis = 0L,
-            pauseStartTimeMillis = 0L,
-            title = title,
-            distractionsBlocked = 0
-        )
+            val startTime = now
+            val endTime = startTime + durationMillis
 
-        // Write synchronously to fast cache
-        PrefsManager.setSession(context, mode, SessionState.STARTING, endTime)
+            // Write synchronously to fast cache
+            PrefsManager.setSession(context, mode, SessionState.ACTIVE, endTime)
 
-        // Transition to ACTIVE
-        val activeSession = startingSession.copy(state = SessionState.ACTIVE)
-        PrefsManager.setSession(context, mode, SessionState.ACTIVE, endTime)
-        _sessionFlow.value = activeSession
+            val session = FocusSession(
+                id = 1,
+                mode = mode,
+                state = SessionState.ACTIVE,
+                startTimeMillis = startTime,
+                endTimeMillis = endTime,
+                pausedDurationMillis = 0L,
+                pauseStartTimeMillis = 0L,
+                title = title,
+                distractionsBlocked = 0
+            )
+            _sessionFlow.value = session
+            session
+        }
 
+        // Side-effects outside mutex
         val db = AppDatabase.getInstance(context)
         db.focusSessionDao().upsert(activeSession)
 
@@ -131,24 +248,34 @@ object SessionStateManager {
         context: Context,
         durationMillis: Long,
         reasonLabel: String
-    ): Boolean = mutex.withLock {
-        val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-            ?: return false
+    ): Boolean {
+        if (durationMillis <= 0) return false
 
-        if (current.mode == SessionMode.STRICT) return false // Strict mode never permits pauses
-        if (current.state != SessionState.ACTIVE) return false
+        val pausedSession = mutex.withLock {
+            val current = _sessionFlow.value
+                ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+                ?: return false
 
-        val pauseUntil = System.currentTimeMillis() + durationMillis
-        PrefsManager.setEmergencyPause(context, pauseUntil, reasonLabel)
-        PrefsManager.setSession(context, current.mode, SessionState.PAUSED, current.endTimeMillis)
+            if (current.mode == SessionMode.STRICT) return false // Strict mode never permits pauses
+            if (current.state != SessionState.ACTIVE) return false
 
-        val pausedSession = current.copy(
-            state = SessionState.PAUSED,
-            pauseStartTimeMillis = System.currentTimeMillis()
-        )
-        _sessionFlow.value = pausedSession
-        AppDatabase.getInstance(context).focusSessionDao().upsert(pausedSession)
+            val now = System.currentTimeMillis()
+            val pauseUntil = now + durationMillis
 
+            PrefsManager.setEmergencyPause(context, pauseUntil, reasonLabel)
+            PrefsManager.setSession(context, current.mode, SessionState.PAUSED, current.endTimeMillis)
+
+            val paused = current.copy(
+                state = SessionState.PAUSED,
+                pauseStartTimeMillis = now
+            )
+            _sessionFlow.value = paused
+            paused
+        }
+
+        // Room and widget updates outside mutex
+        val db = AppDatabase.getInstance(context)
+        db.focusSessionDao().upsert(pausedSession)
         WidgetUpdater.requestUpdate(context)
         return true
     }
@@ -157,126 +284,68 @@ object SessionStateManager {
      * Resumes a paused session.
      * Extends session end time by the elapsed pause duration to keep focus target honest.
      */
-    suspend fun resumeSession(context: Context): Boolean = mutex.withLock {
-        val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-            ?: return false
+    suspend fun resumeSession(context: Context): Boolean {
+        val activeSession = mutex.withLock {
+            val current = _sessionFlow.value
+                ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+                ?: return false
 
-        if (current.state != SessionState.PAUSED) return false
+            if (current.state != SessionState.PAUSED) return false
 
-        val now = System.currentTimeMillis()
-        val additionalPause = if (current.pauseStartTimeMillis > 0) (now - current.pauseStartTimeMillis).coerceAtLeast(0L) else 0L
-        val newEndTime = current.endTimeMillis + additionalPause
+            val now = System.currentTimeMillis()
+            val additionalPause = if (current.pauseStartTimeMillis > 0) (now - current.pauseStartTimeMillis).coerceAtLeast(0L) else 0L
+            val newEndTime = current.endTimeMillis + additionalPause
 
-        PrefsManager.clearEmergencyPause(context)
-        PrefsManager.setSession(context, current.mode, SessionState.ACTIVE, newEndTime)
+            PrefsManager.clearEmergencyPause(context)
+            PrefsManager.setSession(context, current.mode, SessionState.ACTIVE, newEndTime)
 
-        val activeSession = current.copy(
-            state = SessionState.ACTIVE,
-            endTimeMillis = newEndTime,
-            pausedDurationMillis = current.pausedDurationMillis + additionalPause,
-            pauseStartTimeMillis = 0L
-        )
-        _sessionFlow.value = activeSession
-        AppDatabase.getInstance(context).focusSessionDao().upsert(activeSession)
+            val active = current.copy(
+                state = SessionState.ACTIVE,
+                endTimeMillis = newEndTime,
+                pausedDurationMillis = current.pausedDurationMillis + additionalPause,
+                pauseStartTimeMillis = 0L
+            )
+            _sessionFlow.value = active
+            active
+        }
 
+        val db = AppDatabase.getInstance(context)
+        db.focusSessionDao().upsert(activeSession)
         WidgetUpdater.requestUpdate(context)
         return true
     }
 
     /**
      * Stops the session early.
-     * Disallowed in Strict Mode.
+     * Disallowed in Strict Mode at the state layer.
      */
-    suspend fun stopSessionEarly(context: Context, reason: String = "Stopped early"): Boolean = mutex.withLock {
-        val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-            ?: return false
+    suspend fun stopSessionEarly(context: Context, reason: String = "Stopped early"): Boolean {
+        // Enforce Strict Mode restriction at the state manager boundary
+        val currentMode = PrefsManager.getSessionMode(context)
+        if (currentMode == SessionMode.STRICT) return false
 
-        if (current.mode == SessionMode.STRICT) return false // Strict mode cannot be stopped early
-        if (!current.state.isLive) return false
+        val current = _sessionFlow.value
+            ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+        if (current != null && current.mode == SessionMode.STRICT) return false
 
-        val now = System.currentTimeMillis()
-        PrefsManager.forceEndSession(context)
-        PrefsManager.clearEmergencyPause(context)
-
-        val stoppedSession = current.copy(state = SessionState.STOPPED, startTimeMillis = 0L, endTimeMillis = 0L)
-        _sessionFlow.value = stoppedSession
-
-        val db = AppDatabase.getInstance(context)
-        db.focusSessionDao().upsert(stoppedSession)
-
-        // Record history for stopped early session
-        FocusStatsManager.recordSessionEnd(
-            context,
-            mode = current.mode,
-            startTimeMillis = current.startTimeMillis,
-            endTimeMillis = now,
+        return finalizeSession(
+            context = context,
+            finalState = SessionState.STOPPED,
             completedNaturally = false,
-            title = current.title,
-            distractionsBlocked = current.distractionsBlocked,
             stopReason = reason
         )
-
-        // Stop services
-        try {
-            context.stopService(Intent(context, SessionTimerService::class.java))
-            if (PrefsManager.getPermanentBlockedDomains(context).isEmpty()) {
-                val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
-                    action = FocusVpnService.ACTION_STOP
-                }
-                context.startService(stopVpnIntent)
-                context.stopService(Intent(context, FocusVpnService::class.java))
-            }
-        } catch (e: Exception) { }
-
-        WidgetUpdater.requestUpdate(context)
-        return true
     }
 
     /**
      * Completes the session when countdown timer reaches zero.
+     * Delegates to centralized finalizer.
      */
-    suspend fun completeSession(context: Context): Unit = mutex.withLock {
-        val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-            ?: return
-
-        if (current.state == SessionState.COMPLETED) return
-
-        val completingSession = current.copy(state = SessionState.COMPLETING)
-        _sessionFlow.value = completingSession
-
-        val now = System.currentTimeMillis()
-        PrefsManager.setSession(context, current.mode, SessionState.COMPLETED, 0L)
-        PrefsManager.clearEmergencyPause(context)
-
-        val completedSession = current.copy(state = SessionState.COMPLETED, startTimeMillis = 0L, endTimeMillis = 0L)
-        _sessionFlow.value = completedSession
-
-        val db = AppDatabase.getInstance(context)
-        db.focusSessionDao().upsert(completedSession)
-
-        FocusStatsManager.recordSessionEnd(
-            context,
-            mode = current.mode,
-            startTimeMillis = current.startTimeMillis,
-            endTimeMillis = now,
-            completedNaturally = true,
-            title = current.title,
-            distractionsBlocked = current.distractionsBlocked
+    suspend fun completeSession(context: Context): Boolean {
+        return finalizeSession(
+            context = context,
+            finalState = SessionState.COMPLETED,
+            completedNaturally = true
         )
-
-        StreakManager.recordCompletion(context)
-
-        try {
-            if (PrefsManager.getPermanentBlockedDomains(context).isEmpty()) {
-                val stopVpnIntent = Intent(context, FocusVpnService::class.java).apply {
-                    action = FocusVpnService.ACTION_STOP
-                }
-                context.startService(stopVpnIntent)
-                context.stopService(Intent(context, FocusVpnService::class.java))
-            }
-        } catch (e: Exception) { }
-
-        WidgetUpdater.requestUpdate(context)
     }
 
     /**
@@ -284,58 +353,57 @@ object SessionStateManager {
      */
     fun recordDistractionAttempt(context: Context) {
         scope.launch {
-            mutex.withLock {
-                val current = _sessionFlow.value ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
+            val updated = mutex.withLock {
+                val current = _sessionFlow.value
+                    ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
                     ?: return@launch
                 if (current.state.isLive) {
-                    val updated = current.copy(distractionsBlocked = current.distractionsBlocked + 1)
-                    _sessionFlow.value = updated
-                    AppDatabase.getInstance(context).focusSessionDao().upsert(updated)
-                }
+                    val u = current.copy(distractionsBlocked = current.distractionsBlocked + 1)
+                    _sessionFlow.value = u
+                    u
+                } else null
+            }
+            if (updated != null) {
+                AppDatabase.getInstance(context).focusSessionDao().upsert(updated)
             }
         }
     }
 
     /**
      * Recovers session state after process death or device reboot.
-     * If the session's end time elapsed while the app was dead, completes it properly.
-     * If still active, restores protection services.
+     * If the session's end time elapsed while the app was dead, completes it cleanly
+     * through the centralized finalizer.
+     * If still active, restores protection services and ticker.
      */
-    suspend fun recoverSessionIfNeeded(context: Context) = mutex.withLock {
+    suspend fun recoverSessionIfNeeded(context: Context) {
         val db = AppDatabase.getInstance(context)
-        val current = db.focusSessionDao().getSessionOnce() ?: return@withLock
+        val current = db.focusSessionDao().getSessionOnce() ?: return
         val now = System.currentTimeMillis()
 
         if (current.state.isLive) {
-            if (now >= current.endTimeMillis) {
-                // Expired during process death or reboot: finalize completion cleanly
-                val completed = current.copy(state = SessionState.COMPLETED)
-                _sessionFlow.value = completed
-                db.focusSessionDao().upsert(completed)
-                PrefsManager.setSession(context, current.mode, SessionState.COMPLETED, 0L)
-
-                FocusStatsManager.recordSessionEnd(
-                    context,
-                    mode = current.mode,
-                    startTimeMillis = current.startTimeMillis,
-                    endTimeMillis = current.endTimeMillis,
+            if (now >= current.endTimeMillis && current.endTimeMillis > 0L) {
+                // Expired during process death or reboot: route through centralized finalizer
+                finalizeSession(
+                    context = context,
+                    finalState = SessionState.COMPLETED,
                     completedNaturally = true,
-                    title = current.title,
-                    distractionsBlocked = current.distractionsBlocked
+                    customEndTimeMillis = current.endTimeMillis
                 )
-                StreakManager.recordCompletion(context)
-                WidgetUpdater.requestUpdate(context)
             } else {
                 // Still active: restore
-                val recovering = current.copy(state = SessionState.RECOVERING)
-                _sessionFlow.value = recovering
-                val active = current.copy(state = SessionState.ACTIVE)
-                _sessionFlow.value = active
-                db.focusSessionDao().upsert(active)
-                PrefsManager.setSession(context, current.mode, SessionState.ACTIVE, current.endTimeMillis)
+                val active = mutex.withLock {
+                    val recovering = current.copy(state = SessionState.RECOVERING)
+                    _sessionFlow.value = recovering
+                    val act = current.copy(state = SessionState.ACTIVE)
+                    _sessionFlow.value = act
+                    PrefsManager.setSession(context, current.mode, SessionState.ACTIVE, current.endTimeMillis)
+                    act
+                }
 
-                val remaining = current.endTimeMillis - now
-                SessionTimerService.start(context, remaining, current.mode)
+                db.focusSessionDao().upsert(active)
+
+                val remaining = active.endTimeMillis - now
+                SessionTimerService.start(context, remaining, active.mode)
 
                 if (PrefsManager.getBlockedDomains(context).isNotEmpty() &&
                     android.net.VpnService.prepare(context) == null

@@ -3,8 +3,11 @@ package com.focusvault.app.ui
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.focusvault.app.data.SessionMode
+import com.focusvault.app.manager.SessionStateManager
 import com.focusvault.app.util.PrefsManager
+import kotlinx.coroutines.launch
 
 class WidgetQuickStartActivity : AppCompatActivity() {
 
@@ -124,10 +127,14 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             val minutes = result.getInt(EmergencyModeSheet.RESULT_MINUTES, 0)
             val label = result.getString(EmergencyModeSheet.RESULT_LABEL) ?: "Emergency"
             if (minutes > 0) {
-                PrefsManager.setEmergencyPause(this, System.currentTimeMillis() + minutes * 60_000L, label)
-                com.focusvault.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
+                lifecycleScope.launch {
+                    SessionStateManager.pauseSession(applicationContext, minutes * 60_000L, label)
+                    com.focusvault.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
+                    finish()
+                }
+            } else {
+                finish()
             }
-            finish()
         }
 
         val sheet = EmergencyModeSheet()

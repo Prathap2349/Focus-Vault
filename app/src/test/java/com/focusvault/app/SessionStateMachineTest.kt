@@ -1,5 +1,6 @@
 package com.focusvault.app
 
+import com.focusvault.app.data.SessionMode
 import com.focusvault.app.data.SessionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -88,7 +89,7 @@ class SessionStateMachineTest {
 
     @Test
     fun testNormalFocusModeLifecycle() {
-        val mode = com.focusvault.app.data.SessionMode.NORMAL
+        val mode = SessionMode.NORMAL
         assertEquals("NORMAL", mode.name)
         
         var state = SessionState.IDLE
@@ -114,5 +115,54 @@ class SessionStateMachineTest {
         // Active session with future end time should reject starting a second session
         val canStartNew = !activeState.isLive || now >= futureEnd
         assertFalse("Should prevent starting duplicate session when one is active", canStartNew)
+    }
+
+    @Test
+    fun testStrictModeStateLayerRestrictions() {
+        // State layer must forbid early stopping in Strict Mode
+        fun canStopEarly(mode: SessionMode, state: SessionState): Boolean {
+            if (mode == SessionMode.STRICT) return false
+            return state.isLive
+        }
+
+        assertFalse(canStopEarly(SessionMode.STRICT, SessionState.ACTIVE))
+        assertFalse(canStopEarly(SessionMode.STRICT, SessionState.PAUSED))
+        assertTrue(canStopEarly(SessionMode.NORMAL, SessionState.ACTIVE))
+        assertTrue(canStopEarly(SessionMode.LOCK, SessionState.ACTIVE))
+
+        // State layer must forbid pausing in Strict Mode
+        fun canPause(mode: SessionMode, state: SessionState): Boolean {
+            if (mode == SessionMode.STRICT) return false
+            return state == SessionState.ACTIVE
+        }
+
+        assertFalse(canPause(SessionMode.STRICT, SessionState.ACTIVE))
+        assertTrue(canPause(SessionMode.NORMAL, SessionState.ACTIVE))
+        assertTrue(canPause(SessionMode.LOCK, SessionState.ACTIVE))
+    }
+
+    @Test
+    fun testIdempotentFinalizationGuard() {
+        // Finalizing a session that is already terminal must be rejected
+        fun canFinalize(currentState: SessionState, targetFinalState: SessionState): Boolean {
+            if (!currentState.isLive && currentState != SessionState.COMPLETING) {
+                return false
+            }
+            if (currentState == targetFinalState) {
+                return false
+            }
+            return true
+        }
+
+        // Active / Paused / Recovering sessions can be finalized
+        assertTrue(canFinalize(SessionState.ACTIVE, SessionState.COMPLETED))
+        assertTrue(canFinalize(SessionState.PAUSED, SessionState.STOPPED))
+        assertTrue(canFinalize(SessionState.RECOVERING, SessionState.COMPLETED))
+
+        // Terminal sessions must reject second finalization
+        assertFalse(canFinalize(SessionState.COMPLETED, SessionState.COMPLETED))
+        assertFalse(canFinalize(SessionState.STOPPED, SessionState.STOPPED))
+        assertFalse(canFinalize(SessionState.IDLE, SessionState.COMPLETED))
+        assertFalse(canFinalize(SessionState.INTERRUPTED, SessionState.COMPLETED))
     }
 }

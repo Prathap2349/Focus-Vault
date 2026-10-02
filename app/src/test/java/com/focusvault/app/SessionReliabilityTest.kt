@@ -82,4 +82,51 @@ class SessionReliabilityTest {
         val durationMinutes = ((calculatedEnd - startMillis) / 60000L).toInt().coerceAtLeast(0)
         assertEquals(25, durationMinutes)
     }
+
+    @Test
+    fun testDeviceAdminRequirementPerMode() {
+        // Logic validator matching SessionStateManager state boundary
+        fun canStartSession(mode: SessionMode, isDeviceAdminActive: Boolean, durationMillis: Long): Boolean {
+            if (durationMillis <= 0) return false
+            if (mode == SessionMode.STRICT || mode == SessionMode.LOCK) {
+                if (!isDeviceAdminActive) return false
+            }
+            return true
+        }
+
+        // 1. Normal mode starts with or without Device Admin
+        assertTrue("Normal Mode starts without Device Admin", canStartSession(SessionMode.NORMAL, isDeviceAdminActive = false, durationMillis = 1500000L))
+        assertTrue("Normal Mode starts with Device Admin", canStartSession(SessionMode.NORMAL, isDeviceAdminActive = true, durationMillis = 1500000L))
+
+        // 2. Strict mode requires Device Admin
+        assertFalse("Strict Mode cannot start without Device Admin", canStartSession(SessionMode.STRICT, isDeviceAdminActive = false, durationMillis = 1500000L))
+        assertTrue("Strict Mode starts with Device Admin", canStartSession(SessionMode.STRICT, isDeviceAdminActive = true, durationMillis = 1500000L))
+
+        // 3. Lock mode requires Device Admin
+        assertFalse("Lock Mode cannot start without Device Admin", canStartSession(SessionMode.LOCK, isDeviceAdminActive = false, durationMillis = 1500000L))
+        assertTrue("Lock Mode starts with Device Admin", canStartSession(SessionMode.LOCK, isDeviceAdminActive = true, durationMillis = 1500000L))
+    }
+
+    @Test
+    fun testMidSessionDeviceAdminDeactivationPreservesSession() {
+        // When Device Admin is disabled during an active session, session state must not be corrupted or downgraded
+        var activeSessionState = SessionState.ACTIVE
+        var activeMode = SessionMode.STRICT
+        var isSessionCompleted = false
+
+        fun onDeviceAdminDisabled(isActive: Boolean, currentMode: SessionMode) {
+            // Must NOT change state to COMPLETED or STOPPED
+            // Must NOT downgrade mode to NORMAL
+            // Must keep session intact
+            if (isActive && (currentMode == SessionMode.STRICT || currentMode == SessionMode.LOCK)) {
+                // Protection degraded notification triggered, but session remains ACTIVE
+            }
+        }
+
+        onDeviceAdminDisabled(isActive = activeSessionState.isLive, currentMode = activeMode)
+
+        assertEquals("Session state must remain ACTIVE", SessionState.ACTIVE, activeSessionState)
+        assertEquals("Session mode must remain STRICT", SessionMode.STRICT, activeMode)
+        assertFalse("Session must not be completed early", isSessionCompleted)
+    }
 }

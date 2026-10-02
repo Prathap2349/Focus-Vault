@@ -1,28 +1,46 @@
 package com.focusvault.app.ui
 
+import android.app.admin.DevicePolicyManager
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.focusvault.app.data.SessionMode
 import com.focusvault.app.databinding.ActivityLockConfirmBinding
+import com.focusvault.app.service.StayFocusedDeviceAdminReceiver
 import com.focusvault.app.util.PrefsManager
 
 /**
  * Confirmation + PIN setup screen for Lock Mode, mirroring StrictModeConfirmActivity's
- * "no accidental lock-ins" pattern. Unlike Strict Mode, Lock Mode keeps an exit door open -
- * that door is the PIN set here. If a PIN already exists from a previous Lock Mode session,
- * it's reused and the person just confirms they're starting a new session.
+ * "no accidental lock-ins" pattern. Verifies Device Admin protection is active before
+ * allowing the session to start.
  */
 class LockModeConfirmActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLockConfirmBinding
+    private var pendingDurationMillis: Long = 0L
+
+    private val deviceAdminLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (StayFocusedDeviceAdminReceiver.isDeviceAdminActive(this)) {
+            startLockSession(pendingDurationMillis)
+        } else {
+            Toast.makeText(
+                this,
+                "Lock Mode requires Device Admin to prevent uninstalling Focus Vault during an active focus session.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLockConfirmBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val durationMillis = intent.getLongExtra(SessionSetupActivity.EXTRA_DURATION_MILLIS, 0L)
+        pendingDurationMillis = intent.getLongExtra(SessionSetupActivity.EXTRA_DURATION_MILLIS, 0L)
         val pinAlreadySet = PrefsManager.hasLockPin(this)
 
         if (pinAlreadySet) {
@@ -47,18 +65,13 @@ class LockModeConfirmActivity : AppCompatActivity() {
                 }
                 PrefsManager.setLockPin(this, pin)
 
-                // This may be the very first PIN ever created on this device (if the person
-                // never visited Settings' "App Lock PIN" first) - make sure recovery is set
-                // up here too, not just from that other entry point.
                 LockPinDialog.promptSecurityQuestionSetupIfNeeded(this) {
-                    SessionStarter.startSession(this, durationMillis, SessionMode.LOCK)
-                    finish()
+                    checkAdminAndStart(pendingDurationMillis)
                 }
                 return@setOnClickListener
             }
 
-            SessionStarter.startSession(this, durationMillis, SessionMode.LOCK)
-            finish()
+            checkAdminAndStart(pendingDurationMillis)
         }
 
         binding.btnCancelLock.setOnClickListener {
@@ -66,6 +79,29 @@ class LockModeConfirmActivity : AppCompatActivity() {
         }
     }
 
-    // Deliberately no override of onBackPressed to bypass confirmation - back button
-    // just cancels like btnCancelLock, since the session hasn't started yet here.
+    private fun checkAdminAndStart(durationMillis: Long) {
+        if (!StayFocusedDeviceAdminReceiver.isDeviceAdminActive(this)) {
+            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                putExtra(
+                    DevicePolicyManager.EXTRA_DEVICE_ADMIN,
+                    StayFocusedDeviceAdminReceiver.getComponentName(this@LockModeConfirmActivity)
+                )
+                putExtra(
+                    DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                    "Lock Mode requires Device Admin to prevent uninstalling Focus Vault during an active focus session."
+                )
+            }
+            deviceAdminLauncher.launch(intent)
+        } else {
+            startLockSession(durationMillis)
+        }
+    }
+
+    private fun startLockSession(durationMillis: Long) {
+        SessionStarter.startSession(this, durationMillis, SessionMode.LOCK) { success ->
+            if (success) {
+                finish()
+            }
+        }
+    }
 }

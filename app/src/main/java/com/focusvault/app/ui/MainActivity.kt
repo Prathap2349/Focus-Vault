@@ -126,10 +126,14 @@ class MainActivity : AppCompatActivity() {
             val minutes = result.getInt(EmergencyModeSheet.RESULT_MINUTES, 0)
             val label = result.getString(EmergencyModeSheet.RESULT_LABEL) ?: "Emergency"
             if (minutes > 0) {
-                PrefsManager.setEmergencyPause(this, System.currentTimeMillis() + minutes * 60_000L, label)
-                refreshSessionUi()
-                refreshDashboardStats()
-                com.focusvault.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
+                lifecycleScope.launch {
+                    val paused = SessionStateManager.pauseSession(applicationContext, minutes * 60_000L, label)
+                    if (paused) {
+                        refreshSessionUi()
+                        refreshDashboardStats()
+                        com.focusvault.app.appwidget.WidgetUpdater.requestUpdate(applicationContext)
+                    }
+                }
             }
         }
 
