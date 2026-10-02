@@ -106,7 +106,10 @@ class PresetsActivity : AppCompatActivity() {
                             message = "Are you sure you want to delete the preset '${preset.name}'?",
                             positiveText = "Delete",
                             positiveAction = {
-                                lifecycleScope.launch { db.focusPresetDao().delete(preset) }
+                                lifecycleScope.launch { 
+                                    db.focusPresetDao().delete(preset) 
+                                    com.google.android.material.snackbar.Snackbar.make(binding.root, "Preset deleted", com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show()
+                                }
                             },
                             negativeText = "Cancel"
                         )

@@ -203,6 +203,13 @@ class CircularCountdownView @JvmOverloads constructor(
         remainingRatio: Float = 1f
     ) {
         isOrbitalActive = isActive && !isPaused && !isCompleted
+        
+        val isIdle = !isActive && !isPaused && !isCompleted
+        if (isIdle) {
+            startBreathingAnimation()
+        } else {
+            stopBreathingAnimation()
+        }
 
         when {
             isCompleted -> setColors(
@@ -277,8 +284,23 @@ class CircularCountdownView @JvmOverloads constructor(
             canvas.rotate(rotationOffset, cx, cy)
         }
 
-        
+        // Breathing glow for idle state
+        if (breathingAnimator?.isRunning == true) {
+            canvas.save()
+            canvas.scale(breathingScale, breathingScale, cx, cy)
+            breathingGlowPaint.color = Color.argb((40 * (2f - breathingScale)).toInt(), Color.red(ringStartColor), Color.green(ringStartColor), Color.blue(ringStartColor))
+            canvas.drawArc(arcRect, 0f, 360f, false, breathingGlowPaint)
+            canvas.restore()
+            
+            // Draw a visible faint ring when idle
+            val idleRingPaint = Paint(progressPaint).apply {
+                alpha = 60
+            }
+            canvas.drawArc(arcRect, 0f, 360f, false, idleRingPaint)
+        }
+
         canvas.drawArc(arcRect, 0f, 360f, false, trackPaint)
+        
         if (progress > 0f) {
             canvas.drawArc(arcRect, -90f, 360f * progress, false, progressPaint)
 

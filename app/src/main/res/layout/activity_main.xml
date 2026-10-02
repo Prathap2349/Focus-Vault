@@ -1150,14 +1150,40 @@
                                 android:padding="8dp" />
                         </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/tvEmptySessions"
-                            style="@style/TextStyle.Body"
+                        <LinearLayout
+                            android:id="@+id/emptySessionsContainer"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="No focus sessions recorded yet.\nStart your first session on Home!"
+                            android:orientation="vertical"
                             android:gravity="center"
-                            android:padding="24dp" />
+                            android:padding="24dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                style="@style/TextStyle.Title"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="No focus sessions yet"
+                                android:textSize="16sp" />
+
+                            <TextView
+                                style="@style/TextStyle.Body"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:gravity="center"
+                                android:text="Start your first session\nand your progress will appear here." />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnEmptyStateStartFocus"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="16dp"
+                                android:text="START FOCUS"
+                                android:textColor="@color/brand_primary"
+                                app:strokeColor="@color/brand_primary" />
+                        </LinearLayout>
 
                         <LinearLayout
                             android:id="@+id/containerRecentSessions"
@@ -1223,6 +1249,29 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="+ Add" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/emptyPresetsContainerMain"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:paddingTop="48dp"
+                    android:visibility="gone">
+                    <TextView
+                        style="@style/TextStyle.Title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No presets yet"
+                        android:textSize="16sp" />
+                    <TextView
+                        style="@style/TextStyle.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="Create a custom preset\nfor your frequent tasks." />
                 </LinearLayout>
 
                 <LinearLayout

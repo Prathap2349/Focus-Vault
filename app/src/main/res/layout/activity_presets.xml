@@ -48,11 +48,41 @@
         android:clipToPadding="false"
         android:padding="16dp">
 
-        <LinearLayout
-            android:id="@+id/containerPresets"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/emptyPresetsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="48dp"
+                android:visibility="gone">
+                
+                <TextView
+                    style="@style/TextStyle.Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No presets yet"
+                    android:textSize="16sp" />
+
+                <TextView
+                    style="@style/TextStyle.Body"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="Create a custom preset\nfor your frequent tasks." />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/containerPresets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </FrameLayout>
     </ScrollView>
 
 </LinearLayout>

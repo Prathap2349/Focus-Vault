@@ -154,6 +154,10 @@ class MainActivity : AppCompatActivity() {
             HapticHelper.lightClick(it)
             confirmClearAllHistory()
         }
+        binding.btnEmptyStateStartFocus.setOnClickListener {
+            HapticHelper.mediumClick(it)
+            binding.bottomNavigation.selectedItemId = R.id.nav_home
+        }
 
         binding.btnSettings.setOnClickListener {
             HapticHelper.lightClick(it)
@@ -331,14 +335,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun switchTab(targetView: View) {
         val allTabs = listOf(binding.scrollHome, binding.scrollInsights, binding.scrollPresets, binding.scrollSettings)
+        val currentIndex = allTabs.indexOfFirst { it.visibility == View.VISIBLE }
+        val targetIndex = allTabs.indexOf(targetView)
+        val direction = if (targetIndex > currentIndex) 40f else -40f
+
         allTabs.forEach { tab ->
             if (tab == targetView) {
                 if (tab.visibility != View.VISIBLE) {
                     tab.alpha = 0f
+                    tab.translationX = direction
                     tab.visibility = View.VISIBLE
                     tab.animate()
                         .alpha(1f)
+                        .translationX(0f)
                         .setDuration(180L)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
                         .start()
                 }
             } else {
@@ -562,6 +573,7 @@ class MainActivity : AppCompatActivity() {
         presetsJob = lifecycleScope.launch {
             db.focusPresetDao().observePresets().collectLatest { presets ->
                 binding.containerPresetsMain.removeAllViews()
+                binding.emptyPresetsContainerMain.visibility = if (presets.isEmpty()) View.VISIBLE else View.GONE
                 val inflater = LayoutInflater.from(this@MainActivity)
 
                 presets.forEach { preset ->
@@ -625,6 +637,7 @@ class MainActivity : AppCompatActivity() {
                                 positiveAction = {
                                     lifecycleScope.launch {
                                         db.focusPresetDao().delete(preset)
+                                        com.google.android.material.snackbar.Snackbar.make(binding.root, "Preset deleted", com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show()
                                     }
                                 },
                                 negativeText = "Cancel"
@@ -983,7 +996,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderRecentSessions(sessions: List<SessionHistoryEntry>) {
         binding.containerRecentSessions.removeAllViews()
-        binding.tvEmptySessions.visibility =
+        binding.emptySessionsContainer.visibility =
             if (sessions.isEmpty()) View.VISIBLE else View.GONE
         binding.btnClearHistory.visibility =
             if (sessions.isEmpty()) View.GONE else View.VISIBLE
@@ -1217,7 +1230,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun refreshAfterCompletion() {
+        refreshSessionUi()
+        refreshDashboardStats()
+    }
+
     private fun refreshSessionUi() {
+
         countdownTicker?.cancel()
         val isActive = PrefsManager.isSessionCurrentlyActive(this)
 
@@ -1336,8 +1355,15 @@ class MainActivity : AppCompatActivity() {
                 binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = false, isCompleted = true)
                 AnimationHelper.animateCelebrationBloom(binding.frameFocusRingContainer)
                 HapticHelper.successHaptic(binding.root)
-                refreshSessionUi()
-                refreshDashboardStats()
+                
+                lifecycleScope.launch {
+                    val db = AppDatabase.getInstance(applicationContext)
+                    val history = db.sessionHistoryDao().getRecent(1).firstOrNull()
+                    val duration = history?.durationMinutes ?: (totalDuration / 60000).toInt()
+                    val distractions = history?.distractionsBlocked ?: 0
+                    SessionCompleteSheet.newInstance(duration, distractions)
+                        .show(supportFragmentManager, SessionCompleteSheet.TAG)
+                }
             }
         }.start()
     }
