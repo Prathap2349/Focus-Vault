@@ -41,7 +41,11 @@ android {
                 keyAlias keyAliasVal
                 keyPassword keyPasswordVal
             } else {
-                throw new GradleException("Release keystore not found or not configured! storeFilePath: $storeFilePath")
+                gradle.taskGraph.whenReady { taskGraph ->
+                    if (taskGraph.hasTask(":app:assembleRelease") || taskGraph.hasTask(":app:bundleRelease")) {
+                        throw new GradleException("Release keystore not found or not configured! storeFilePath: $storeFilePath")
+                    }
+                }
             }
         }
     }
