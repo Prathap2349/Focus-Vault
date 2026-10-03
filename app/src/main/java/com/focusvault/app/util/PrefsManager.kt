@@ -12,6 +12,12 @@ import com.focusvault.app.data.SessionState
  * writes here; every read on the blocking hot-path reads from here only.
  */
 object PrefsManager {
+    const val KEY_SCHEDULE_AUTO_START = "schedule_auto_start"
+    fun isScheduleAutoStart(context: android.content.Context): Boolean = prefs(context).getBoolean(KEY_SCHEDULE_AUTO_START, true)
+
+    const val KEY_SCHEDULE_AUTO_START = "schedule_auto_start"
+    fun isScheduleAutoStart(context: android.content.Context): Boolean = prefs(context).getBoolean(KEY_SCHEDULE_AUTO_START, true)
+
     private const val PREFS = "stay_focused_fast_cache"
     private const val KEY_BLOCKED_PACKAGES = "blocked_packages"
     private const val KEY_BLOCKED_DOMAINS = "blocked_domains"
