@@ -148,7 +148,7 @@ object PrefsManager {
             .putString(KEY_SESSION_STATE, state.name)
             .putLong(KEY_SESSION_END, effectiveEnd)
         if (state.isLive && prefs(context).getLong(KEY_SESSION_START, 0L) <= 0L) {
-            editor.putLong(KEY_SESSION_START, System.currentTimeMillis())
+            editor.putLong(KEY_SESSION_START, com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context))
         } else if (!state.isLive) {
             editor.remove(KEY_SESSION_START)
         }
@@ -173,7 +173,7 @@ object PrefsManager {
     fun isSessionCurrentlyActive(context: Context): Boolean {
         val state = getSessionState(context)
         val end = getSessionEndTime(context)
-        return state.isLive && System.currentTimeMillis() < end
+        return state.isLive && com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context) < end
     }
 
     fun isStrictModeActive(context: Context): Boolean =
@@ -203,7 +203,7 @@ object PrefsManager {
     fun getSecurityQuestionIndex(context: Context): Int =
         com.focusvault.app.manager.SecurityManager.getSecurityQuestionIndex(context)
 
-    fun verifySecurityAnswer(context: Context, answer: String): Boolean =
+    fun verifySecurityAnswer(context: Context, answer: String): com.focusvault.app.manager.SecurityManager.PinVerifyResult =
         com.focusvault.app.manager.SecurityManager.verifySecurityAnswer(context, answer)
 
     /** Emergency unlock is ONLY ever consulted for Normal mode. Strict mode never calls this. */
@@ -262,7 +262,7 @@ object PrefsManager {
         prefs(context).getString(KEY_EMERGENCY_PAUSE_LABEL, "") ?: ""
 
     fun isEmergencyPauseActive(context: Context): Boolean =
-        isSessionCurrentlyActive(context) && getEmergencyPauseUntil(context) > System.currentTimeMillis()
+        isSessionCurrentlyActive(context) && getEmergencyPauseUntil(context) > com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
 
     /** Theme choice: THEME_SYSTEM (follow the device), THEME_LIGHT, or THEME_DARK. Applied via
      * AppCompatDelegate.setDefaultNightMode - see StayFocusedApp.onCreate(). */
@@ -439,7 +439,7 @@ object PrefsManager {
 
     /** Returns true when 24/7 permanent blocking is currently paused. */
     fun isPermanentBlockPaused(context: Context): Boolean =
-        getPermanentBlockPauseUntil(context) > System.currentTimeMillis()
+        getPermanentBlockPauseUntil(context) > com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
 
     private fun todayString(): String {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
@@ -454,7 +454,7 @@ object PrefsManager {
         val currentJson = prefs.getString(KEY_PAUSED_SITES, "{}") ?: "{}"
         try {
             val jsonObject = org.json.JSONObject(currentJson)
-            jsonObject.put(domain, System.currentTimeMillis() + durationMillis)
+            jsonObject.put(domain, com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context) + durationMillis)
             prefs.edit().putString(KEY_PAUSED_SITES, jsonObject.toString()).apply()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -468,7 +468,7 @@ object PrefsManager {
             val jsonObject = org.json.JSONObject(currentJson)
             if (jsonObject.has(domain)) {
                 val expiry = jsonObject.getLong(domain)
-                if (System.currentTimeMillis() < expiry) {
+                if (com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context) < expiry) {
                     true
                 } else {
                     jsonObject.remove(domain)

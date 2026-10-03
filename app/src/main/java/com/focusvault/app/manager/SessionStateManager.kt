@@ -37,7 +37,7 @@ object SessionStateManager {
 
     fun getSessionSnapshot(context: Context): FocusSession {
         val cached = _sessionFlow.value
-        val now = System.currentTimeMillis()
+        val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
         if (cached != null) {
             return if (cached.state.isLive && (cached.endTimeMillis <= 0L || now >= cached.endTimeMillis)) {
                 val expired = cached.copy(state = SessionState.IDLE, startTimeMillis = 0L, endTimeMillis = 0L)
@@ -102,7 +102,7 @@ object SessionStateManager {
         }
 
         // Step 2: Side effects executed safely outside the mutex
-        val now = System.currentTimeMillis()
+        val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
         val finalEndTime = customEndTimeMillis ?: now
         val mode = sessionToFinalize.mode
 
@@ -192,7 +192,7 @@ object SessionStateManager {
         val activeSession = mutex.withLock {
             val current = _sessionFlow.value
                 ?: AppDatabase.getInstance(context).focusSessionDao().getSessionOnce()
-            val now = System.currentTimeMillis()
+            val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
             if (current != null && (current.state == SessionState.STARTING || (current.state.isLive && now < current.endTimeMillis))) {
                 return false // Prevent starting a second active session or concurrent race
             }
@@ -259,7 +259,7 @@ object SessionStateManager {
             if (current.mode == SessionMode.STRICT) return false // Strict mode never permits pauses
             if (current.state != SessionState.ACTIVE) return false
 
-            val now = System.currentTimeMillis()
+            val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
             val pauseUntil = now + durationMillis
 
             PrefsManager.setEmergencyPause(context, pauseUntil, reasonLabel)
@@ -292,7 +292,7 @@ object SessionStateManager {
 
             if (current.state != SessionState.PAUSED) return false
 
-            val now = System.currentTimeMillis()
+            val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
             val additionalPause = if (current.pauseStartTimeMillis > 0) (now - current.pauseStartTimeMillis).coerceAtLeast(0L) else 0L
             val newEndTime = current.endTimeMillis + additionalPause
 
@@ -378,7 +378,7 @@ object SessionStateManager {
     suspend fun recoverSessionIfNeeded(context: Context) {
         val db = AppDatabase.getInstance(context)
         val current = db.focusSessionDao().getSessionOnce() ?: return
-        val now = System.currentTimeMillis()
+        val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
 
         if (current.state.isLive) {
             if (now >= current.endTimeMillis && current.endTimeMillis > 0L) {

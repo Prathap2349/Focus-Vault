@@ -208,12 +208,16 @@ object LockPinDialog {
             customView = container,
             positiveBtnText = "Verify",
             onPositive = { dlg, _ ->
-                if (PrefsManager.verifySecurityAnswer(context, answerInput.text.toString())) {
+                val result = PrefsManager.verifySecurityAnswer(context, answerInput.text.toString())
+                if (result.isSuccess) {
                     dlg.dismiss()
                     promptNewPin(context, onPinReset)
+                } else if (result.isLockedOut) {
+                    dlg.dismiss()
+                    Toast.makeText(context, "Too many attempts. Try again in ${result.lockoutSeconds}s.", Toast.LENGTH_LONG).show()
                 } else {
                     answerInput.text.clear()
-                    Toast.makeText(context, "That answer didn't match. Try again.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Incorrect. ${result.attemptsRemaining} attempts left.", Toast.LENGTH_SHORT).show()
                 }
             },
             negativeBtnText = "Cancel"

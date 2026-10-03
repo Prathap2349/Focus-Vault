@@ -7,35 +7,30 @@ import java.util.Base64
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
-/**
- * Manages PIN and security question authentication with cryptographic security:
- * - Never stores raw plaintext PINs; uses salted PBKDF2WithHmacSHA256 hashes (10,000 iterations).
- * - Migrates any legacy plaintext or v2 single-round SHA-256 PIN transparently to PBKDF2 v3 format.
- * - Rate-limits failed attempts with progressive lockouts (30s after 3 fails, 60s after 5 fails).
- * - Persists lockout timestamp to prevent bypasses via app restart.
- */
 object SecurityManager {
 
-    private const val PREFS = "stay_focused_security"
     private const val KEY_PIN_HASH_V3 = "pin_hash_v3"
     private const val KEY_PIN_SALT_V3 = "pin_salt_v3"
-    private const val KEY_PIN_HASH_V2 = "pin_hash_v2"
-    private const val KEY_PIN_SALT_V2 = "pin_salt_v2"
-    private const val KEY_LEGACY_PIN = "lock_mode_pin" // From old PrefsManager
+    private const val KEY_PIN_HASH_V2 = "pin_hash"
+    private const val KEY_PIN_SALT_V2 = "pin_salt"
+    
+    private const val KEY_SEC_QUESTION_INDEX = "sec_question_index"
     private const val KEY_SEC_ANSWER_HASH_V3 = "sec_answer_hash_v3"
     private const val KEY_SEC_ANSWER_SALT_V3 = "sec_answer_salt_v3"
-    private const val KEY_SEC_ANSWER_HASH_V2 = "sec_answer_hash_v2"
-    private const val KEY_SEC_ANSWER_SALT_V2 = "sec_answer_salt_v2"
-    private const val KEY_SEC_QUESTION_INDEX = "security_question_index"
-    private const val KEY_FAILED_ATTEMPTS = "failed_pin_attempts"
-    private const val KEY_LOCKOUT_UNTIL = "lockout_until_millis"
+    private const val KEY_SEC_ANSWER_HASH_V2 = "sec_answer_hash"
+    private const val KEY_SEC_ANSWER_SALT_V2 = "sec_answer_salt"
 
-    private const val MAX_ATTEMPTS_BEFORE_LOCKOUT = 3
-    private const val PBKDF2_ITERATIONS = 10_000
+    private const val KEY_LEGACY_PIN = "legacy_plaintext_pin"
+    
+    private const val KEY_FAILED_ATTEMPTS = "pin_failed_attempts"
+    private const val KEY_LOCKOUT_UNTIL = "pin_lockout_until_ms"
+
+    const val MAX_ATTEMPTS_BEFORE_LOCKOUT = 3
+    private const val PBKDF2_ITERATIONS = 100_000
     private const val KEY_LENGTH_BITS = 256
 
     private fun prefs(context: Context) =
-        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences("stay_focused_security", Context.MODE_PRIVATE)
 
     private fun fastPrefs(context: Context) =
         context.applicationContext.getSharedPreferences("stay_focused_fast_cache", Context.MODE_PRIVATE)
@@ -60,17 +55,12 @@ object SecurityManager {
             .putLong(KEY_LOCKOUT_UNTIL, 0L)
             .apply()
 
-        // Clean up any legacy plaintext PIN in fast cache
         fastPrefs(context).edit().remove(KEY_LEGACY_PIN).apply()
     }
 
-    /**
-     * Checks if PIN verification is temporarily locked out due to repeated failures.
-     * @return remaining lockout seconds, or 0 if not locked out.
-     */
     fun getLockoutRemainingSeconds(context: Context): Long {
         val lockoutUntil = prefs(context).getLong(KEY_LOCKOUT_UNTIL, 0L)
-        val diff = lockoutUntil - System.currentTimeMillis()
+        val diff = lockoutUntil - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context)
         return if (diff > 0) (diff + 999) / 1000 else 0L
     }
 
@@ -85,6 +75,45 @@ object SecurityManager {
         val lockoutSeconds: Long = 0,
         val attemptsRemaining: Int = 0
     )
+
+    private fun handleFailedAttempt(context: Context): PinVerifyResult {
+        val currentFailed = prefs(context).getInt(KEY_FAILED_ATTEMPTS, 0) + 1
+        var newLockoutUntil = 0L
+        
+        // Escalating lockouts: 1m, 5m, 30m, 2h
+        if (currentFailed >= MAX_ATTEMPTS_BEFORE_LOCKOUT) {
+            val lockoutMinutes = when (currentFailed - MAX_ATTEMPTS_BEFORE_LOCKOUT) {
+                0 -> 1L
+                1 -> 5L
+                2 -> 30L
+                else -> 120L // 2 hours max
+            }
+            newLockoutUntil = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context) + (lockoutMinutes * 60_000L)
+        }
+
+        prefs(context).edit()
+            .putInt(KEY_FAILED_ATTEMPTS, currentFailed)
+            .putLong(KEY_LOCKOUT_UNTIL, newLockoutUntil)
+            .apply()
+
+        val remainingSec = if (newLockoutUntil > 0) (newLockoutUntil - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(context) + 999) / 1000 else 0L
+        val remainingAttempts = (MAX_ATTEMPTS_BEFORE_LOCKOUT - currentFailed).coerceAtLeast(0)
+
+        return PinVerifyResult(
+            isSuccess = false,
+            isLockedOut = remainingSec > 0,
+            lockoutSeconds = remainingSec,
+            attemptsRemaining = remainingAttempts
+        )
+    }
+
+    private fun handleSuccessAttempt(context: Context): PinVerifyResult {
+        prefs(context).edit()
+            .putInt(KEY_FAILED_ATTEMPTS, 0)
+            .putLong(KEY_LOCKOUT_UNTIL, 0L)
+            .apply()
+        return PinVerifyResult(isSuccess = true, isLockedOut = false)
+    }
 
     fun verifyPin(context: Context, attempt: String): PinVerifyResult {
         migrateLegacyPinIfNeeded(context)
@@ -105,51 +134,23 @@ object SecurityManager {
         if (!storedHashV3.isNullOrEmpty() && !storedSaltV3.isNullOrEmpty()) {
             val attemptHash = hashWithSalt(attempt, storedSaltV3)
             if (attemptHash == storedHashV3) {
-                // Success: reset failure counter
-                prefs(context).edit()
-                    .putInt(KEY_FAILED_ATTEMPTS, 0)
-                    .putLong(KEY_LOCKOUT_UNTIL, 0L)
-                    .apply()
-                return PinVerifyResult(isSuccess = true, isLockedOut = false)
+                return handleSuccessAttempt(context)
             }
         } else {
-            // Lazy migration from v2 SHA-256
             val storedHashV2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
             val storedSaltV2 = prefs(context).getString(KEY_PIN_SALT_V2, null)
             if (!storedHashV2.isNullOrEmpty() && !storedSaltV2.isNullOrEmpty()) {
                 val attemptHashV2 = hashWithSha256(attempt, storedSaltV2)
                 if (attemptHashV2 == storedHashV2) {
-                    setPin(context, attempt) // Upgrade to PBKDF2 v3
-                    return PinVerifyResult(isSuccess = true, isLockedOut = false)
+                    setPin(context, attempt)
+                    return handleSuccessAttempt(context)
                 }
             } else {
                 return PinVerifyResult(isSuccess = false, isLockedOut = false, attemptsRemaining = 0)
             }
         }
 
-        // Failure: increment attempts and check for lockout
-        val currentFailed = prefs(context).getInt(KEY_FAILED_ATTEMPTS, 0) + 1
-        var newLockoutUntil = 0L
-        if (currentFailed >= 5) {
-            newLockoutUntil = System.currentTimeMillis() + 60_000L // 60s lockout
-        } else if (currentFailed >= MAX_ATTEMPTS_BEFORE_LOCKOUT) {
-            newLockoutUntil = System.currentTimeMillis() + 30_000L // 30s lockout
-        }
-
-        prefs(context).edit()
-            .putInt(KEY_FAILED_ATTEMPTS, currentFailed)
-            .putLong(KEY_LOCKOUT_UNTIL, newLockoutUntil)
-            .apply()
-
-        val remainingSec = if (newLockoutUntil > 0) (newLockoutUntil - System.currentTimeMillis() + 999) / 1000 else 0L
-        val remainingAttempts = (MAX_ATTEMPTS_BEFORE_LOCKOUT - (currentFailed % MAX_ATTEMPTS_BEFORE_LOCKOUT)).coerceAtLeast(0)
-
-        return PinVerifyResult(
-            isSuccess = false,
-            isLockedOut = remainingSec > 0,
-            lockoutSeconds = remainingSec,
-            attemptsRemaining = remainingAttempts
-        )
+        return handleFailedAttempt(context)
     }
 
     fun hasSecurityAnswer(context: Context): Boolean {
@@ -169,30 +170,48 @@ object SecurityManager {
             .putString(KEY_SEC_ANSWER_SALT_V3, salt)
             .remove(KEY_SEC_ANSWER_HASH_V2)
             .remove(KEY_SEC_ANSWER_SALT_V2)
+            .putInt(KEY_FAILED_ATTEMPTS, 0)
+            .putLong(KEY_LOCKOUT_UNTIL, 0L)
             .apply()
     }
 
     fun getSecurityQuestionIndex(context: Context): Int =
         prefs(context).getInt(KEY_SEC_QUESTION_INDEX, 0)
 
-    fun verifySecurityAnswer(context: Context, rawAnswer: String): Boolean {
+    fun verifySecurityAnswer(context: Context, rawAnswer: String): PinVerifyResult {
+        val lockoutSec = getLockoutRemainingSeconds(context)
+        if (lockoutSec > 0) {
+            return PinVerifyResult(
+                isSuccess = false,
+                isLockedOut = true,
+                lockoutSeconds = lockoutSec,
+                attemptsRemaining = 0
+            )
+        }
+
         val normalized = rawAnswer.trim().lowercase()
         val v3Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null)
         val v3Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V3, null)
+        
         if (!v3Hash.isNullOrEmpty() && !v3Salt.isNullOrEmpty()) {
-            return hashWithSalt(normalized, v3Salt) == v3Hash
-        }
-        val v2Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null)
-        val v2Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V2, null)
-        if (!v2Hash.isNullOrEmpty() && !v2Salt.isNullOrEmpty()) {
-            val ok = hashWithSha256(normalized, v2Salt) == v2Hash
-            if (ok) {
-                val qIdx = getSecurityQuestionIndex(context)
-                setSecurityAnswer(context, qIdx, rawAnswer)
+            if (hashWithSalt(normalized, v3Salt) == v3Hash) {
+                return handleSuccessAttempt(context)
             }
-            return ok
+        } else {
+            val v2Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null)
+            val v2Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V2, null)
+            if (!v2Hash.isNullOrEmpty() && !v2Salt.isNullOrEmpty()) {
+                if (hashWithSha256(normalized, v2Salt) == v2Hash) {
+                    val qIdx = getSecurityQuestionIndex(context)
+                    setSecurityAnswer(context, qIdx, rawAnswer)
+                    return handleSuccessAttempt(context)
+                }
+            } else {
+                return PinVerifyResult(isSuccess = false, isLockedOut = false, attemptsRemaining = 0)
+            }
         }
-        return false
+
+        return handleFailedAttempt(context)
     }
 
     private fun migrateLegacyPinIfNeeded(context: Context) {
