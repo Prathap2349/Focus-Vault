@@ -129,16 +129,29 @@ object ProtectionEngine {
         
         // Private DNS Bypass Check
         val privateDnsMode = Settings.Global.getString(context.contentResolver, "private_dns_mode")
-        val isPrivateDnsOn = privateDnsMode == "hostname" || privateDnsMode == "opportunistic"
+        val isPrivateDnsUnhealthy = privateDnsMode == "hostname"
+        val subtitle = when (privateDnsMode) {
+            "hostname" -> "Private DNS (Strict) is ON. This bypasses website blocking!"
+            "opportunistic" -> "Private DNS (Automatic). May bypass blocking on some networks."
+            else -> "Private DNS is off (Safe)"
+        }
+        
+        // Android 10+ has ACTION_WIRELESS_SETTINGS but usually we want connections or network settings
+        val settingsIntent = if (android.os.Build.VERSION.SDK_INT >= 29) {
+            android.content.Intent(android.provider.Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+        } else {
+            android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS)
+        }
+
         items.add(
             HealthItem(
                 id = "private_dns",
                 title = "Private DNS Security",
-                subtitle = if (isPrivateDnsOn) "Private DNS is ON. This bypasses website blocking!" else "Private DNS is off (Safe)",
-                isHealthy = !isPrivateDnsOn,
-                isRequired = false, // Not strictly required, but lowers health score
-                fixActionTitle = "Fix",
-                fixIntent = Intent(Settings.ACTION_WIRELESS_SETTINGS) // Generic fallback for network settings
+                subtitle = subtitle,
+                isHealthy = !isPrivateDnsUnhealthy,
+                isRequired = false,
+                fixActionTitle = "Settings",
+                fixIntent = settingsIntent
             )
         )
 
