@@ -48,9 +48,9 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             if (modeName != null) {
                 chosenMode = SessionMode.valueOf(modeName)
                 if (pendingDurationMillis > 0) {
-                    startFocusSession(chosenMode!!, pendingDurationMillis)
+                    startFocusSession(chosenMode ?: return@setPinVerifyListener, pendingDurationMillis)
                 } else {
-                    showTimerSetup(chosenMode!!)
+                    showTimerSetup(chosenMode ?: return@setPinVerifyListener)
                 }
             } else {
                 finish()
@@ -64,7 +64,7 @@ class WidgetQuickStartActivity : AppCompatActivity() {
             if (durationMillis > 0) {
                 pendingDurationMillis = durationMillis
                 if (chosenMode != null) {
-                    startFocusSession(chosenMode!!, durationMillis)
+                    startFocusSession(chosenMode ?: return@setPinVerifyListener, durationMillis)
                 } else {
                     showCenteredModeSelection((durationMillis / 60_000L).toInt())
                 }
@@ -77,7 +77,7 @@ class WidgetQuickStartActivity : AppCompatActivity() {
         if (preselectedMode != null) {
             chosenMode = runCatching { SessionMode.valueOf(preselectedMode) }.getOrNull()
             if (chosenMode != null) {
-                showTimerSetup(chosenMode!!)
+                showTimerSetup(chosenMode ?: return@setPinVerifyListener)
             } else {
                 val lastDurationMinutes = (PrefsManager.getLastChosenDurationMillis(this) / 60_000L).toInt().coerceAtLeast(1)
                 showCenteredModeSelection(lastDurationMinutes)

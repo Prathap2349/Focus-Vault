@@ -13,7 +13,7 @@ import com.focusvault.app.databinding.SheetWidgetModeQuickpickBinding
 class WidgetModeQuickPickSheet : DialogFragment() {
 
     private var _binding: SheetWidgetModeQuickpickBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = requireNotNull(_binding)
 
     companion object {
         const val TAG = "WidgetModeQuickPickSheet"

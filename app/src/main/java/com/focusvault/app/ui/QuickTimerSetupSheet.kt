@@ -18,7 +18,7 @@ import com.focusvault.app.databinding.SheetQuickTimerSetupBinding
 class QuickTimerSetupSheet : BottomSheetDialogFragment() {
 
     private var _binding: SheetQuickTimerSetupBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = requireNotNull(_binding)
     private lateinit var mode: SessionMode
 
     companion object {

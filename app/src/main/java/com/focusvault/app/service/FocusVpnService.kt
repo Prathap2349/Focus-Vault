@@ -157,7 +157,7 @@ class FocusVpnService : VpnService() {
                 val request = android.net.NetworkRequest.Builder()
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .build()
-                cm.registerNetworkCallback(request, networkCallback!!)
+                cm.registerNetworkCallback(request, networkCallback ?: return)
             } catch (e: Exception) {
                 Log.w(TAG, "Failed registering network callback: ${e.message}")
             }

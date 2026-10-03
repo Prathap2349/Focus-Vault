@@ -165,7 +165,7 @@ object PrefsManager {
 
     fun getSessionMode(context: Context): SessionMode {
         val raw = prefs(context).getString(KEY_SESSION_MODE, SessionMode.NORMAL.name)
-        return runCatching { SessionMode.valueOf(raw!!) }.getOrDefault(SessionMode.NORMAL)
+        return runCatching { SessionMode.valueOf(raw ?: "NORMAL") }.getOrDefault(SessionMode.NORMAL)
     }
 
     fun getSessionState(context: Context): SessionState {

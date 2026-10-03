@@ -22,7 +22,7 @@ import com.focusvault.app.databinding.SheetEmergencyModeBinding
 class EmergencyModeSheet : BottomSheetDialogFragment() {
 
     private var _binding: SheetEmergencyModeBinding? = null
-    private val binding get() = _binding!!
+    private val binding get() = requireNotNull(_binding)
 
     companion object {
         const val TAG = "EmergencyModeSheet"
