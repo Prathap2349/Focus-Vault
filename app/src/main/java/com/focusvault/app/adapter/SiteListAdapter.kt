@@ -125,7 +125,7 @@ class SiteListAdapter(
         
         for (category in categories) {
             newItems.add(category)
-            newItems.addAll(grouped[category] ?: emptyList().sortedBy { it.domain })
+            newItems.addAll((grouped[category] ?: emptyList()).sortedBy { it.domain })
         }
         
         items = newItems
