@@ -12,6 +12,10 @@ if (localPropertiesFile.exists()) {
     }
 }
 
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
 android {
     namespace 'com.focusvault.app'
     compileSdk 34
@@ -104,4 +108,5 @@ dependencies {
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+    testImplementation 'androidx.room:room-testing:2.6.1'
 }

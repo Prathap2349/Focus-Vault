@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,8 +35,8 @@ class Converters {
         FocusPreset::class,
         ScheduledSession::class
     ],
-    version = 5,
-    exportSchema = false
+    version = 6,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -56,7 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "stay_focused.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_5_6)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                             super.onCreate(db)
@@ -68,6 +70,13 @@ abstract class AppDatabase : RoomDatabase() {
                     })
                     .build()
                     .also { INSTANCE = it }
+            }
+        }
+
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Empty migration, schema didn't change, just bumping version to enforce explicit migrations going forward.
             }
         }
 
