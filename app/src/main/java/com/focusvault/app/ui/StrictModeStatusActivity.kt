@@ -85,7 +85,7 @@ class StrictModeStatusActivity : AppCompatActivity() {
         ticker = null
 
         val totalSessionDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
-        val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
+        val remaining = (PrefsManager.getSessionEndTime(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)).coerceAtLeast(0L)
         if (remaining <= 0) {
             finish()
             return

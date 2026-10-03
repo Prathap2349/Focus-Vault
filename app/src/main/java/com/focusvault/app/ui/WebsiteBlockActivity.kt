@@ -391,7 +391,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
             items = options.toList(),
             selectedIndex = 0
         ) { which ->
-            val pauseUntil = System.currentTimeMillis() + durations[which]
+            val pauseUntil = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this) + durations[which]
             PrefsManager.setPermanentBlockPause(this, pauseUntil)
             refreshVpnStatusCard()
             // Start countdown ticker
@@ -407,7 +407,7 @@ class WebsiteBlockActivity : AppCompatActivity() {
             binding.layoutPauseBanner.visibility = View.VISIBLE
             binding.btnPause247.visibility = View.GONE
 
-            val remainingMs = PrefsManager.getPermanentBlockPauseUntil(this) - System.currentTimeMillis()
+            val remainingMs = PrefsManager.getPermanentBlockPauseUntil(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
             val totalSecs = (remainingMs / 1000).coerceAtLeast(0)
             val hours = totalSecs / 3600
             val mins = (totalSecs % 3600) / 60

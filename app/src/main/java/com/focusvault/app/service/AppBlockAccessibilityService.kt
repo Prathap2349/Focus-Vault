@@ -58,14 +58,10 @@ class AppBlockAccessibilityService : AccessibilityService() {
         private val SENSITIVE_SYSTEM_PACKAGES = setOf(
             "com.android.settings",
             "com.google.android.packageinstaller",
-            "com.android.packageinstaller",
-            "com.samsung.android.lool",
-            "com.samsung.android.sm.devicesecurity",
-            "com.miui.securitycenter",
-            "com.coloros.safecenter",
-            "com.vivo.secenv",
-            "com.android.vending" // Play Store uninstall
+            "com.android.packageinstaller"
         )
+        // We removed whole vendor device care apps and com.android.vending from here to prevent blocking innocent parts of those apps.
+        // Instead we could check the Activity class name in onAccessibilityEvent if we needed more granular blocks.
     }
 
     override fun onServiceConnected() {
@@ -145,7 +141,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val shouldBlock = (packageName in blockedPackages) || (isStrict && packageName in SENSITIVE_SYSTEM_PACKAGES)
 
         if (shouldBlock) {
-            val now = System.currentTimeMillis()
+            val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
             // Suppress rapid activity re-launches within 250ms across same blocked package
             if (lastBlockedPackage == packageName && (now - lastOverlayLaunchTime) < 250L) {
                 return
@@ -215,7 +211,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         try {
             val usm = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             if (usm != null) {
-                val now = System.currentTimeMillis()
+                val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
                 val events = usm.queryEvents(now - 1000L, now)
                 val event = UsageEvents.Event()
                 var lastEventPkg: String? = null

@@ -1277,7 +1277,7 @@ class MainActivity : AppCompatActivity() {
             binding.tvHeroSubtitle.text = "Protection temporarily paused"
             binding.ringGoalProgress.applyFocusStateColors(isActive = false, isPaused = true, isStrict = false)
 
-            val pauseRemaining = PrefsManager.getEmergencyPauseUntil(this) - System.currentTimeMillis()
+            val pauseRemaining = PrefsManager.getEmergencyPauseUntil(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
             if (pauseRemaining <= 0) {
                 refreshSessionUi()
                 return
@@ -1318,7 +1318,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val totalDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
-        val remaining = PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()
+        val remaining = PrefsManager.getSessionEndTime(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
         if (remaining <= 0) {
             refreshSessionUi()
             return

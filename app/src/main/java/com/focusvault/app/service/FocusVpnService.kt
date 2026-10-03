@@ -404,7 +404,7 @@ class FocusVpnService : VpnService() {
                 val queryDomain = udpDnsQuery.queryName
 
                 // Refresh cache periodically instead of reading SharedPreferences for every packet
-                val now = System.currentTimeMillis()
+                val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
                 if (now - lastCacheRefresh > CACHE_TTL_MS) {
                     val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this@FocusVpnService))
                         PrefsManager.getBlockedDomains(this@FocusVpnService) else emptySet()
@@ -432,7 +432,7 @@ class FocusVpnService : VpnService() {
                     // The DNS query matches an explicitly configured blocking rule.
                     // Return the intentional blocking response.
                     Log.i(TAG, "🛑 [STATE: BLOCKED] $queryDomain matched rule: $matchedRule")
-                    val currentAttemptTime = System.currentTimeMillis()
+                    val currentAttemptTime = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
                     val lastAttemptTime = distractionTimestamps[queryDomain] ?: 0L
                     if (currentAttemptTime - lastAttemptTime > 10_000L) {
                         distractionTimestamps[queryDomain] = currentAttemptTime
@@ -446,7 +446,7 @@ class FocusVpnService : VpnService() {
                     // Resolve it normally through a working upstream DNS server.
                     Log.d(TAG, "✅ [STATE: ALLOWED] $queryDomain resolving upstream")
                     if (PrefsManager.isSessionCurrentlyActive(this)) {
-                        PrefsManager.recordQueriedDomain(this, queryDomain)
+                        // PrefsManager.recordQueriedDomain(this, queryDomain)
                     }
 
                     val dnsPayload = udpDnsQuery.rawDnsPayload

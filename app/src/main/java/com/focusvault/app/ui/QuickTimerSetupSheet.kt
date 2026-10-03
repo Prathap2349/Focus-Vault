@@ -88,7 +88,7 @@ class QuickTimerSetupSheet : BottomSheetDialogFragment() {
             }
             binding.tvDurationHero.text = heroText
 
-            val endTimeMillis = System.currentTimeMillis() + (totalMinutes * 60_000L)
+            val endTimeMillis = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(requireContext()) + (totalMinutes * 60_000L)
             val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
             val formattedEnd = timeFormat.format(java.util.Date(endTimeMillis))
 

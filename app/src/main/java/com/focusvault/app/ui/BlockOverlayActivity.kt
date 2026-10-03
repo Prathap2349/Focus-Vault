@@ -202,7 +202,7 @@ class BlockOverlayActivity : AppCompatActivity() {
         }
 
         // Rotating calm quote
-        quoteIndex = (System.currentTimeMillis() % CALM_QUOTES.size).toInt()
+        quoteIndex = (com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this) % CALM_QUOTES.size).toInt()
         binding.tvQuote.text = CALM_QUOTES[quoteIndex]
         quoteHandler.removeCallbacks(quoteRunnable)
         quoteHandler.postDelayed(quoteRunnable, 5000)
@@ -258,7 +258,7 @@ class BlockOverlayActivity : AppCompatActivity() {
         ticker = null
 
         val totalSessionDuration = (PrefsManager.getSessionEndTime(this) - PrefsManager.getSessionStartTime(this)).coerceAtLeast(1000L)
-        val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
+        val remaining = (PrefsManager.getSessionEndTime(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)).coerceAtLeast(0L)
         if (remaining <= 0) { finishAndRemoveTask(); return }
 
         val isStrict = PrefsManager.isStrictModeActive(this)

@@ -77,7 +77,7 @@ class FocusTileService : TileService() {
                 tile.state = Tile.STATE_ACTIVE
                 tile.label = "Focusing"
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val remaining = (PrefsManager.getSessionEndTime(context) - System.currentTimeMillis()).coerceAtLeast(0L)
+                    val remaining = (PrefsManager.getSessionEndTime(context) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)).coerceAtLeast(0L)
                     val mins = (remaining / 60_000L).toInt()
                     tile.subtitle = "${mins}m remaining"
                 }

@@ -95,7 +95,7 @@ class SessionTimerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         com.focusvault.app.manager.ProtectionEngine.isTimerServiceRunning.set(true)
-        com.focusvault.app.manager.ProtectionEngine.lastTimerHeartbeat.set(System.currentTimeMillis())
+        com.focusvault.app.manager.ProtectionEngine.lastTimerHeartbeat.set(com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this))
 
         // Always satisfy Android OS foreground notification requirements on every start/restart
         ensureForegroundNotification()
@@ -134,7 +134,7 @@ class SessionTimerService : Service() {
     }
 
     private fun ensureForegroundNotification() {
-        val remaining = (PrefsManager.getSessionEndTime(this) - System.currentTimeMillis()).coerceAtLeast(0L)
+        val remaining = (PrefsManager.getSessionEndTime(this) - com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)).coerceAtLeast(0L)
         val mode = PrefsManager.getSessionMode(this)
         val isPaused = PrefsManager.isEmergencyPauseActive(this)
         var startedForegroundSuccessfully = false
@@ -170,7 +170,7 @@ class SessionTimerService : Service() {
     private fun beginSession(durationMillis: Long, mode: SessionMode) {
         endingSoonAlertSent = false
         val endTime = PrefsManager.getSessionEndTime(this)
-        val targetEnd = if (endTime > System.currentTimeMillis()) endTime else System.currentTimeMillis() + durationMillis
+        val targetEnd = if (endTime > com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)) endTime else com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this) + durationMillis
 
         ensureForegroundNotification()
         WidgetUpdater.requestUpdate(applicationContext)
@@ -185,13 +185,13 @@ class SessionTimerService : Service() {
 
             while (isActive) {
                 com.focusvault.app.manager.ProtectionEngine.isTimerServiceRunning.set(true)
-                com.focusvault.app.manager.ProtectionEngine.lastTimerHeartbeat.set(System.currentTimeMillis())
+                com.focusvault.app.manager.ProtectionEngine.lastTimerHeartbeat.set(com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this))
 
                 val isPaused = PrefsManager.isEmergencyPauseActive(applicationContext)
                 val currentEnd = PrefsManager.getSessionEndTime(applicationContext).let {
                     if (it > 0) it else endTime
                 }
-                val now = System.currentTimeMillis()
+                val now = com.focusvault.app.util.TimeUtils.getSecureCurrentTimeMillis(this)
                 val remaining = (currentEnd - now).coerceAtLeast(0L)
 
                 if (remaining <= 0) {
