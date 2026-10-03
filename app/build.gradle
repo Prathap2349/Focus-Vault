@@ -37,9 +37,11 @@ android {
 
             if (storeFilePath && file(storeFilePath).exists()) {
                 storeFile file(storeFilePath)
-                storePassword storePasswordVal ?: "android"
-                keyAlias keyAliasVal ?: "release"
-                keyPassword keyPasswordVal ?: "android"
+                storePassword storePasswordVal
+                keyAlias keyAliasVal
+                keyPassword keyPasswordVal
+            } else {
+                throw new GradleException("Release keystore not found or not configured! storeFilePath: $storeFilePath")
             }
         }
     }
@@ -49,12 +51,9 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            if (signingConfigs.release.storeFile != null) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig signingConfigs.debug
-            }
-            minifyEnabled false
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
