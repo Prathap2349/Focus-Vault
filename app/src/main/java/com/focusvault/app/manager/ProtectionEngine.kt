@@ -126,6 +126,22 @@ object ProtectionEngine {
             )
         )
 
+        
+        // Private DNS Bypass Check
+        val privateDnsMode = Settings.Global.getString(context.contentResolver, "private_dns_mode")
+        val isPrivateDnsOn = privateDnsMode == "hostname" || privateDnsMode == "opportunistic"
+        items.add(
+            HealthItem(
+                id = "private_dns",
+                title = "Private DNS Security",
+                subtitle = if (isPrivateDnsOn) "Private DNS is ON. This bypasses website blocking!" else "Private DNS is off (Safe)",
+                isHealthy = !isPrivateDnsOn,
+                isRequired = false, // Not strictly required, but lowers health score
+                fixActionTitle = "Fix",
+                fixIntent = Intent(Settings.ACTION_WIRELESS_SETTINGS) // Generic fallback for network settings
+            )
+        )
+
         // 3. Focus Timer & Session Engine check
         val isSessionActive = PrefsManager.isSessionCurrentlyActive(context)
         val sessionStateValid = PrefsManager.getSessionState(context) != com.focusvault.app.data.SessionState.PROTECTION_FAILED

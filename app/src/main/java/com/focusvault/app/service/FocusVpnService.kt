@@ -55,12 +55,22 @@ class FocusVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
     private val serviceJob = Job()
     private val scope = CoroutineScope(Dispatchers.IO + serviceJob)
+    @Volatile
     private var running = false
     private val outputMutex = Mutex()
 
     /** Remembers the last upstream DNS server that successfully answered, prioritizing it for speed. */
     @Volatile
     private var lastWorkingDnsAddress: String? = null
+
+    // Blocked domains cache
+    private var cachedBlockedDomains: Set<String> = emptySet()
+    private var lastCacheRefresh: Long = 0L
+    private val CACHE_TTL_MS = 5000L // refresh every 5 seconds
+
+    // Distraction recording debounce
+    private val distractionTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
 
     companion object {
         private const val TAG = "FocusVPN"
@@ -304,7 +314,6 @@ class FocusVpnService : VpnService() {
             val replyBuffer = ByteArray(4096)
             val replyPacket = DatagramPacket(replyBuffer, replyBuffer.size)
             socket.receive(replyPacket)
-            socket.close()
 
             if (replyPacket.length < 12) return null
             // Verify DNS transaction ID matches original request
@@ -317,8 +326,9 @@ class FocusVpnService : VpnService() {
             lastWorkingDnsAddress = endpoint.address
             return replyPacket
         } catch (_: Exception) {
-            try { socket?.close() } catch (_: Exception) {}
             return null
+        } finally {
+            try { socket?.close() } catch (_: Exception) {}
         }
     }
 
@@ -329,7 +339,7 @@ class FocusVpnService : VpnService() {
         if (endpoints.isEmpty()) return@withContext null
 
         // Race top candidates concurrently (cached server, active physical network DNS, and public fallbacks)
-        val candidates = endpoints.take(4)
+        val candidates = endpoints.take(2)
         val resultChannel = kotlinx.coroutines.channels.Channel<DatagramPacket>(candidates.size)
 
         val jobs = candidates.map { endpoint ->
@@ -353,8 +363,8 @@ class FocusVpnService : VpnService() {
         }
 
         // If top candidates didn't answer, fallback sequentially to remaining endpoints
-        if (winningReply == null && endpoints.size > 4) {
-            for (fallbackEndpoint in endpoints.drop(4)) {
+        if (winningReply == null && endpoints.size > 2) {
+            for (fallbackEndpoint in endpoints.drop(2)) {
                 val reply = forwardDnsQuery(dnsPayload, fallbackEndpoint, expectedId)
                 if (reply != null) {
                     return@withContext reply
@@ -393,17 +403,23 @@ class FocusVpnService : VpnService() {
 
                 val queryDomain = udpDnsQuery.queryName
 
-                // Fetch active blocked domains
-                val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this))
-                    PrefsManager.getBlockedDomains(this) else emptySet()
-                val permanentBlocked = if (!PrefsManager.isPermanentBlockPaused(this))
-                    PrefsManager.getPermanentBlockedDomains(this) else emptySet()
-                val allBlocked = sessionBlocked + permanentBlocked
+                // Refresh cache periodically instead of reading SharedPreferences for every packet
+                val now = System.currentTimeMillis()
+                if (now - lastCacheRefresh > CACHE_TTL_MS) {
+                    val sessionBlocked = if (PrefsManager.isSessionCurrentlyActive(this@FocusVpnService))
+                        PrefsManager.getBlockedDomains(this@FocusVpnService) else emptySet()
+                    val permanentBlocked = if (!PrefsManager.isPermanentBlockPaused(this@FocusVpnService))
+                        PrefsManager.getPermanentBlockedDomains(this@FocusVpnService) else emptySet()
+                    val allBlocked = sessionBlocked + permanentBlocked
 
-                val effectiveBlocked = allBlocked.filterNot { raw ->
-                    val b = DomainMatcher.normalizeBlockedDomain(raw)
-                    PrefsManager.isIndividualSitePaused(this@FocusVpnService, b)
-                }.toSet()
+                    cachedBlockedDomains = allBlocked.filterNot { raw ->
+                        val b = DomainMatcher.normalizeBlockedDomain(raw)
+                        PrefsManager.isIndividualSitePaused(this@FocusVpnService, b)
+                    }.toSet()
+                    lastCacheRefresh = now
+                }
+                
+                val effectiveBlocked = cachedBlockedDomains
 
                 val matchedRule = DomainMatcher.getMatchingRule(queryDomain, effectiveBlocked)
                 val isBlocked = !PrefsManager.isEmergencyPauseActive(this) && (matchedRule != null)
@@ -416,7 +432,12 @@ class FocusVpnService : VpnService() {
                     // The DNS query matches an explicitly configured blocking rule.
                     // Return the intentional blocking response.
                     Log.i(TAG, "🛑 [STATE: BLOCKED] $queryDomain matched rule: $matchedRule")
-                    com.focusvault.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
+                    val currentAttemptTime = System.currentTimeMillis()
+                    val lastAttemptTime = distractionTimestamps[queryDomain] ?: 0L
+                    if (currentAttemptTime - lastAttemptTime > 10_000L) {
+                        distractionTimestamps[queryDomain] = currentAttemptTime
+                        com.focusvault.app.manager.SessionStateManager.recordDistractionAttempt(applicationContext)
+                    }
                     val nxResponse = DnsPacketParser.buildNxDomainResponse(rawPacket, length, udpDnsQuery.questionSectionLength)
                     outputMutex.withLock { output.write(nxResponse) }
                 } else {

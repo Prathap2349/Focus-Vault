@@ -4,6 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import android.app.ForegroundServiceStartNotAllowedException
 import com.focusvault.app.manager.SessionStateManager
 import com.focusvault.app.util.PrefsManager
 import kotlinx.coroutines.CoroutineScope
@@ -46,14 +52,39 @@ class BootReceiver : BroadcastReceiver() {
                             context.applicationContext.startForegroundService(vpnIntent)
                         }
                     } catch (e: Exception) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is ForegroundServiceStartNotAllowedException) {
+                            showResumeNotification(context.applicationContext)
+                        }
                         android.util.Log.e("BootReceiver", "Could not restart 24/7 VPN after boot", e)
                     }
                 }
             } catch (e: Exception) {
-                // Fail-safe to avoid crash in background receiver
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && e is ForegroundServiceStartNotAllowedException) {
+                    showResumeNotification(context.applicationContext)
+                }
             } finally {
                 pendingResult.finish()
             }
         }
+    }
+
+    private fun showResumeNotification(context: Context) {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel("boot_resume", "Resume Protection", NotificationManager.IMPORTANCE_HIGH)
+            nm.createNotificationChannel(channel)
+        }
+        val openAppIntent = PendingIntent.getActivity(
+            context, 0, Intent(context, com.focusvault.app.ui.MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, "boot_resume")
+            .setContentTitle("Focus Vault Updated")
+            .setContentText("Tap to resume your distraction protection.")
+            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setContentIntent(openAppIntent)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(3001, notification)
     }
 }

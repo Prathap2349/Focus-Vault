@@ -58,7 +58,13 @@ class AppBlockAccessibilityService : AccessibilityService() {
         private val SENSITIVE_SYSTEM_PACKAGES = setOf(
             "com.android.settings",
             "com.google.android.packageinstaller",
-            "com.android.packageinstaller"
+            "com.android.packageinstaller",
+            "com.samsung.android.lool",
+            "com.samsung.android.sm.devicesecurity",
+            "com.miui.securitycenter",
+            "com.coloros.safecenter",
+            "com.vivo.secenv",
+            "com.android.vending" // Play Store uninstall
         )
     }
 
