@@ -9,24 +9,31 @@ import javax.crypto.spec.PBEKeySpec
 
 object SecurityManager {
 
+    private const val KEY_PIN_HASH_V4 = "pin_hash_v4"
+    private const val KEY_SEC_ANSWER_HASH_V4 = "sec_answer_hash_v4"
+
     private const val KEY_PIN_HASH_V3 = "pin_hash_v3"
     private const val KEY_PIN_SALT_V3 = "pin_salt_v3"
-    private const val KEY_PIN_HASH_V2 = "pin_hash"
-    private const val KEY_PIN_SALT_V2 = "pin_salt"
     
-    private const val KEY_SEC_QUESTION_INDEX = "sec_question_index"
+    private const val KEY_PIN_HASH_V2 = "pin_hash_v2"
+    private const val KEY_PIN_SALT_V2 = "pin_salt_v2"
+    
+    private const val KEY_SEC_QUESTION_INDEX = "security_question_index"
+    
     private const val KEY_SEC_ANSWER_HASH_V3 = "sec_answer_hash_v3"
     private const val KEY_SEC_ANSWER_SALT_V3 = "sec_answer_salt_v3"
-    private const val KEY_SEC_ANSWER_HASH_V2 = "sec_answer_hash"
-    private const val KEY_SEC_ANSWER_SALT_V2 = "sec_answer_salt"
-
-    private const val KEY_LEGACY_PIN = "legacy_plaintext_pin"
     
-    private const val KEY_FAILED_ATTEMPTS = "pin_failed_attempts"
-    private const val KEY_LOCKOUT_UNTIL = "pin_lockout_until_ms"
+    private const val KEY_SEC_ANSWER_HASH_V2 = "sec_answer_hash_v2"
+    private const val KEY_SEC_ANSWER_SALT_V2 = "sec_answer_salt_v2"
+
+    private const val KEY_LEGACY_PIN = "lock_mode_pin"
+    
+    private const val KEY_FAILED_ATTEMPTS = "failed_pin_attempts"
+    private const val KEY_LOCKOUT_UNTIL = "lockout_until_millis"
 
     const val MAX_ATTEMPTS_BEFORE_LOCKOUT = 3
     private const val PBKDF2_ITERATIONS = 100_000
+    private const val PBKDF2_ITERATIONS_V3 = 10_000
     private const val KEY_LENGTH_BITS = 256
 
     private fun prefs(context: Context) =
@@ -37,18 +44,20 @@ object SecurityManager {
 
     fun hasPin(context: Context): Boolean {
         migrateLegacyPinIfNeeded(context)
-        val v3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
-        if (!v3.isNullOrEmpty()) return true
-        val v2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
-        return !v2.isNullOrEmpty()
+        if (!prefs(context).getString(KEY_PIN_HASH_V4, null).isNullOrEmpty()) return true
+        if (!prefs(context).getString(KEY_PIN_HASH_V3, null).isNullOrEmpty()) return true
+        if (!prefs(context).getString(KEY_PIN_HASH_V2, null).isNullOrEmpty()) return true
+        return false
     }
 
     fun setPin(context: Context, pin: String) {
         val salt = generateSalt()
-        val hash = hashWithSalt(pin, salt)
+        val hash = hashWithSalt(pin, salt, PBKDF2_ITERATIONS)
+        val v4String = "v4:$PBKDF2_ITERATIONS:$salt:$hash"
         prefs(context).edit()
-            .putString(KEY_PIN_HASH_V3, hash)
-            .putString(KEY_PIN_SALT_V3, salt)
+            .putString(KEY_PIN_HASH_V4, v4String)
+            .remove(KEY_PIN_HASH_V3)
+            .remove(KEY_PIN_SALT_V3)
             .remove(KEY_PIN_HASH_V2)
             .remove(KEY_PIN_SALT_V2)
             .putInt(KEY_FAILED_ATTEMPTS, 0)
@@ -128,12 +137,27 @@ object SecurityManager {
             )
         }
 
+        val storedV4 = prefs(context).getString(KEY_PIN_HASH_V4, null)
+        if (!storedV4.isNullOrEmpty() && storedV4.startsWith("v4:")) {
+            val parts = storedV4.split(":")
+            if (parts.size == 4) {
+                val iters = parts[1].toIntOrNull() ?: PBKDF2_ITERATIONS
+                val salt = parts[2]
+                val hash = parts[3]
+                if (hashWithSalt(attempt, salt, iters) == hash) {
+                    return handleSuccessAttempt(context)
+                }
+            }
+            return handleFailedAttempt(context)
+        }
+
         val storedHashV3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
         val storedSaltV3 = prefs(context).getString(KEY_PIN_SALT_V3, null)
 
         if (!storedHashV3.isNullOrEmpty() && !storedSaltV3.isNullOrEmpty()) {
-            val attemptHash = hashWithSalt(attempt, storedSaltV3)
+            val attemptHash = hashWithSalt(attempt, storedSaltV3, PBKDF2_ITERATIONS_V3)
             if (attemptHash == storedHashV3) {
+                setPin(context, attempt) // Silent upgrade to v4
                 return handleSuccessAttempt(context)
             }
         } else {
@@ -142,7 +166,7 @@ object SecurityManager {
             if (!storedHashV2.isNullOrEmpty() && !storedSaltV2.isNullOrEmpty()) {
                 val attemptHashV2 = hashWithSha256(attempt, storedSaltV2)
                 if (attemptHashV2 == storedHashV2) {
-                    setPin(context, attempt)
+                    setPin(context, attempt) // Silent upgrade to v4
                     return handleSuccessAttempt(context)
                 }
             } else {
@@ -154,20 +178,22 @@ object SecurityManager {
     }
 
     fun hasSecurityAnswer(context: Context): Boolean {
-        val v3 = prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null)
-        if (!v3.isNullOrEmpty()) return true
-        val v2 = prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null)
-        return !v2.isNullOrEmpty()
+        if (!prefs(context).getString(KEY_SEC_ANSWER_HASH_V4, null).isNullOrEmpty()) return true
+        if (!prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null).isNullOrEmpty()) return true
+        if (!prefs(context).getString(KEY_SEC_ANSWER_HASH_V2, null).isNullOrEmpty()) return true
+        return false
     }
 
     fun setSecurityAnswer(context: Context, questionIndex: Int, rawAnswer: String) {
         val normalized = rawAnswer.trim().lowercase()
         val salt = generateSalt()
-        val hash = hashWithSalt(normalized, salt)
+        val hash = hashWithSalt(normalized, salt, PBKDF2_ITERATIONS)
+        val v4String = "v4:$PBKDF2_ITERATIONS:$salt:$hash"
         prefs(context).edit()
             .putInt(KEY_SEC_QUESTION_INDEX, questionIndex)
-            .putString(KEY_SEC_ANSWER_HASH_V3, hash)
-            .putString(KEY_SEC_ANSWER_SALT_V3, salt)
+            .putString(KEY_SEC_ANSWER_HASH_V4, v4String)
+            .remove(KEY_SEC_ANSWER_HASH_V3)
+            .remove(KEY_SEC_ANSWER_SALT_V3)
             .remove(KEY_SEC_ANSWER_HASH_V2)
             .remove(KEY_SEC_ANSWER_SALT_V2)
             .putInt(KEY_FAILED_ATTEMPTS, 0)
@@ -190,11 +216,28 @@ object SecurityManager {
         }
 
         val normalized = rawAnswer.trim().lowercase()
+        
+        val storedV4 = prefs(context).getString(KEY_SEC_ANSWER_HASH_V4, null)
+        if (!storedV4.isNullOrEmpty() && storedV4.startsWith("v4:")) {
+            val parts = storedV4.split(":")
+            if (parts.size == 4) {
+                val iters = parts[1].toIntOrNull() ?: PBKDF2_ITERATIONS
+                val salt = parts[2]
+                val hash = parts[3]
+                if (hashWithSalt(normalized, salt, iters) == hash) {
+                    return handleSuccessAttempt(context)
+                }
+            }
+            return handleFailedAttempt(context)
+        }
+
         val v3Hash = prefs(context).getString(KEY_SEC_ANSWER_HASH_V3, null)
         val v3Salt = prefs(context).getString(KEY_SEC_ANSWER_SALT_V3, null)
         
         if (!v3Hash.isNullOrEmpty() && !v3Salt.isNullOrEmpty()) {
-            if (hashWithSalt(normalized, v3Salt) == v3Hash) {
+            if (hashWithSalt(normalized, v3Salt, PBKDF2_ITERATIONS_V3) == v3Hash) {
+                val qIdx = getSecurityQuestionIndex(context)
+                setSecurityAnswer(context, qIdx, rawAnswer) // Silent upgrade to v4
                 return handleSuccessAttempt(context)
             }
         } else {
@@ -203,7 +246,7 @@ object SecurityManager {
             if (!v2Hash.isNullOrEmpty() && !v2Salt.isNullOrEmpty()) {
                 if (hashWithSha256(normalized, v2Salt) == v2Hash) {
                     val qIdx = getSecurityQuestionIndex(context)
-                    setSecurityAnswer(context, qIdx, rawAnswer)
+                    setSecurityAnswer(context, qIdx, rawAnswer) // Silent upgrade to v4
                     return handleSuccessAttempt(context)
                 }
             } else {
@@ -216,9 +259,7 @@ object SecurityManager {
 
     private fun migrateLegacyPinIfNeeded(context: Context) {
         val legacyPin = fastPrefs(context).getString(KEY_LEGACY_PIN, null)
-        val currentHashV3 = prefs(context).getString(KEY_PIN_HASH_V3, null)
-        val currentHashV2 = prefs(context).getString(KEY_PIN_HASH_V2, null)
-        if (!legacyPin.isNullOrEmpty() && currentHashV3.isNullOrEmpty() && currentHashV2.isNullOrEmpty()) {
+        if (!legacyPin.isNullOrEmpty() && !hasPin(context)) {
             setPin(context, legacyPin)
         }
     }
@@ -230,15 +271,15 @@ object SecurityManager {
         return Base64.getEncoder().encodeToString(salt)
     }
 
-    fun hashWithSalt(input: String, saltBase64: String): String {
+    fun hashWithSalt(input: String, saltBase64: String, iterations: Int): String {
         val salt = Base64.getDecoder().decode(saltBase64)
-        val spec = PBEKeySpec(input.toCharArray(), salt, PBKDF2_ITERATIONS, KEY_LENGTH_BITS)
+        val spec = PBEKeySpec(input.toCharArray(), salt, iterations, KEY_LENGTH_BITS)
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
         val hash = factory.generateSecret(spec).encoded
         return Base64.getEncoder().encodeToString(hash)
     }
 
-    private fun hashWithSha256(input: String, saltBase64: String): String {
+    fun hashWithSha256(input: String, saltBase64: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(Base64.getDecoder().decode(saltBase64))
         val hashedBytes = digest.digest(input.toByteArray(Charsets.UTF_8))
