@@ -44,13 +44,28 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         }
 
         fun scheduleAlarm(context: Context, am: AlarmManager, schedule: ScheduledSession) {
+            if (!schedule.isEnabled) return
+            
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, schedule.startHour)
                 set(Calendar.MINUTE, schedule.startMinute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
-                if (before(Calendar.getInstance())) {
-                    add(Calendar.DAY_OF_YEAR, 1)
+            }
+
+            if (schedule.daysOfWeek == "ONCE") {
+                if (calendar.before(Calendar.getInstance())) {
+                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                }
+            } else {
+                val allowedDays = schedule.daysOfWeek.split(",").mapNotNull { it.toIntOrNull() }
+                if (allowedDays.isNotEmpty()) {
+                    var attempts = 0
+                    while (!allowedDays.contains(calendar.get(Calendar.DAY_OF_WEEK)) || calendar.before(Calendar.getInstance())) {
+                        calendar.add(Calendar.DAY_OF_YEAR, 1)
+                        attempts++
+                        if (attempts > 7) break
+                    }
                 }
             }
 
@@ -69,14 +84,16 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) am.canScheduleExactAlarms() else true
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && canScheduleExact) {
                     am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
-                } else {
+                } else if (canScheduleExact) {
                     am.setExact(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
+                } else {
+                    am.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
                 }
             } catch (e: SecurityException) {
-                // If exact alarm permission is missing on Android 12+, use standard alarm
                 am.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
             }
         }
@@ -84,6 +101,9 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_TRIGGER_SCHEDULE) return
+
+        val scheduleId = intent.getLongExtra(EXTRA_SCHEDULE_ID, -1)
+        if (scheduleId == -1L) return
 
         val durationMinutes = intent.getIntExtra(EXTRA_DURATION, 25)
         val modeStr = intent.getStringExtra(EXTRA_MODE) ?: SessionMode.NORMAL.name
@@ -93,14 +113,33 @@ class ScheduleAlarmReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                val db = AppDatabase.getInstance(context)
+                val schedule = db.scheduledSessionDao().getScheduleById(scheduleId) ?: return@launch
+                
+                val currentDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+                val isOnce = schedule.daysOfWeek == "ONCE"
+                val allowedDays = if (isOnce) emptyList() else schedule.daysOfWeek.split(",").mapNotNull { it.toIntOrNull() }
+                
+                if (!isOnce && allowedDays.isNotEmpty() && !allowedDays.contains(currentDay)) {
+                    // Skip non-matching day but reschedule for the next one
+                    val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                    if (am != null) scheduleAlarm(context, am, schedule)
+                    return@launch
+                }
+
                 // Check if session is already running
                 val activeSession = SessionStateManager.getSessionSnapshot(context)
                 if (!activeSession.state.isLive) {
-                    // Start session or notify user to tap and begin
                     notifyScheduledStart(context, title, durationMinutes, mode)
                 }
-                // Reschedule for next occurrence
-                rescheduleAll(context)
+
+                // Disable "ONCE" after firing, or reschedule
+                if (isOnce) {
+                    db.scheduledSessionDao().upsert(schedule.copy(isEnabled = false))
+                } else {
+                    val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                    if (am != null) scheduleAlarm(context, am, schedule)
+                }
             } finally {
                 pendingResult.finish()
             }

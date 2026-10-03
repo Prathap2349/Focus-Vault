@@ -14,6 +14,9 @@ interface BlockedAppDao {
     @Query("SELECT packageName FROM blocked_apps WHERE isActive = 1")
     suspend fun getActivePackageNamesOnce(): List<String>
 
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(app: BlockedApp)
 
@@ -38,6 +41,9 @@ interface BlockedSiteDao {
     @Query("SELECT domain FROM blocked_sites WHERE isActive = 1 AND isPermanent = 1")
     suspend fun getPermanentActiveDomainsOnce(): List<String>
 
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(site: BlockedSite)
 
@@ -53,6 +59,9 @@ interface FocusSessionDao {
     @Query("SELECT * FROM focus_session WHERE id = 1")
     suspend fun getSessionOnce(): FocusSession?
 
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(session: FocusSession)
 }
@@ -61,6 +70,9 @@ interface FocusSessionDao {
 interface StreakDao {
     @Query("SELECT * FROM streak_day WHERE date = :date")
     suspend fun getDay(date: String): StreakDay?
+
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(day: StreakDay)
@@ -115,6 +127,9 @@ interface FocusPresetDao {
     @Query("SELECT * FROM focus_presets WHERE id = :id")
     suspend fun getPresetById(id: Long): FocusPreset?
 
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(preset: FocusPreset): Long
 
@@ -132,6 +147,9 @@ interface ScheduledSessionDao {
 
     @Query("SELECT * FROM scheduled_sessions WHERE isEnabled = 1")
     suspend fun getEnabledSchedules(): List<ScheduledSession>
+
+    @Query("SELECT * FROM scheduled_sessions WHERE id = :id")
+    suspend fun getScheduleById(id: Long): ScheduledSession?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(schedule: ScheduledSession): Long
